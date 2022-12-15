@@ -15,7 +15,7 @@ class PUPublisher(Node):
         self.declare_parameter('in_order', False)
 
         self.all_publishers = [self.create_publisher(String, f"topic_{i}", 10) for i in range(nr_publishers)]
-        timer_period = 0.005
+        timer_period = 0.5
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
 

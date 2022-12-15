@@ -28,13 +28,17 @@ class MultiSubscriber(Node):
         self.declare_parameter('nr_publishers', 6)
         nr_publishers = self.get_parameter('nr_publishers').get_parameter_value().integer_value
 
+        self.declare_parameter('intercepted', False)
+
         self.state = ReceiveBlockState("", State.OUT_OF_ORDER, 0)
         self.block_done = True
 
         self.all_subscriptions = [self.create_subscription(
-            String, f"topic_{i}",
+            String, f"topic_{i}_intercepted" if self.get_parameter("intercepted").get_parameter_value().bool_value else f"topic_{i}",
             lambda msg, i=i: self.listener_callback(i, msg), 10)
             for i in range(nr_publishers)]
+
+        self.status_publisher = self.create_publisher(String, "status", 10)
 
     def listener_callback(self, i: int, msg: String):
         #self.get_logger().info(f"Sub {i}: {msg.data}")
@@ -49,9 +53,9 @@ class MultiSubscriber(Node):
                         # Block is still in order
                         #self.get_logger().info("Received in order message")
                         self.state.received_in_order += 1
-                        if(self.state.received_in_order == len(self.all_subscriptions)):
-                            self.block_done=True
-                            #self.get_logger().info("Received entire block in order")
+                        if (self.state.received_in_order == len(self.all_subscriptions)):
+                            self.block_done = True
+                            self.get_logger().info("Received entire block in order")
                     else:
                         # Block is now out of order
                         self.get_logger().warn("Received OOO message, this block is now OOO!")
@@ -68,6 +72,9 @@ class MultiSubscriber(Node):
             else:
                 self.get_logger().warn("Starting out of order")
                 self.state = ReceiveBlockState(msg.data, State.OUT_OF_ORDER, 0)
+        status_msg = String()
+        status_msg.data = str(i)
+        self.status_publisher.publish(status_msg)
 
 
 def main(args=None):
