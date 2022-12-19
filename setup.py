@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
             'parallel_undeterministic_publisher = orchestrator_dummy_nodes.parallel_undeterministic_publisher:main',
             'multi_subscriber = orchestrator_dummy_nodes.multi_subscriber:main',
-            'interceptor = orchestrator_dummy_nodes.interceptor:main'
+            'interceptor = orchestrator_dummy_nodes.interceptor:main',
+            'graph_analysis = orchestrator_dummy_nodes.graph_analysis:main'
         ],
     },
 )
