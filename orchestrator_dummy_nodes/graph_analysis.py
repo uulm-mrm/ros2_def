@@ -1,13 +1,15 @@
-from typing import Optional
+from typing import Optional, Tuple
 from rclpy.task import Future
 import rclpy
 import networkx as nx
-from rclpy.node import Node
+import rclpy.node
 import matplotlib.pyplot as plt
 from std_msgs.msg import String
 from dataclasses import dataclass
+import dataclasses
 
 skip_topics = ["/rosout", "/parameter_events"]
+
 
 def all_equal(iterator):
     iterator = iter(iterator)
@@ -17,31 +19,59 @@ def all_equal(iterator):
         return True
     return all(first == x for x in iterator)
 
+
 @dataclass(frozen=True)
 class Topic:
     name: str
     ros_type: str
 
+    def __str__(self) -> str:
+        return f"Topic {self.name}"
+
+
+@dataclass(frozen=True)
+class TopicWithFrequency:
+    topic_name: str
+    frequency_hz: float
+
+    def __str__(self) -> str:
+        return f"Topic {self.topic_name} at {self.frequency_hz} Hz"
+
+
+@dataclass(frozen=True)
+class TopicPerOutput:
+    topic_name: str
+
+    def __str__(self) -> str:
+        return f"Topic {self.topic_name} for every output"
+
+# TODO: Define expected inputs always per output?
 
 @dataclass(frozen=True)
 class Node:
     name: str
+    # TODO: May not be fixed frequency?
+    inputs: tuple[TopicWithFrequency | TopicPerOutput, ...] = dataclasses.field(default_factory=tuple)
+    independent_outputs: tuple[TopicWithFrequency, ...] = dataclasses.field(default_factory=tuple)
+
+    def __str__(self) -> str:
+        return f"Node {self.name}"
 
 
 def create_test_graph() -> nx.DiGraph:
     DG = nx.DiGraph()
-    input_node = Node("Sensor")
+    input_node = Node("Sensor", independent_outputs=(TopicWithFrequency("T1", 1),))
     sensor_topic = Topic("T1", "sensor_sample")
     DG.add_node(input_node)
     DG.add_node(sensor_topic)
     DG.add_edge(input_node, sensor_topic)
-    perception_1 = Node("Perception 1")
+    perception_1 = Node("Perception 1", inputs=(TopicPerOutput("T1"),))
     detection_1 = Topic("T2", "detection")
     DG.add_node(perception_1)
     DG.add_edge(sensor_topic, perception_1)
     DG.add_node(detection_1)
     DG.add_edge(perception_1, detection_1)
-    perception_2 = Node("Perception 2")
+    perception_2 = Node("Perception 2", inputs=(TopicPerOutput("T1"),))
     detection_2 = Topic("T3", "detection")
     DG.add_node(perception_2)
     DG.add_edge(sensor_topic, perception_2)
@@ -54,7 +84,7 @@ def create_test_graph() -> nx.DiGraph:
     DG.add_edge(detection_2, tracking_node)
     DG.add_node(tracking_result)
     DG.add_edge(tracking_node, tracking_result)
-    perception_3 = Node("Perception 3")
+    perception_3 = Node("Perception 3",  independent_outputs=(TopicWithFrequency("T5", 10),))
     detection_3 = Topic("T5", "detection")
     DG.add_node(perception_3)
     DG.add_node(detection_3)
@@ -79,7 +109,7 @@ def analyze(DG: nx.DiGraph):
     for sn in sensor_nodes:
         print("Analyzing input from sensor node", sn)
         descendants = list(nx.descendants(DG, sn))
-        descendants.sort(key = lambda n: nx.shortest_path_length(DG, sn, n))
+        descendants.sort(key=lambda n: nx.shortest_path_length(DG, sn, n))
         for target in descendants:
             paths = list(nx.all_simple_paths(DG, sn, target))
             if len(paths) > 1:
@@ -93,7 +123,7 @@ def analyze(DG: nx.DiGraph):
                 merge_nodes.append(target)
 
 
-class Analyzer(Node):
+class Analyzer(rclpy.node.Node):
     def __init__(self):
         super().__init__('analyzer')
         self.timer = self.create_timer(0.5, self.timer_callback)
@@ -136,7 +166,9 @@ def main(args=None):
 
     DG = create_test_graph()
     pos = nx.nx_agraph.graphviz_layout(DG, prog="sfdp")
-    nx.draw(DG, pos=pos, with_labels=True)
+
+    colors = ["lightcoral" if isinstance(n, Topic) else "cornflowerblue" for n in DG]
+    nx.draw(DG, pos=pos, with_labels=True, node_color=colors)
     analyze(DG)
     plt.show()
     exit(0)
