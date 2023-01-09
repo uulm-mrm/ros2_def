@@ -13,10 +13,15 @@ class PUPublisher(Node):
         nr_publishers = self.get_parameter('nr_publishers').get_parameter_value().integer_value
 
         self.declare_parameter('in_order', False)
+        self.declare_parameter('use_timer', True)
 
         self.all_publishers = [self.create_publisher(String, f"topic_{i}", 10) for i in range(nr_publishers)]
-        timer_period = 0.5
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        if self.get_parameter('use_timer').get_parameter_value().bool_value:
+            timer_period = 0.5
+            self.timer = self.create_timer(timer_period, self.timer_callback)
+
+        self.trigger_subscriber = self.create_subscription(String, f"trigger_sample", lambda _msg: self.timer_callback(), 10)
+
         self.i = 0
 
     def timer_callback(self):
