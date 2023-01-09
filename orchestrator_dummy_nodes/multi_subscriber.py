@@ -34,7 +34,7 @@ class MultiSubscriber(Node):
         self.block_done = True
 
         self.all_subscriptions = [self.create_subscription(
-            String, f"topic_{i}_intercepted" if self.get_parameter("intercepted").get_parameter_value().bool_value else f"topic_{i}",
+            String, f"intercepted__sub__{self.get_name()}__topic_{i}" if self.get_parameter("intercepted").get_parameter_value().bool_value else f"topic_{i}",
             lambda msg, i=i: self.listener_callback(i, msg), 10)
             for i in range(nr_publishers)]
 
