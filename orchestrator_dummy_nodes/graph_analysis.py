@@ -47,6 +47,7 @@ class TopicPerOutput:
 
 # TODO: Define expected inputs always per output?
 
+
 @dataclass(frozen=True)
 class Node:
     name: str
@@ -123,6 +124,12 @@ def analyze(DG: nx.DiGraph):
                 merge_nodes.append(target)
 
 
+def draw_nodegraph(DG: nx.DiGraph):
+    pos = nx.nx_agraph.graphviz_layout(DG, prog="sfdp")
+    colors = ["lightcoral" if isinstance(n, Topic) else "cornflowerblue" for n in DG]
+    nx.draw(DG, pos=pos, with_labels=True, node_color=colors)
+
+
 class Analyzer(rclpy.node.Node):
     def __init__(self):
         super().__init__('analyzer')
@@ -134,10 +141,12 @@ class Analyzer(rclpy.node.Node):
         for topic, types in self.get_topic_names_and_types():
             if topic in skip_topics:
                 continue
-            DG.add_node(topic)
+            for type in types:
+                DG.add_node(Topic(topic, type))
 
         for node, namespace in self.get_node_names_and_namespaces():
-            DG.add_node(node)
+            # TODO: Get input specification from file or something like that
+            DG.add_node(Node(node, inputs=()))
 
         subscriptions = {}
         for node, namespace in self.get_node_names_and_namespaces():
@@ -146,7 +155,8 @@ class Analyzer(rclpy.node.Node):
                 if topic in skip_topics:
                     continue
                 subscriptions[node].append(topic)
-                DG.add_edge(topic, node)
+                for type in types:
+                    DG.add_edge(Topic(topic, type), Node(node, inputs=()))
 
         publishers = {}
         for node, namespace in self.get_node_names_and_namespaces():
@@ -155,10 +165,10 @@ class Analyzer(rclpy.node.Node):
                 if topic in skip_topics:
                     continue
                 publishers[node].append(topic)
-                DG.add_edge(node, topic)
+                for type in types:
+                    DG.add_edge(Node(node, inputs=()), Topic(topic, type))
 
-        pos = nx.nx_agraph.graphviz_layout(DG)
-        nx.draw(DG, pos=pos, with_labels=True)
+        draw_nodegraph(DG)
         plt.show()
 
 
@@ -166,12 +176,6 @@ def main(args=None):
 
     DG = create_test_graph()
     pos = nx.nx_agraph.graphviz_layout(DG, prog="sfdp")
-
-    colors = ["lightcoral" if isinstance(n, Topic) else "cornflowerblue" for n in DG]
-    nx.draw(DG, pos=pos, with_labels=True, node_color=colors)
-    analyze(DG)
-    plt.show()
-    exit(0)
 
     rclpy.init(args=args)
 
