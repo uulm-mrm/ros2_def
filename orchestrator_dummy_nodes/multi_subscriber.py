@@ -4,6 +4,7 @@ from enum import Enum
 from std_msgs.msg import String
 from dataclasses import dataclass
 
+from orchestrator_interfaces.msg import Status
 
 class State(Enum):
     IN_ORDER = 1
@@ -38,7 +39,7 @@ class MultiSubscriber(Node):
             lambda msg, i=i: self.listener_callback(i, msg), 10)
             for i in range(nr_publishers)]
 
-        self.status_publisher = self.create_publisher(String, "status", 10)
+        self.status_publisher = self.create_publisher(Status, "status", 10)
 
     def listener_callback(self, i: int, msg: String):
         #self.get_logger().info(f"Sub {i}: {msg.data}")
@@ -72,8 +73,8 @@ class MultiSubscriber(Node):
             else:
                 self.get_logger().warn("Starting out of order")
                 self.state = ReceiveBlockState(msg.data, State.OUT_OF_ORDER, 0)
-        status_msg = String()
-        status_msg.data = str(i)
+        status_msg = Status()
+        status_msg.node_name = self.get_name()
         self.status_publisher.publish(status_msg)
 
 

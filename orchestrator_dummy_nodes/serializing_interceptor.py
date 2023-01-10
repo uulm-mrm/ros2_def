@@ -1,4 +1,4 @@
-from typing import Optional
+from orchestrator_dummy_nodes.topic_remapping import initial_name_from_intercepted
 from rclpy.task import Future
 import rclpy
 from rclpy.node import Node
@@ -7,11 +7,10 @@ from rclpy.publisher import Publisher
 import rclpy.type_support
 import rclpy.logging
 
-#from std_msgs.msg import String
+from orchestrator_interfaces.msg import Status
+
 import std_msgs.msg
 import importlib
-
-import time
 
 
 def l():
@@ -22,10 +21,6 @@ def type_from_string(typestring: str):
     parts = typestring.split("/")
     module = importlib.import_module(parts[0]+"."+parts[1])
     return getattr(module, parts[2])
-
-
-def todo(msg):
-    raise NotImplementedError(msg)
 
 
 class GraphNode:
@@ -65,10 +60,9 @@ class MultiSubscriberNode(GraphNode):
             return False
         return True
 
-    def process_status(self, status_message: std_msgs.msg.String):
-        next_topic = int(status_message.data)+1
-        next_topic %= 5
-        self.next_topic = next_topic
+    def process_status(self, status_message: Status):
+        self.next_topic += 1
+        self.next_topic %= 5
         self.busy = False
 
 
@@ -97,28 +91,23 @@ class SInterceptor(Node):
 
         self.request_pub = self.create_publisher(std_msgs.msg.String, "trigger_sample", 10)
 
-        self.nodes: dict[str, GraphNode] = {"minimal_subscriber": MultiSubscriberNode()}
+        self.nodes: dict[str, GraphNode] = {"subscriber": MultiSubscriberNode()}
 
-        self.status_subscription = self.create_subscription(std_msgs.msg.String, "status", self.callback_status, 10)
+        self.status_subscription = self.create_subscription(Status, "status", self.callback_status, 10)
 
         for topic, types in self.get_topic_names_and_types():
-            # Syntax: intercepted__sub__NODE_NAME__TOPIC for subscriptions
-            if topic.startswith("/intercepted__"):
+            if topic.startswith("/intercepted"):
                 for type in types:
                     type = type_from_string(type)
-                    name_parts = topic.split("__")
-                    if name_parts[1] == "sub":
-                        node_name = name_parts[2]
-                        real_topic_name = name_parts[3]
-                        self.get_logger().info(f"Found topic {topic} as subscription by {node_name}, real name was {real_topic_name}. Type: {type}")
-                        if real_topic_name not in self.interception_subs:
-                            self.interception_subs[real_topic_name] = \
-                                self.create_subscription(type, real_topic_name,
-                                                         lambda msg, real_topic_name=real_topic_name: self.callback(msg, real_topic_name), 10)
-                        self.interception_pubs.setdefault(real_topic_name, {})[node_name] = self.create_publisher(type, topic, 10)
-                    else:
-                        raise RuntimeError(f"Topic name {topic} does not follow syntax "
-                                           "\"intercepted__sub__NODE_NAME__TOPIC\"")
+                    node_name, real_topic_name = initial_name_from_intercepted(topic)
+
+                    self.get_logger().info(f"Found topic {topic} as subscription by {node_name}, real name was {real_topic_name}. Type: {type}")
+                    if real_topic_name not in self.interception_subs:
+                        self.interception_subs[real_topic_name] = \
+                            self.create_subscription(type, real_topic_name,
+                                                     lambda msg, real_topic_name=real_topic_name: self.callback(msg, real_topic_name), 10)
+                    self.interception_pubs.setdefault(real_topic_name, {})[node_name] = self.create_publisher(type, topic, 10)
+
         self.process_buffers()
 
     def request_new_sample(self):
@@ -149,7 +138,13 @@ class SInterceptor(Node):
                     buffer.remaining_receiver_nodes.remove(r)
             self.buffered_msgs = [m for m in self.buffered_msgs if not m.done()]
 
-        # TODO: Request new samples if necessary
+        all_free = True
+        for _name, node in self.nodes.items():
+            if node.busy:
+                all_free = False
+                break
+        if all_free and len(self.buffered_msgs) == 0:
+            self.request_new_sample()
 
     def callback(self, msg: any, real_topic_name: str):
         self.get_logger().info(f"Got message {msg} on topic {real_topic_name}")
@@ -158,12 +153,12 @@ class SInterceptor(Node):
         self.buffered_msgs.append(BufferedMsg(msg, real_topic_name, destination_nodes))
         self.process_buffers()
 
-    def callback_status(self, msg: std_msgs.msg.String):
-        # TODO: Get node name, etc...
-        # assume this status is from multi subscriber 'minimal_subscriber'
+    def callback_status(self, msg: Status):
         self.get_logger().debug(f"Got status callback: {msg}")
-        for name, node in self.nodes.items():
-            node.process_status(msg)
+        if msg.node_name not in self.nodes:
+            l().warning(f"Received status for unknown node \"{msg.node_name}\"")
+            return
+        self.nodes[msg.node_name].process_status(msg)
         self.process_buffers()
 
 
@@ -171,13 +166,9 @@ def main(args=None):
     rclpy.init(args=args)
 
     interceptor = SInterceptor()
-
     rclpy.spin(interceptor)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
     interceptor.destroy_node()
+
     rclpy.shutdown()
 
 
