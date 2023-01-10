@@ -1,0 +1,11 @@
+export ADE_GITLAB=git.spatz.wtf
+export ADE_REGISTRY=git.spatz.wtf:5050
+export ADE_ENTER_CMD="zsh -li"
+export ADE_DOCKER_RUN_ARGS=" \
+    -v ${HOME}/.gitconfig:/home/${USER}/.gitconfig \
+    --rm \
+    --privileged
+"
+export ADE_IMAGES="
+    git.spatz.wtf:5050/spatzenhirn/docker/ros-development:v4.9.0
+"
