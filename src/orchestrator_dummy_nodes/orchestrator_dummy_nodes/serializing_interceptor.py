@@ -38,6 +38,10 @@ class GraphNode:
 
 
 class MultiSubscriberNode(GraphNode):
+    """
+    Model of the multi_subscriber node, which ensures that messages are only accepted sequentially
+    """
+
     def __init__(self):
         super().__init__()
         self.busy = False
@@ -116,6 +120,11 @@ class SInterceptor(Node):
         self.request_pub.publish(msg)
 
     def process_buffers(self):
+        """
+        This iterates through buffers and sends it to any node accepting it.
+        Iteration stops once no buffers accepted by nodes remain.
+        If no buffers remain and no node is busy, request new input data.
+        """
         self.get_logger().info(f"Processing {len(self.buffered_msgs)} buffers")
 
         changed = True
@@ -147,6 +156,9 @@ class SInterceptor(Node):
             self.request_new_sample()
 
     def callback(self, msg: any, real_topic_name: str):
+        """
+        This receives a message and buffers it
+        """
         self.get_logger().info(f"Got message {msg} on topic {real_topic_name}")
         destination_nodes = set(self.interception_pubs[real_topic_name].keys())
         self.get_logger().debug(f"  This message is intended for nodes: {destination_nodes}. Buffering...")
@@ -154,6 +166,9 @@ class SInterceptor(Node):
         self.process_buffers()
 
     def callback_status(self, msg: Status):
+        """
+        This receives a status message and forwards it to the corresponding node
+        """
         self.get_logger().debug(f"Got status callback: {msg}")
         if msg.node_name not in self.nodes:
             l().warning(f"Received status for unknown node \"{msg.node_name}\"")
