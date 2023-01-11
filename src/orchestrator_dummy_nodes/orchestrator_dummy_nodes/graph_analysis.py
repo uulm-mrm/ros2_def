@@ -99,9 +99,12 @@ def analyze(DG: nx.DiGraph):
     if len(list(nx.simple_cycles(DG))) > 1:
         raise RuntimeError("Graph has cycle!", nx.find_cycle(DG))
 
+    known_sensors=["Sensor", "publisher"]
     sensor_nodes = []
     for n in DG.nodes:
-        if isinstance(n, Node) and DG.in_degree(n) == 0:
+        if isinstance(n, Node):
+            print(n.name)
+        if isinstance(n, Node) and n.name in known_sensors:
             sensor_nodes.append(n)
     print("Sensor nodes:", sensor_nodes)
 
@@ -168,14 +171,17 @@ class Analyzer(rclpy.node.Node):
                 for type in types:
                     DG.add_edge(Node(node, inputs=()), Topic(topic, type))
 
+        analyze(DG)
         draw_nodegraph(DG)
         plt.show()
 
 
 def main(args=None):
 
-    DG = create_test_graph()
-    pos = nx.nx_agraph.graphviz_layout(DG, prog="sfdp")
+    #DG = create_test_graph()
+    #analyze(DG)
+    #draw_nodegraph(DG)
+    #plt.show()
 
     rclpy.init(args=args)
 
