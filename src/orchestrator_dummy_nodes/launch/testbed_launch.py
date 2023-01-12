@@ -1,6 +1,5 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from orchestrator_dummy_nodes.topic_remapping import intercepted_name
 
 nr_publishers = 5
 
