@@ -1,5 +1,6 @@
+from abc import ABC, abstractmethod
+from typing import Any, cast
 from orchestrator_dummy_nodes.topic_remapping import initial_name_from_intercepted
-from rclpy.task import Future
 import rclpy
 from rclpy.node import Node
 from rclpy.subscription import Subscription
@@ -13,8 +14,14 @@ import std_msgs.msg
 import importlib
 
 
-def l():
-    return rclpy.logging.get_logger("interceptor")
+class RcutilsLogger:
+    def debug(self, message: str) -> None: ...
+    def info(self, message: str) -> None: ...
+    def warning(self, message: str) -> None: ...
+
+
+def l() -> RcutilsLogger:
+    return rclpy.logging.get_logger("interceptor")  # type: ignore
 
 
 def type_from_string(typestring: str):
@@ -23,17 +30,19 @@ def type_from_string(typestring: str):
     return getattr(module, parts[2])
 
 
-class GraphNode:
+class GraphNode(ABC):
     def __init__(self):
         pass
 
-    def can_accept(self, topic: str, message: any) -> bool:
+    @abstractmethod
+    def can_accept(self, topic: str, message: Any) -> bool:
         """
         Indicates if the node has completed all prerequisites for processing the specified input
         """
         pass
 
-    def process_status(self, status_message: std_msgs.msg.String):
+    @abstractmethod
+    def process_status(self, status_message: Status):
         pass
 
 
@@ -47,7 +56,8 @@ class MultiSubscriberNode(GraphNode):
         self.busy = False
         self.next_topic = 0
 
-    def can_accept(self, topic: str, input: any) -> bool:
+    def can_accept(self, topic: str, message: Any) -> bool:
+        input = message
         if not isinstance(input, std_msgs.msg.String):
             l().debug("Can only accept string messages")
             return False
@@ -71,8 +81,8 @@ class MultiSubscriberNode(GraphNode):
 
 
 class BufferedMsg:
-    def __init__(self, data: any, destination_topic: str, receiver_nodes: set[str]):
-        self.data: any = data
+    def __init__(self, data: Any, destination_topic: str, receiver_nodes: set[str]):
+        self.data: Any = data
         self.destination_topic: str = destination_topic
         self.remaining_receiver_nodes: set[str] = receiver_nodes
 
@@ -85,7 +95,7 @@ class BufferedMsg:
 
 class SInterceptor(Node):
     def __init__(self):
-        super().__init__('interceptor')
+        super().__init__('interceptor')  # type: ignore
         self.interception_subs: dict[str, Subscription] = {}  # Subscribe to topic directly
         # TODO: Multiple subscribtions for same topic in same node?
         #                            Topic     Node
@@ -93,11 +103,11 @@ class SInterceptor(Node):
 
         self.buffered_msgs: list[BufferedMsg] = []
 
-        self.request_pub = self.create_publisher(std_msgs.msg.String, "trigger_sample", 10)
+        self.request_pub = self.create_publisher(std_msgs.msg.String, "trigger_sample", 10)  # type: ignore
 
         self.nodes: dict[str, GraphNode] = {"subscriber": MultiSubscriberNode()}
 
-        self.status_subscription = self.create_subscription(Status, "status", self.callback_status, 10)
+        self.status_subscription = self.create_subscription(Status, "status", self.callback_status, 10)  # type: ignore
 
         for topic, types in self.get_topic_names_and_types():
             if topic.startswith("/intercepted"):
@@ -105,17 +115,17 @@ class SInterceptor(Node):
                     type = type_from_string(type)
                     node_name, real_topic_name = initial_name_from_intercepted(topic)
 
-                    self.get_logger().info(f"Found topic {topic} as subscription by {node_name}, real name was {real_topic_name}. Type: {type}")
+                    l().info(f"Found topic {topic} as subscription by {node_name}, real name was {real_topic_name}. Type: {type}")
                     if real_topic_name not in self.interception_subs:
                         self.interception_subs[real_topic_name] = \
-                            self.create_subscription(type, real_topic_name,
-                                                     lambda msg, real_topic_name=real_topic_name: self.callback(msg, real_topic_name), 10)
-                    self.interception_pubs.setdefault(real_topic_name, {})[node_name] = self.create_publisher(type, topic, 10)
+                            self.create_subscription(type, real_topic_name,  # type: ignore
+                                                     lambda msg, real_topic_name=real_topic_name: self.callback(msg, real_topic_name), 10)  # type: ignore
+                    self.interception_pubs.setdefault(real_topic_name, {})[node_name] = self.create_publisher(type, topic, 10)  # type: ignore
 
         self.process_buffers()
 
     def request_new_sample(self):
-        self.get_logger().info("Requesting new sample")
+        l().info("Requesting new sample")
         msg = std_msgs.msg.String()
         self.request_pub.publish(msg)
 
@@ -125,43 +135,46 @@ class SInterceptor(Node):
         Iteration stops once no buffers accepted by nodes remain.
         If no buffers remain and no node is busy, request new input data.
         """
-        self.get_logger().info(f"Processing {len(self.buffered_msgs)} buffers")
+        l().info(f"Processing {len(self.buffered_msgs)} buffers")
 
         changed = True
         while changed:
             changed = False
             for buffer in self.buffered_msgs:
-                self.get_logger().debug(f"  Processing buffer {buffer}")
-                to_remove = []
+                l().debug(f"  Processing buffer {buffer}")
+                to_remove: list[str] = []
                 for receiver in buffer.remaining_receiver_nodes:
-                    self.get_logger().debug(f"    Buffer needs to be sent to {receiver}")
+                    l().debug(f"    Buffer needs to be sent to {receiver}")
                     if self.nodes[receiver].can_accept(buffer.destination_topic, buffer.data):
                         changed = True
                         self.interception_pubs[buffer.destination_topic][receiver].publish(buffer.data)
-                        self.nodes[receiver].busy = True
+                        assert isinstance(self.nodes[receiver], MultiSubscriberNode)
+                        n = cast(MultiSubscriberNode, self.nodes[receiver])
+                        n.busy = True
                         to_remove.append(receiver)
-                        self.get_logger().info(f"    Published message on topic {buffer.destination_topic} for node {receiver}")
+                        l().info(f"    Published message on topic {buffer.destination_topic} for node {receiver}")
                     else:
-                        self.get_logger().debug(f"    Receiver is not ready.")
+                        l().debug(f"    Receiver is not ready.")
                 for r in to_remove:
                     buffer.remaining_receiver_nodes.remove(r)
             self.buffered_msgs = [m for m in self.buffered_msgs if not m.done()]
 
         all_free = True
         for _name, node in self.nodes.items():
+            node = cast(MultiSubscriberNode, node)
             if node.busy:
                 all_free = False
                 break
         if all_free and len(self.buffered_msgs) == 0:
             self.request_new_sample()
 
-    def callback(self, msg: any, real_topic_name: str):
+    def callback(self, msg: Any, real_topic_name: str):
         """
         This receives a message and buffers it
         """
-        self.get_logger().info(f"Got message {msg} on topic {real_topic_name}")
+        l().info(f"Got message {msg} on topic {real_topic_name}")
         destination_nodes = set(self.interception_pubs[real_topic_name].keys())
-        self.get_logger().debug(f"  This message is intended for nodes: {destination_nodes}. Buffering...")
+        l().debug(f"  This message is intended for nodes: {destination_nodes}. Buffering...")
         self.buffered_msgs.append(BufferedMsg(msg, real_topic_name, destination_nodes))
         self.process_buffers()
 
@@ -169,16 +182,16 @@ class SInterceptor(Node):
         """
         This receives a status message and forwards it to the corresponding node
         """
-        self.get_logger().debug(f"Got status callback: {msg}")
-        if msg.node_name not in self.nodes:
-            l().warning(f"Received status for unknown node \"{msg.node_name}\"")
+        l().debug(f"Got status callback: {msg}")
+        if msg.node_name not in self.nodes:  # type: ignore
+            l().warning(f"Received status for unknown node \"{msg.node_name}\"")  # type: ignore
             return
-        self.nodes[msg.node_name].process_status(msg)
+        self.nodes[msg.node_name].process_status(msg)  # type: ignore
         self.process_buffers()
 
 
-def main(args=None):
-    rclpy.init(args=args)
+def main():
+    rclpy.init()
 
     interceptor = SInterceptor()
     rclpy.spin(interceptor)
