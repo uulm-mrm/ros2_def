@@ -99,7 +99,7 @@ def analyze(DG: nx.DiGraph):
     if len(list(nx.simple_cycles(DG))) > 1:
         raise RuntimeError("Graph has cycle!", nx.find_cycle(DG))
 
-    known_sensors=["Sensor", "publisher"]
+    known_sensors = ["Sensor", "publisher"]
     sensor_nodes = []
     for n in DG.nodes:
         if isinstance(n, Node):
@@ -135,7 +135,7 @@ def draw_nodegraph(DG: nx.DiGraph):
 
 class Analyzer(rclpy.node.Node):
     def __init__(self):
-        super().__init__('analyzer')
+        super().__init__('analyzer')  # type: ignore
         self.timer = self.create_timer(0.5, self.timer_callback)
 
     def timer_callback(self):
@@ -149,7 +149,7 @@ class Analyzer(rclpy.node.Node):
 
         for node, namespace in self.get_node_names_and_namespaces():
             # TODO: Get input specification from file or something like that
-            DG.add_node(Node(node, inputs=()))
+            DG.add_node(Node(node, inputs=()))  # type: ignore
 
         subscriptions = {}
         for node, namespace in self.get_node_names_and_namespaces():
@@ -159,7 +159,7 @@ class Analyzer(rclpy.node.Node):
                     continue
                 subscriptions[node].append(topic)
                 for type in types:
-                    DG.add_edge(Topic(topic, type), Node(node, inputs=()))
+                    DG.add_edge(Topic(topic, type), Node(node, inputs=()))  # type: ignore
 
         publishers = {}
         for node, namespace in self.get_node_names_and_namespaces():
@@ -169,7 +169,7 @@ class Analyzer(rclpy.node.Node):
                     continue
                 publishers[node].append(topic)
                 for type in types:
-                    DG.add_edge(Node(node, inputs=()), Topic(topic, type))
+                    DG.add_edge(Node(node, inputs=()), Topic(topic, type))  # type: ignore
 
         analyze(DG)
         draw_nodegraph(DG)
@@ -179,9 +179,9 @@ class Analyzer(rclpy.node.Node):
 def main(args=None):
 
     #DG = create_test_graph()
-    #analyze(DG)
-    #draw_nodegraph(DG)
-    #plt.show()
+    # analyze(DG)
+    # draw_nodegraph(DG)
+    # plt.show()
 
     rclpy.init(args=args)
 

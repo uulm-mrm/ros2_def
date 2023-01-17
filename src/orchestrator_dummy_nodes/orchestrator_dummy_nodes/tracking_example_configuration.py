@@ -1,74 +1,19 @@
-# Release Input if any available
-# Lookup expected actions
-#  -> causes new inputs, which are not released yet!
-
-# If no available: New input
-
-
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-
-
-class Cause:
-    pass
-
-
-@dataclass(frozen=True)
-class TopicInput(Cause):
-    input_topic: str
-
-
-class Effect:
-    pass
-
-
-@dataclass(frozen=True)
-class TopicPublish(Effect):
-    output_topic: str
-
-
-@dataclass(frozen=True)
-class StatusPublish(Effect):
-    pass
-
-
-class NodeModel(ABC):
-    def __init__(self, name: str) -> None:
-        self.name = name
-        super().__init__()
-
-    @abstractmethod
-    def set_busy(self) -> None:
-        ...
-
-    def get_name(self) -> str:
-        return self.name
-
-    @abstractmethod
-    def get_possible_inputs(self) -> list[Cause]:
-        ...
-
-    @abstractmethod
-    def effects_for_input(self, input: Cause) -> list[Effect]:
-        ...
-
-    @abstractmethod
-    def handle_event(self, event: Effect) -> None:
-        ...
-
-    @abstractmethod
-    def ready_for_input(self, input) -> bool:
-        ...
+from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
 
 
 class TrackingNodeModel(NodeModel):
 
     def __init__(self, name: str) -> None:
-        self.name: str = name
+        super().__init__(name,
+                         [("input_radar", "/detections/radar"),
+                          ("input_lidar", "/detections/lidar"),
+                          ("input_camera", "/detections/camera")],
+                         [("tracks", "tracks"),
+                          ("status", "status")])
         self.busy: bool = False
         self.state_last: str = "input_lidar"
 
-    def set_busy(self):
+    def process_input(self, input):
         self.busy = True
 
     def get_name(self) -> str:
@@ -122,11 +67,11 @@ class TrackingNodeModel(NodeModel):
 
 
 class DetectionNodeModel(NodeModel):
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, name: str, input_topic_name: str, output_topic_name: str):
+        super().__init__(name, [("input", input_topic_name)], [("output", output_topic_name), ("status", "status")])
         self.busy: bool = False
 
-    def set_busy(self) -> None:
+    def process_input(self, input) -> None:
         self.busy = True
 
     def get_possible_inputs(self) -> list[Cause]:
@@ -148,6 +93,19 @@ class DetectionNodeModel(NodeModel):
         return not self.busy
 
 
-d = DetectionNodeModel("abc")
+radar_detector = DetectionNodeModel("detector_radar", "/meas/radar", "/detections/radar")
+camera_detector = DetectionNodeModel("detector_camera", "/meas/camera", "/detections/camera")
+lidar_detector = DetectionNodeModel("detector_lidar", "/meas/lidar", "/detections/lidar")
 
-# TODO: Adapt serializing_interceptor to accept these node models
+tracking = TrackingNodeModel("tracking")
+gridmap = DetectionNodeModel("gridmap", "/meas/radar", "occupancy_grid")
+
+# TODO: Sensor nodes? We dont do anything with them, do we need to model them?
+
+nodes: list[NodeModel] = [radar_detector, camera_detector, lidar_detector, tracking, gridmap]
+
+# Manually decide intercepted topics for now.
+# Each topic has many names:
+#  * canonical: /meas/camera
+#  * inside nodes: camera: "output", detector_camera: "input"
+#  * intercepted: "/intercepted/detector_camera/sub/meas/camera"  (could be more subscriptions)

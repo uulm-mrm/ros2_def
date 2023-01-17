@@ -32,6 +32,8 @@ setup(
             'timed_sensor_publisher = orchestrator_dummy_nodes.timed_sensor_publisher:main',
             'tracking_subscriber = orchestrator_dummy_nodes.tracking_subscriber:main',
             'detector = orchestrator_dummy_nodes.detector:main',
+            'test = orchestrator_dummy_nodes.test:main',
+            'orchestrator = orchestrator_dummy_nodes.orchestrator:main',
         ],
     },
 )

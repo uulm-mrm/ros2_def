@@ -97,7 +97,6 @@ class SInterceptor(Node):
     def __init__(self):
         super().__init__('interceptor')  # type: ignore
         self.interception_subs: dict[str, Subscription] = {}  # Subscribe to topic directly
-        # TODO: Multiple subscribtions for same topic in same node?
         #                            Topic     Node
         self.interception_pubs: dict[str, dict[str, Publisher]] = {}  # Republish on separate topic for each sub
 

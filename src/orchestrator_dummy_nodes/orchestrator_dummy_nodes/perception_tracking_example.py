@@ -27,6 +27,11 @@ def create_recording():
     pprint(recording)
 
 
+def is_valid_batch(batch: list[tuple[float, str]]) -> bool:
+    times = [t for (t, _) in batch]
+    return (max(times) - min(times)) < 2.5*deviation_radar
+
+
 recording = [(0.0, '/lidar'),
              (0.0, '/camera'),
              (0.0012251532884920945, '/radar'),
