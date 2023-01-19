@@ -7,7 +7,7 @@
 
 import time
 from typing import Any, TypeAlias
-from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput
+from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
 from orchestrator_dummy_nodes.topic_remapping import collect_intercepted_topics
 from orchestrator_dummy_nodes.tracking_example_configuration import nodes as node_config
 from orchestrator_dummy_nodes.tracking_example_configuration import external_input_topics as external_input_topics_config
@@ -41,7 +41,7 @@ class Orchestrator(Node):
     def __init__(self) -> None:
         super().__init__("orchestrator")  # type: ignore
 
-        time.sleep(2)
+        time.sleep(3)
 
         # For now, the node models are hardcoded.
         # In the future, these could for example be loaded dynamically
@@ -95,14 +95,43 @@ class Orchestrator(Node):
 
     def get_all_effects_of(self, cause: Cause) -> list[Effect]:
         effects: list[Effect] = []
-        d(f"Cause: {cause}")
         for node in self.node_models:
-            d(f"Possible inputs: {node.get_possible_inputs()}")
             if cause in node.get_possible_inputs():
-                d(f"Effects: {node.effects_for_input(cause)}")
                 effects += node.effects_for_input(cause)
 
         return effects
+
+    def process_queue(self):
+        lc(f"Processing queue of length {len(self.cause_queue)}")
+        changed_anything: bool = False
+        processed_tasks = []
+        for (node_name, cause, data) in self.cause_queue:
+            d(f" Considering {cause} for {node_name}...")
+            node = self.node_model_by_name(node_name)
+            if node.ready_for_input(cause):
+                d(f"  Node is ready for input")
+                if isinstance(cause, TopicInput):
+                    publisher = self.interception_pubs[node_name][cause.input_topic]
+                    node_effects = node.effects_for_input(cause)
+                    d(f"  Expected effects: {node_effects}")
+                    self.expected_effect_queue += [(node_name, effect) for effect in node_effects]
+                    d(f"  Informing node model about publish")
+                    node.process_input(cause)
+                    d(f"  Publishing message for {node_name} at {publisher.topic_name}")
+                    publisher.publish(data)
+                    processed_tasks.append((node_name, cause, data))
+                    changed_anything = True
+                else:
+                    l(f"  Cause {cause} can not be handled!")
+            else:
+                d(f"  Node is not ready for input")
+            pass
+
+        for processed in processed_tasks:
+            self.cause_queue.remove(processed)
+
+        if changed_anything:
+            self.process_queue()
 
     def interception_subscription_callback(self, topic_name: TopicName, msg: Any):
         lc(f"Received message on intercepted topic {topic_name}")
@@ -110,8 +139,17 @@ class Orchestrator(Node):
         if topic_name in [name for (_type, name) in self.external_input_topics]:
             l(" This is an external input, not triggered by orchestrator.")
         else:
-            # TODO: Associate to some effect. Complete that.
-            pass
+            node_name = None
+            for node, effect in self.expected_effect_queue:
+                if effect == TopicPublish(topic_name):
+                    node_name = node
+                    break
+            if node_name is None:
+                raise RuntimeError(f"Topic publish for {topic_name} was not expected by any node!")
+            l(" Informing node model about event.")
+            self.node_model_by_name(node_name).handle_event(TopicPublish(topic_name))
+            l(" Removing event from queue of expected events.")
+            self.expected_effect_queue.remove((node_name, TopicPublish(topic_name)))
 
         cause = TopicInput(topic_name)
         effects: dict[str, list[Effect]] = {}
@@ -126,9 +164,7 @@ class Orchestrator(Node):
         self.cause_queue += causes
         l(f" Queued sending this to all receiving nodes (queue length now {len(self.cause_queue)})")
 
-        # TODO: This should only be done once we release the cause
-        # effects_list = [(node, effect) for (node, node_effects) in effects.items() for effect in node_effects]
-        # self.expected_effect_queue += effects_list
+        self.process_queue()
 
     def node_model_by_name(self, name) -> NodeModel:
         for node in self.node_models:
@@ -143,6 +179,7 @@ class Orchestrator(Node):
         self.expected_effect_queue.remove((msg.node_name, StatusPublish()))
         l(" Notifying node model of event")
         self.node_model_by_name(msg.node_name).handle_event(StatusPublish())
+        self.process_queue()
 
 
 def main():
