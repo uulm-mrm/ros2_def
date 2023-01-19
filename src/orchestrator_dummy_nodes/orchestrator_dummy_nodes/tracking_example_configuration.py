@@ -1,13 +1,15 @@
+from typing import Type
 from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
+from std_msgs.msg import String
 
 
 class TrackingNodeModel(NodeModel):
 
     def __init__(self, name: str) -> None:
         super().__init__(name,
-                         [("input_radar", "/detections/radar"),
-                          ("input_lidar", "/detections/lidar"),
-                          ("input_camera", "/detections/camera")],
+                         [("input_radar", "detections/radar"),
+                          ("input_lidar", "detections/lidar"),
+                          ("input_camera", "detections/camera")],
                          [("tracks", "tracks"),
                           ("status", "status")])
         self.busy: bool = False
@@ -20,18 +22,18 @@ class TrackingNodeModel(NodeModel):
         return self.name
 
     def get_possible_inputs(self) -> list[Cause]:
-        return [TopicInput("input_lidar"),
-                TopicInput("input_camera"),
-                TopicInput("input_radar")]
+        return [self.internal_topic_input("input_lidar"),
+                self.internal_topic_input("input_camera"),
+                self.internal_topic_input("input_radar")]
 
     def effects_for_input(self, input: Cause) -> list[Effect]:
         if not isinstance(input, TopicInput):
             raise ValueError()
 
         return {
-            TopicInput("input_lidar"): [TopicPublish("tracks")],
-            TopicInput("input_camera"): [StatusPublish()],
-            TopicInput("input_radar"): [StatusPublish()]
+            self.internal_topic_input("input_lidar"): [self.internal_topic_pub("tracks")],
+            self.internal_topic_input("input_camera"): [StatusPublish()],
+            self.internal_topic_input("input_radar"): [StatusPublish()]
         }[input]
 
     def handle_event(self, event: Effect):
@@ -47,7 +49,7 @@ class TrackingNodeModel(NodeModel):
                 self.state_last = "input_radar"
                 self.busy = False
         if isinstance(event, TopicPublish):
-            if event == TopicPublish("track") and self.state_last == "input_radar":
+            if event == self.internal_topic_pub("track") and self.state_last == "input_radar":
                 self.state_last = "input_lidar"
                 self.busy = False
             else:
@@ -57,11 +59,11 @@ class TrackingNodeModel(NodeModel):
         if self.busy:
             return False
         # Assert camera -> radar -> lidar order
-        if input == TopicInput("input_lidar"):
+        if input == self.internal_topic_input("input_lidar"):
             return self.state_last == "input_radar"
-        if input == TopicInput("input_radar"):
+        if input == self.internal_topic_input("input_radar"):
             return self.state_last == "input_camera"
-        if input == TopicInput("input_camera"):
+        if input == self.internal_topic_input("input_camera"):
             return self.state_last == "input_lidar"
         return False
 
@@ -75,34 +77,36 @@ class DetectionNodeModel(NodeModel):
         self.busy = True
 
     def get_possible_inputs(self) -> list[Cause]:
-        return [TopicInput("input")]
+        return [self.internal_topic_input("input")]
 
     def effects_for_input(self, input: Cause) -> list[Effect]:
-        if input != TopicInput("input"):
+        if input != self.internal_topic_input("input"):
             raise ValueError(f"unknown input: {input}")
-        return [TopicPublish("output")]
+        return [self.internal_topic_pub(("output"))]
 
     def handle_event(self, event: Effect) -> None:
-        if event != TopicPublish("output"):
+        if event != self.internal_topic_pub(("output")):
             raise ValueError()
         self.busy = False
 
     def ready_for_input(self, input) -> bool:
-        if input != TopicInput("input"):
+        if input != self.internal_topic_input("input"):
             return False
         return not self.busy
 
 
-radar_detector = DetectionNodeModel("detector_radar", "/meas/radar", "/detections/radar")
-camera_detector = DetectionNodeModel("detector_camera", "/meas/camera", "/detections/camera")
-lidar_detector = DetectionNodeModel("detector_lidar", "/meas/lidar", "/detections/lidar")
+radar_detector = DetectionNodeModel("detector_radar", "meas/radar", "detections/radar")
+camera_detector = DetectionNodeModel("detector_camera", "meas/camera", "detections/camera")
+lidar_detector = DetectionNodeModel("detector_lidar", "meas/lidar", "detections/lidar")
 
 tracking = TrackingNodeModel("tracking")
-gridmap = DetectionNodeModel("gridmap", "/meas/radar", "occupancy_grid")
+gridmap = DetectionNodeModel("gridmap", "meas/radar", "occupancy_grid")
 
 # TODO: Sensor nodes? We dont do anything with them, do we need to model them?
 
 nodes: list[NodeModel] = [radar_detector, camera_detector, lidar_detector, tracking, gridmap]
+
+external_input_topics: list[tuple[Type, str]] = [(String, "meas/radar"), (String, "meas/camera"), (String, "meas/lidar")]
 
 # Manually decide intercepted topics for now.
 # Each topic has many names:

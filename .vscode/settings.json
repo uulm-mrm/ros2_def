@@ -18,5 +18,10 @@
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.inlayHints.functionReturnTypes": true,
-    "python.analysis.inlayHints.variableTypes": true
+    "python.analysis.inlayHints.variableTypes": true,
+    "files.exclude": {
+        "build": true,
+        "install": true,
+        "log": true
+    }
 }

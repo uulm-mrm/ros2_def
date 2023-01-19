@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from launch_ros.remap_rule_type import SomeRemapRules
 
 
-class Cause:
+class Cause(ABC):
     pass
 
 
@@ -54,6 +54,25 @@ class NodeModel(ABC):
                 return output_name
         raise ValueError(f"Topic {topic} is not known to node")
 
+    def topic_name_from_internal(self, internal_name: str) -> str:
+        for input_name, input_topic in self.input_remappings:
+            if input_name == internal_name:
+                if not isinstance(input_topic, str):
+                    raise NotImplementedError("Remapping with substitutions is not implemented")
+                return input_topic
+        for output_name, output_topic in self.output_remappings:
+            if output_name == internal_name:
+                if not isinstance(output_topic, str):
+                    raise NotImplementedError("Remapping with substitutions is not implemented")
+                return output_topic
+        raise ValueError(f"Internal name {internal_name} has no topic name")
+
+    def internal_topic_pub(self, internal_name: str) -> TopicPublish:
+        return TopicPublish(self.topic_name_from_internal(internal_name))
+
+    def internal_topic_input(self, internal_name: str) -> TopicInput:
+        return TopicInput(self.topic_name_from_internal(internal_name))
+
     @abstractmethod
     def get_possible_inputs(self) -> list[Cause]:
         ...
@@ -69,4 +88,3 @@ class NodeModel(ABC):
     @abstractmethod
     def ready_for_input(self, input) -> bool:
         ...
-
