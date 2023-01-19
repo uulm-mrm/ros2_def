@@ -95,7 +95,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             parameters=[
                 {"processing_time": 0.03*time_scale},
             ],
-            remappings=[("input", remapping_fn("tracking", "meas/radar")),
+            remappings=[("input", remapping_fn("gridmap", "meas/radar")),
                         ("output", "occupancy_grid")],
         ),
     ])
