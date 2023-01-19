@@ -41,14 +41,14 @@ class TrackingNodeModel(NodeModel):
             if self.state_last == "input_lidar":
                 self.state_last = "input_camera"
                 self.busy = False
-            if self.state_last == "input_radar":
+            elif self.state_last == "input_radar":
                 # If last processed was radar, next should be lidar.
                 # Lidar does however cause TopicPublish, not StatusPublish!
                 raise RuntimeError(f"Expected TopicPublish for tracks, but got status instead! state_last: {self.state_last}, event: {event}")
-            if self.state_last == "input_camera":
+            elif self.state_last == "input_camera":
                 self.state_last = "input_radar"
                 self.busy = False
-        if isinstance(event, TopicPublish):
+        elif isinstance(event, TopicPublish):
             if event == self.internal_topic_pub("track") and self.state_last == "input_radar":
                 self.state_last = "input_lidar"
                 self.busy = False
