@@ -39,6 +39,7 @@ class TrackingSubscriber(Node):
 
         tracks = String()
         tracks.data = f"Tracks from inputs: [{camera.data}, {radar.data}, {msg.data}]"
+        self.get_logger().info("Publishing tracks!")
         self.tracks_publisher.publish(tracks)
 
     def camera_callback(self, msg: String):
