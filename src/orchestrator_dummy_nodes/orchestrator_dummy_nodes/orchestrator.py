@@ -85,18 +85,9 @@ class Orchestrator(Node):
                 self.interception_pubs[node] = {}
             self.interception_pubs[node][canonical_name] = publisher
 
-        # External input topics: Not controlled by us. This should probably be replaced by a bag player or simulator, which is controlled by us.
-        for type, topic in external_input_topics_config:
-            pass
-            # Currently, the external inputs are just intercepted, so they call the usual interception_subscription_callback
-            # subscription = self.create_subscription(
-            #    type, topic,
-            #    lambda msg, topic_name=topic: self.external_input_subscription_callback(topic_name, msg),
-            #    10)
-            # self.external_input_subs.append(subscription)
-
         self.status_subscription = self.create_subscription(Status, "status", self.status_callback, 10)
 
+        # Outputs which are not intercepted (should probably only be the very last nodes in the graph)
         for node in self.node_models:
             for internal_name, topic_name in node.output_remappings:
                 if topic_name in self.interception_subs:
@@ -118,14 +109,6 @@ class Orchestrator(Node):
     def non_intercepted_output_callback(self, topic_name: TopicName, node: NodeModel, msg: Any):
         lc(f"Received message on output topic {topic_name}")
         node.handle_event(TopicPublish(topic_name))
-
-    def get_all_effects_of(self, cause: Cause) -> list[Effect]:
-        effects: list[Effect] = []
-        for node in self.node_models:
-            if cause in node.get_possible_inputs():
-                effects += node.effects_for_input(cause)
-
-        return effects
 
     def process_queue(self):
         lc(f"Processing queue of length {len(self.cause_queue)}")
@@ -151,7 +134,6 @@ class Orchestrator(Node):
                     l(f"  Cause {cause} can not be handled!")
             else:
                 d(f"  Node is not ready for input")
-            pass
 
         for processed in processed_tasks:
             self.cause_queue.remove(processed)
