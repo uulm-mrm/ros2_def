@@ -1,7 +1,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from launch_ros.remap_rule_type import SomeRemapRules
+from typing import TypeAlias
 
 
 class Cause(ABC):
@@ -27,11 +27,16 @@ class StatusPublish(Effect):
     pass
 
 
+SimpleRemapRule: TypeAlias = tuple[str, str]
+SimpleRemapRules: TypeAlias = list[SimpleRemapRule]
+
+
 class NodeModel(ABC):
-    def __init__(self, name: str, input_topics: SomeRemapRules, output_topics: SomeRemapRules) -> None:
+    def __init__(self, name: str, input_topics: SimpleRemapRules, output_topics: SimpleRemapRules) -> None:
         self.name = name
-        self.input_remappings: SomeRemapRules = input_topics
-        self.output_remappings: SomeRemapRules = output_topics
+
+        self.input_remappings: SimpleRemapRules = input_topics
+        self.output_remappings: SimpleRemapRules = output_topics
         super().__init__()
 
     @abstractmethod
