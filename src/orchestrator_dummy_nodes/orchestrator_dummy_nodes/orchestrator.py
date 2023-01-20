@@ -8,7 +8,7 @@
 import time
 from typing import Any, TypeAlias
 from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
-from orchestrator_dummy_nodes.topic_remapping import collect_intercepted_topics
+from orchestrator_dummy_nodes.topic_remapping import collect_intercepted_topics, type_from_string
 from orchestrator_dummy_nodes.tracking_example_configuration import nodes as node_config
 from orchestrator_dummy_nodes.tracking_example_configuration import external_input_topics as external_input_topics_config
 
@@ -54,7 +54,11 @@ class Orchestrator(Node):
         self.interception_pubs: dict[NodeName, dict[TopicName, Publisher]] = {}
 
         self.external_input_topics = external_input_topics_config
-        self.external_input_subs: list[Subscription] = []
+        #self.external_input_subs: list[Subscription] = []
+
+        # Subscriptions for outputs which we do not need to buffer,
+        #  but we need to inform the node models that they happened
+        self.modeled_node_output_subs: dict[TopicName, Subscription] = {}
 
         # Waiting for occurence of those effects from nodes
         self.expected_effect_queue: list[tuple[str, Effect]] = []
@@ -92,6 +96,28 @@ class Orchestrator(Node):
             # self.external_input_subs.append(subscription)
 
         self.status_subscription = self.create_subscription(Status, "status", self.status_callback, 10)
+
+        for node in self.node_models:
+            for internal_name, topic_name in node.output_remappings:
+                if topic_name in self.interception_subs:
+                    continue
+                if topic_name in self.modeled_node_output_subs:
+                    continue
+                if topic_name == "status":
+                    continue
+                topic_infos = self.get_publishers_info_by_topic(topic_name)
+                assert len(topic_infos) > 0
+                type = type_from_string(topic_infos[0].topic_type)
+                l(f"Subscribing to {topic_name} ({type.__name__}) because it is an output of a node model")
+                subscription = self.create_subscription(
+                    type, topic_name,
+                    lambda msg, topic_name=topic_name, node_model=node: self.non_intercepted_output_callback(topic_name, node_model, msg),
+                    10)
+                self.modeled_node_output_subs[topic_name] = subscription
+
+    def non_intercepted_output_callback(self, topic_name: TopicName, node: NodeModel, msg: Any):
+        lc(f"Received message on output topic {topic_name}")
+        node.handle_event(TopicPublish(topic_name))
 
     def get_all_effects_of(self, cause: Cause) -> list[Effect]:
         effects: list[Effect] = []

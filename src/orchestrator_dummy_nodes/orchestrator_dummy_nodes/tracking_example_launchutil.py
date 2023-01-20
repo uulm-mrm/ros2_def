@@ -8,7 +8,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
     remapping_fn: node name x topic -> new topic name
     """
 
-    time_scale = 10
+    time_scale = 20
 
     return LaunchDescription([
         # RADAR

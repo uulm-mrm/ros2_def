@@ -49,7 +49,7 @@ class TrackingNodeModel(NodeModel):
                 self.state_last = "input_radar"
                 self.busy = False
         elif isinstance(event, TopicPublish):
-            if event == self.internal_topic_pub("track") and self.state_last == "input_radar":
+            if event == self.internal_topic_pub("tracks") and self.state_last == "input_radar":
                 self.state_last = "input_lidar"
                 self.busy = False
             else:
