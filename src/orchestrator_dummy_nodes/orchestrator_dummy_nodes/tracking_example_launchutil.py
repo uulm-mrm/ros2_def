@@ -98,4 +98,15 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             remappings=[("input", remapping_fn("gridmap", "meas/radar")),
                         ("output", "occupancy_grid")],
         ),
+
+        # PLAUSIBILITY
+        Node(
+            package='orchestrator_dummy_nodes',
+            executable='plausibility_node',
+            name='plausibility',
+            remappings=[("tracks_in", remapping_fn("plausibility", "tracks")),
+                        ("gridmap", remapping_fn("plausibility", "occupancy_grid")),
+                        ("tracks_out", "plausible_tracks"),
+                        ("tracks_out_gridmap", "gridmap_tracks")],
+        )
     ])

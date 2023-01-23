@@ -34,6 +34,7 @@ setup(
             'detector = orchestrator_dummy_nodes.detector:main',
             'test = orchestrator_dummy_nodes.test:main',
             'orchestrator = orchestrator_dummy_nodes.orchestrator:main',
+            'plausibility_node = orchestrator_dummy_nodes.plausibility_node:main',
         ],
     },
 )
