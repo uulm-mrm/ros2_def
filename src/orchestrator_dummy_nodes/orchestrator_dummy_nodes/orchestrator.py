@@ -64,6 +64,7 @@ class Orchestrator(Node):
         self.expected_effect_queue: list[tuple[str, Effect]] = []
 
         # Yet to be released causes for nodes
+        # Tuples (node, cause, data) ("detector", TopicInput("input"), MeasurementMessage(...))
         self.cause_queue: list[tuple[str, Cause, Any]] = []
 
         for node, canonical_name, intercepted_name, type in collect_intercepted_topics(self.get_topic_names_and_types()):
@@ -89,6 +90,7 @@ class Orchestrator(Node):
 
         # Outputs which are not intercepted (should probably only be the very last nodes in the graph)
         for node in self.node_models:
+            # TODO: Skip topics which do not correspond to effects? Do those exist?
             for internal_name, topic_name in node.output_remappings:
                 if topic_name in self.interception_subs:
                     continue
@@ -105,6 +107,18 @@ class Orchestrator(Node):
                     lambda msg, topic_name=topic_name, node_model=node: self.non_intercepted_output_callback(topic_name, node_model, msg),
                     10)
                 self.modeled_node_output_subs[topic_name] = subscription
+
+    def subscriptions_match_model(self) -> bool:
+        # TODO: Check if all inputs are intercepted? -> One publisher for each node model input, One subscription for topic
+        # TODO: Check if all intercepted subs have corresponding models?
+        model_inputs = []
+        intercepted_subs = []
+        interception_pubs = []
+
+        for node in self.node_models:
+            node.input_remappings
+
+        raise NotImplementedError()
 
     def non_intercepted_output_callback(self, topic_name: TopicName, node: NodeModel, msg: Any):
         lc(f"Received message on output topic {topic_name}")
@@ -158,6 +172,13 @@ class Orchestrator(Node):
             self.node_model_by_name(node_name).handle_event(TopicPublish(topic_name))
             l(" Removing event from queue of expected events.")
             self.expected_effect_queue.remove((node_name, TopicPublish(topic_name)))
+
+            # TODO: Remove only first from queue to preserve order?
+            # Add expected effects in deterministic order, complete any, but only process next causes in order?
+            # How could this be modeled if some operations run parallel?
+            # Dependency tree: Point to all that need to be completed before
+            # 
+            # Build action-DAG for every input, add edges between actions at the same node, lexicographical_topological_sort, execute?
 
         cause = TopicInput(topic_name)
         effects: dict[str, list[Effect]] = {}
