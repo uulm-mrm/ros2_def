@@ -4,6 +4,7 @@ from rclpy.node import Node
 from rclpy.timer import Timer
 
 from std_msgs.msg import String
+from orchestrator_interfaces.msg import SampleMessage
 
 
 class TimedSensorPublisher(Node):
@@ -13,7 +14,7 @@ class TimedSensorPublisher(Node):
         self.declare_parameter('timer_period_s', 0.1)
         self.declare_parameter('timer_uncertainty_s', 0.0)
 
-        self.publisher = self.create_publisher(String, "output", 10)  # type: ignore
+        self.publisher = self.create_publisher(SampleMessage, "output", 10)  # type: ignore
 
         self.timer_period_s: float = self.get_parameter('timer_period_s').get_parameter_value().double_value  # type: ignore
         self.timer_uncertainty: float = self.get_parameter('timer_uncertainty_s').get_parameter_value().double_value  # type: ignore
@@ -32,8 +33,9 @@ class TimedSensorPublisher(Node):
         assert (len(self.publish_timers) > 0)
         timer = self.publish_timers.pop(0)
         timer.destroy()
-        msg = String()
-        msg.data = 'Hello World:'
+        msg = SampleMessage()
+        msg.stamp = self.get_clock().now().to_msg()
+        msg.debug_data = 'Hello World:'
         self.publisher.publish(msg)
 
 

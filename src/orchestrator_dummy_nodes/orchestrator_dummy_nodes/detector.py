@@ -1,7 +1,9 @@
 import time
 import rclpy
 from rclpy.node import Node
+from rclpy.time import Time
 from std_msgs.msg import String
+from orchestrator_interfaces.msg import SampleMessage
 
 
 class Detector(Node):
@@ -12,13 +14,13 @@ class Detector(Node):
         self.declare_parameter("processing_time", 0.05)
         self.processing_time = self.get_parameter("processing_time").get_parameter_value().double_value
 
-        self.input_subscription = self.create_subscription(String, "input", self.input_callback, 10)
+        self.input_subscription = self.create_subscription(SampleMessage, "input", self.input_callback, 10)
         self.output_publisher = self.create_publisher(String, "output", 10)
 
-    def input_callback(self, msg: String):
+    def input_callback(self, msg: SampleMessage):
         time.sleep(self.processing_time)
         output = String()
-        output.data = "Detection from input: "+msg.data
+        output.data = "Detection from input: "+msg.debug_data
         self.output_publisher.publish(output)
 
 
