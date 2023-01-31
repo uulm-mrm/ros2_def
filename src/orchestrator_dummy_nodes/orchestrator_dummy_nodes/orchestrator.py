@@ -5,8 +5,12 @@
 # If no available: New input
 
 
+from dataclasses import dataclass
+from enum import Enum
 import time
-from typing import Any, TypeAlias
+from typing import Any, Callable, TypeAlias
+import networkx as nx
+
 from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
 from orchestrator_dummy_nodes.topic_remapping import collect_intercepted_topics, type_from_string
 from orchestrator_dummy_nodes.tracking_example_configuration import nodes as node_config
@@ -18,11 +22,33 @@ from rclpy.logging import get_logger
 
 from orchestrator_interfaces.msg import Status
 
-# Buffered message = multiple causes (one per subscription/node)
-
 
 TopicName: TypeAlias = str
 NodeName: TypeAlias = str
+
+
+class ActionState(Enum):
+    WAITING = 1
+    READY = 2
+    RUNNING = 3
+    DONE = 4
+
+
+@dataclass
+class RxAction:
+    state: ActionState
+    node: str
+    topic: str
+    data: Any | None = None
+
+
+def next_id() -> int:
+    n = next_id.value
+    next_id.value += 1
+    return n
+
+
+next_id.value = 0
 
 
 def l(msg):
@@ -40,7 +66,7 @@ def d(msg):
 class Orchestrator(Node):
     def __init__(self) -> None:
         super().__init__("orchestrator")  # type: ignore
-
+        l(f"Starting!")
         time.sleep(3)
 
         # For now, the node models are hardcoded.
@@ -48,24 +74,21 @@ class Orchestrator(Node):
         # for each node which is connected to an intercepted topic.
         self.node_models: list[NodeModel] = node_config
 
+        self.add_input()
+
         # Subscription for each topic (topic_name -> sub)
         self.interception_subs: dict[TopicName, Subscription] = {}
         # Publisher for each node (node_name -> topic_name -> pub)
         self.interception_pubs: dict[NodeName, dict[TopicName, Publisher]] = {}
 
         self.external_input_topics = external_input_topics_config
-        #self.external_input_subs: list[Subscription] = []
+        # self.external_input_subs: list[Subscription] = []
 
         # Subscriptions for outputs which we do not need to buffer,
         #  but we need to inform the node models that they happened
         self.modeled_node_output_subs: dict[TopicName, Subscription] = {}
 
-        # Waiting for occurence of those effects from nodes
-        self.expected_effect_queue: list[tuple[str, Effect]] = []
-
-        # Yet to be released causes for nodes
-        # Tuples (node, cause, data) ("detector", TopicInput("input"), MeasurementMessage(...))
-        self.cause_queue: list[tuple[str, Cause, Any]] = []
+        self.graph: nx.DiGraph = nx.DiGraph()
 
         for node, canonical_name, intercepted_name, type in collect_intercepted_topics(self.get_topic_names_and_types()):
             l(f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
@@ -88,114 +111,58 @@ class Orchestrator(Node):
 
         self.status_subscription = self.create_subscription(Status, "status", self.status_callback, 10)
 
-        # Outputs which are not intercepted (should probably only be the very last nodes in the graph)
-        for node in self.node_models:
-            # TODO: Skip topics which do not correspond to effects? Do those exist?
-            for internal_name, topic_name in node.output_remappings:
-                if topic_name in self.interception_subs:
-                    continue
-                if topic_name in self.modeled_node_output_subs:
-                    continue
-                if topic_name == "status":
-                    continue
-                topic_infos = self.get_publishers_info_by_topic(topic_name)
-                assert len(topic_infos) > 0
-                type = type_from_string(topic_infos[0].topic_type)
-                l(f"Subscribing to {topic_name} ({type.__name__}) because it is an output of a node model")
-                subscription = self.create_subscription(
-                    type, topic_name,
-                    lambda msg, topic_name=topic_name, node_model=node: self.non_intercepted_output_callback(topic_name, node_model, msg),
-                    10)
-                self.modeled_node_output_subs[topic_name] = subscription
+    def add_input(self):
+        camera_input = TopicInput("meas/camera")
+        lidar_input = TopicInput("meas/lidar")
+        radar_input = TopicInput("meas/radar")
 
-    def subscriptions_match_model(self) -> bool:
-        # TODO: Check if all inputs are intercepted? -> One publisher for each node model input, One subscription for topic
-        # TODO: Check if all intercepted subs have corresponding models?
-        model_inputs = []
-        intercepted_subs = []
-        interception_pubs = []
+        expected_rx_actions = []
 
         for node in self.node_models:
-            node.input_remappings
+            for input in [camera_input, lidar_input, radar_input]:
+                if input in node.get_possible_inputs():
+                    expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), input.input_topic))
+        l(f"{expected_rx_actions}")
 
-        raise NotImplementedError()
+        for action in expected_rx_actions:
+            self.add_action_and_effects(action)
 
-    def non_intercepted_output_callback(self, topic_name: TopicName, node: NodeModel, msg: Any):
-        lc(f"Received message on output topic {topic_name}")
-        node.handle_event(TopicPublish(topic_name))
+    def add_action_and_effects(self, action: RxAction, parent: int | None = None):
+        node_id = next_id()
+        self.graph.add_node(node_id, action=action)
 
-    def process_queue(self):
-        lc(f"Processing queue of length {len(self.cause_queue)}")
-        changed_anything: bool = False
-        processed_tasks = []
-        for (node_name, cause, data) in self.cause_queue:
-            d(f" Considering {cause} for {node_name}...")
-            node = self.node_model_by_name(node_name)
-            if node.ready_for_input(cause):
-                d(f"  Node is ready for input")
-                if isinstance(cause, TopicInput):
-                    publisher = self.interception_pubs[node_name][cause.input_topic]
-                    node_effects = node.effects_for_input(cause)
-                    d(f"  Expected effects: {node_effects}")
-                    self.expected_effect_queue += [(node_name, effect) for effect in node_effects]
-                    d(f"  Informing node model about publish")
-                    node.process_input(cause)
-                    d(f"  Publishing message for {node_name} at {publisher.topic_name}")
-                    publisher.publish(data)
-                    processed_tasks.append((node_name, cause, data))
-                    changed_anything = True
-                else:
-                    l(f"  Cause {cause} can not be handled!")
-            else:
-                d(f"  Node is not ready for input")
+        # Sibling connections: Complete all actions at this node before the to-be-added action
+        for node, node_data in self.graph.nodes(data=True):
+            other_action: RxAction = node_data["data"]  # type: ignore
+            if other_action.node == action.node and node != node_id:
+                self.graph.add_edge(node_id, node)
 
-        for processed in processed_tasks:
-            self.cause_queue.remove(processed)
+        if parent is not None:
+            self.graph.add_edge(node_id, parent)
 
-        if changed_anything:
-            self.process_queue()
+        topic_input_cause = TopicInput(action.topic)
+        node_model = self.node_model_by_name(action.node)
+        assert topic_input_cause in node_model.get_possible_inputs()
+        effects = node_model.effects_for_input(topic_input_cause)
+
+        # Recursively add action nodes for publish events in the current action
+        for effect in effects:
+            if isinstance(effect, TopicPublish):
+                resulting_input = TopicInput(effect.output_topic)
+                for node in self.node_models:
+                    if resulting_input in node.get_possible_inputs():
+                        self.add_action_and_effects(RxAction(ActionState.WAITING, node.get_name(), resulting_input.input_topic), node_id)
 
     def interception_subscription_callback(self, topic_name: TopicName, msg: Any):
         lc(f"Received message on intercepted topic {topic_name}")
 
-        if topic_name in [name for (_type, name) in self.external_input_topics]:
-            l(" This is an external input, not triggered by orchestrator.")
-        else:
-            node_name = None
-            for node, effect in self.expected_effect_queue:
-                if effect == TopicPublish(topic_name):
-                    node_name = node
-                    break
-            if node_name is None:
-                raise RuntimeError(f"Topic publish for {topic_name} was not expected by any node!")
-            l(" Informing node model about event.")
-            self.node_model_by_name(node_name).handle_event(TopicPublish(topic_name))
-            l(" Removing event from queue of expected events.")
-            self.expected_effect_queue.remove((node_name, TopicPublish(topic_name)))
-
-            # For expected/arriving input, create receiving actions (waiting) for each initial subscriber
-            # Recursively, for each added action, add successor actions. Add parent as dependency
-            # If actions for the same node already exist, add as dependencies (this ensures sequence-determinism at each node)
-            # 
-            # To advance processing, execute all actions which are ready and have no dependencies (setting it to running)
-            # 
-            # For incoming messages, set actions requiring it to ready, and remove the (running) action causing it
-
-
-        cause = TopicInput(topic_name)
-        effects: dict[str, list[Effect]] = {}
-        for node in self.node_models:
-            if cause in node.get_possible_inputs():
-                effects[node.get_name()] = node.effects_for_input(cause)
-
-        l(f" This input has the following effects: {effects}")
-
-        # Send this to all nodes which can receive it
-        causes = [(node, cause, msg) for node in effects.keys()]
-        self.cause_queue += causes
-        l(f" Queued sending this to all receiving nodes (queue length now {len(self.cause_queue)})")
-
-        self.process_queue()
+        # For expected/arriving input, create receiving actions (waiting) for each initial subscriber
+        # Recursively, for each added action, add successor actions. Add parent as dependency
+        # If actions for the same node already exist, add as dependencies (this ensures sequence-determinism at each node)
+        #
+        # To advance processing, execute all actions which are ready and have no dependencies (setting it to running)
+        #
+        # For incoming messages, set actions requiring it to ready, and remove the (running) action causing it
 
     def node_model_by_name(self, name) -> NodeModel:
         for node in self.node_models:
@@ -206,11 +173,6 @@ class Orchestrator(Node):
 
     def status_callback(self, msg: Status):
         lc(f"Received status message from node {msg.node_name}")
-        l(" Removing expected effect from queue")
-        self.expected_effect_queue.remove((msg.node_name, StatusPublish()))
-        l(" Notifying node model of event")
-        self.node_model_by_name(msg.node_name).handle_event(StatusPublish())
-        self.process_queue()
 
 
 def main():
