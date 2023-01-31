@@ -173,12 +173,14 @@ class Orchestrator(Node):
             l(" Removing event from queue of expected events.")
             self.expected_effect_queue.remove((node_name, TopicPublish(topic_name)))
 
-            # TODO: Remove only first from queue to preserve order?
-            # Add expected effects in deterministic order, complete any, but only process next causes in order?
-            # How could this be modeled if some operations run parallel?
-            # Dependency tree: Point to all that need to be completed before
+            # For expected/arriving input, create receiving actions (waiting) for each initial subscriber
+            # Recursively, for each added action, add successor actions. Add parent as dependency
+            # If actions for the same node already exist, add as dependencies (this ensures sequence-determinism at each node)
             # 
-            # Build action-DAG for every input, add edges between actions at the same node, lexicographical_topological_sort, execute?
+            # To advance processing, execute all actions which are ready and have no dependencies (setting it to running)
+            # 
+            # For incoming messages, set actions requiring it to ready, and remove the (running) action causing it
+
 
         cause = TopicInput(topic_name)
         effects: dict[str, list[Effect]] = {}
