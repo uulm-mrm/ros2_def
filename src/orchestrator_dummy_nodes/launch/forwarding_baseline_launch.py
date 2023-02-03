@@ -1,0 +1,23 @@
+from launch import LaunchDescription
+from launch_ros.actions import Node
+from orchestrator_dummy_nodes.topic_remapping import intercepted_name
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import TextSubstitution
+from launch.substitutions import LaunchConfiguration
+
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            "log_level",
+            default_value=TextSubstitution(text=str("INFO")),
+            description="Logging level"
+        ),
+        Node(
+            package='orchestrator_dummy_nodes',
+            executable='test',
+            name='test',
+            remappings=[("input", "t"), ("output", "t")],
+            arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')]
+        ),
+    ])

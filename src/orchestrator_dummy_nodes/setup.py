@@ -35,6 +35,7 @@ setup(
             'test = orchestrator_dummy_nodes.test:main',
             'orchestrator = orchestrator_dummy_nodes.orchestrator:main',
             'plausibility_node = orchestrator_dummy_nodes.plausibility_node:main',
+            'forwarding_node = orchestrator_dummy_nodes.forwarding_node:main',
         ],
     },
 )
