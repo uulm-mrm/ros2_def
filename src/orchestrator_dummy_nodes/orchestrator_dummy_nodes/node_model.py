@@ -39,10 +39,6 @@ class NodeModel(ABC):
         self.output_remappings: SimpleRemapRules = output_topics
         super().__init__()
 
-    @abstractmethod
-    def process_input(self, input) -> None:
-        ...
-
     def get_name(self) -> str:
         return self.name
 
@@ -86,10 +82,3 @@ class NodeModel(ABC):
     def effects_for_input(self, input: Cause) -> list[Effect]:
         ...
 
-    @abstractmethod
-    def handle_event(self, event: Effect) -> None:
-        ...
-
-    @abstractmethod
-    def ready_for_input(self, input) -> bool:
-        ...
