@@ -17,7 +17,7 @@ import netgraph
 from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
 from orchestrator_dummy_nodes.topic_remapping import collect_intercepted_topics, type_from_string
 # from orchestrator_dummy_nodes.tracking_example_configuration import
-from orchestrator_dummy_nodes.cam_test_configuration import external_input_topics as external_input_topics_config, nodes as node_config
+from orchestrator_dummy_nodes.tracking_example_configuration import external_input_topics as external_input_topics_config, nodes as node_config, output_topics
 
 from rclpy.node import Node, Subscription, Publisher
 import rclpy
@@ -65,6 +65,10 @@ def d(msg):
     return get_logger("l").debug(msg)
 
 
+class ActionNotFoundError(Exception):
+    pass
+
+
 class Orchestrator(Node):
     def __init__(self) -> None:
         super().__init__("orchestrator")  # type: ignore
@@ -92,7 +96,9 @@ class Orchestrator(Node):
 
         self.timestep: int = 0
         self.add_input(self.timestep)
-        self.add_input(1)
+        for _i in range(11):
+            self.timestep += 1
+            self.add_input(self.timestep)
 
         labels = {}
         for node, node_data in self.graph.nodes(data=True):
@@ -140,7 +146,7 @@ class Orchestrator(Node):
             placement = plot_instance._get_annotation_placement(artist)
             plot_instance._add_annotation(artist, *placement)
 
-        plt.show()
+        # plt.show()
 
         for node, canonical_name, intercepted_name, type in collect_intercepted_topics(self.get_topic_names_and_types()):
             l(f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
@@ -161,10 +167,22 @@ class Orchestrator(Node):
                 self.interception_pubs[node] = {}
             self.interception_pubs[node][canonical_name] = publisher
 
+        # Subscribe to outputs (tracking example: plausibility node publishers)
+        self.output_subs: list[Subscription] = []
+        for MessageType, topic_name in output_topics:
+            l(f"Subscribing to output topic: {topic_name}")
+            sub = self.create_subscription(
+                MessageType,
+                topic_name,
+                lambda msg, topic_name=topic_name: self.interception_subscription_callback(topic_name, msg),
+                10)
+            self.output_subs.append(sub)
+
         self.status_subscription = self.create_subscription(Status, "status", self.status_callback, 10)
 
     def add_input(self, timestep):
         inputs = [TopicInput(top) for (_type, top) in external_input_topics_config]
+        lc(f"Adding inputs on {len(inputs)} topics")
 
         expected_rx_actions = []
 
@@ -173,6 +191,7 @@ class Orchestrator(Node):
                 if input in node.get_possible_inputs():
                     expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), input.input_topic))
 
+        l(f" Those inputs cause {len(expected_rx_actions)} rx actions")
         for action in expected_rx_actions:
             self.add_action_and_effects(action, timestep)
 
@@ -215,21 +234,23 @@ class Orchestrator(Node):
                         self.add_action_and_effects(RxAction(ActionState.WAITING, node.get_name(), resulting_input.input_topic), timestep, node_id)
 
     def process(self):
-        lc("Processing Graph")
+        lc(f"Processing Graph with {self.graph.number_of_nodes()} nodes")
         repeat: bool = True
         while repeat:
             repeat = False
             for graph_node_id, node_data in self.graph.nodes(data=True):
+                d(f" Node {graph_node_id}: {node_data}")
                 # Skip actions that still have ordering constraints
                 if cast(int, self.graph.out_degree(graph_node_id)) > 0:
                     continue
-                d: RxAction = node_data["data"]  # type: ignore
+                data: RxAction = node_data["data"]  # type: ignore
                 # Skip actions which are still missing their data
-                if d.state != ActionState.READY:
+                if data.state != ActionState.READY:
                     continue
-                l(f"  Action is ready and has no constraints: RX of {d.topic} ({type(d.data).__name__}) at node {d.node}. Publishing data...")
+                l(f"  Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
                 repeat = True
-                self.interception_pubs[d.node][d.topic].publish(d.data)
+                data.state = ActionState.RUNNING
+                self.interception_pubs[data.node][data.topic].publish(data.data)
         l(" Done processing!")
 
     def find_running_action(self, published_topic_name: TopicName) -> int:
@@ -241,7 +262,7 @@ class Orchestrator(Node):
                 for output in outputs:
                     if output == TopicPublish(published_topic_name):
                         return node_id
-        raise RuntimeError(f"There is no currently running action which should have published a message on {published_topic_name}")
+        raise ActionNotFoundError(f"There is no currently running action which should have published a message on {published_topic_name}")
 
     def find_running_action_status(self, node_name: NodeName) -> int:
         for node_id, node_data in self.graph.nodes(data=True):
@@ -252,16 +273,24 @@ class Orchestrator(Node):
                 for output in outputs:
                     if output == StatusPublish():
                         return node_id
-        raise RuntimeError(f"There is no currently running action for node {node_name} which should have published a status message")
+        raise ActionNotFoundError(f"There is no currently running action for node {node_name} which should have published a status message")
 
     def interception_subscription_callback(self, topic_name: TopicName, msg: Any):
         lc(f"Received message on intercepted topic {topic_name}")
 
         # Complete the action which sent this message
-        cause_action_id = self.find_running_action(topic_name)
-        causing_action: RxAction = self.graph.nodes[cause_action_id]["data"]  # type: ignore
-        l(f"  This completes the {causing_action.topic} callback of {causing_action.node}! Removing node...")
-        self.graph.remove_node(cause_action_id)
+        try:
+            cause_action_id = self.find_running_action(topic_name)
+            causing_action: RxAction = self.graph.nodes[cause_action_id]["data"]  # type: ignore
+            l(f"  This completes the {causing_action.topic} callback of {causing_action.node}! Removing node...")
+            self.graph.remove_node(cause_action_id)
+        except ActionNotFoundError:
+            if topic_name in [name for (_type, name) in external_input_topics_config]:
+                l("  This is an external input.")
+                pass
+            else:
+                l("  This is not an external input!")
+                raise
 
         # Buffer this data for next actions
         i: int = 0
