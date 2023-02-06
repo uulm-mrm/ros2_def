@@ -36,6 +36,12 @@ class ActionState(Enum):
     RUNNING = 3  # Running, expecting output as specified by model
 
 
+class EdgeType(Enum):
+    CAUSALITY = 0  # Edge points to the action which produces a required input
+    SAME_NODE = 1  # Edge points to a previous action at the same node
+    SAME_TOPIC = 2  # Points to a previous action receiving a topic published by this action
+
+
 @dataclass
 class RxAction:
     state: ActionState
@@ -100,56 +106,8 @@ class Orchestrator(Node):
             self.timestep += 1
             self.add_input(self.timestep)
 
-        labels = {}
-        for node, node_data in self.graph.nodes(data=True):
-            d: RxAction = node_data["data"]  # type: ignore
-            labels[node] = f"{d.node}: rx {d.topic}"
-
-        color_map = {
-            "same-node": "tab:green",
-            "same-topic": "tab:orange",
-            "causality": "tab:blue"
-        }
-        edge_colors = {}
-        for u, v, edge_data in self.graph.edges(data=True):  # type: ignore
-            edge_type = edge_data["edge_type"]  # type: ignore
-            edge_colors[(u, v)] = color_map[edge_type]
-
-        edge_proxy_artists = []
-        for name, color in color_map.items():
-            proxy = plt.Line2D(  # type: ignore
-                [], [],
-                linestyle='-',
-                color=color,
-                label=name
-            )
-            edge_proxy_artists.append(proxy)
-
-        fig = plt.figure()
-        ax: plt.Axes = fig.subplots()  # type: ignore
-        edge_legend = ax.legend(handles=edge_proxy_artists, loc='upper right', title='Edges')
-        ax.add_artist(edge_legend)
-
-        node_to_community = {}
-        for node, node_data in self.graph.nodes(data=True):
-            timestep: int = node_data["timestep"]  # type: ignore
-            node_to_community[node] = timestep
-
-        plot_instance = netgraph.InteractiveGraph(self.graph,
-                                                  node_layout='community',
-                                                  node_layout_kwargs=dict(node_to_community=node_to_community),
-                                                  annotations=labels,
-                                                  arrows=True,
-                                                  edge_color=edge_colors,
-                                                  ax=ax)
-        for artist in plot_instance.artist_to_annotation:
-            placement = plot_instance._get_annotation_placement(artist)
-            plot_instance._add_annotation(artist, *placement)
-
-        # plt.show()
-
         for node, canonical_name, intercepted_name, type in collect_intercepted_topics(self.get_topic_names_and_types()):
-            l(f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
+            lc(f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
             # Subscribe to the input topic
             if canonical_name not in self.interception_subs:
                 l(f" Subscribing to {canonical_name}")
@@ -195,6 +153,56 @@ class Orchestrator(Node):
         for action in expected_rx_actions:
             self.add_action_and_effects(action, timestep)
 
+    def plot_graph(self):
+        annotations = {}
+        for node, node_data in self.graph.nodes(data=True):
+            d: RxAction = node_data["data"]  # type: ignore
+            annotations[node] = f"{d.node}: rx {d.topic}"
+
+        color_map = {
+            EdgeType.SAME_NODE: "tab:green",
+            EdgeType.SAME_TOPIC: "tab:orange",
+            EdgeType.CAUSALITY: "tab:blue"
+        }
+        edge_colors = {}
+        for u, v, edge_data in self.graph.edges(data=True):  # type: ignore
+            edge_type = edge_data["edge_type"]  # type: ignore
+            edge_colors[(u, v)] = color_map[edge_type]
+
+        edge_proxy_artists = []
+        for name, color in color_map.items():
+            proxy = plt.Line2D(  # type: ignore
+                [], [],
+                linestyle='-',
+                color=color,
+                label=name.name
+            )
+            edge_proxy_artists.append(proxy)
+
+        fig = plt.figure()
+        ax: plt.Axes = fig.subplots()  # type: ignore
+        edge_legend = ax.legend(handles=edge_proxy_artists, loc='upper right', title='Edges')
+        ax.add_artist(edge_legend)
+
+        node_to_community = {}
+        for node, node_data in self.graph.nodes(data=True):
+            timestep: int = node_data["timestep"]  # type: ignore
+            node_to_community[node] = timestep
+
+        plot_instance = netgraph.InteractiveGraph(self.graph,
+                                                  node_layout='community',
+                                                  node_layout_kwargs=dict(node_to_community=node_to_community),
+                                                  annotations=annotations,
+                                                  node_labels=True,
+                                                  arrows=True,
+                                                  edge_color=edge_colors,
+                                                  ax=ax)
+        for artist in plot_instance.artist_to_annotation:
+            placement = plot_instance._get_annotation_placement(artist)
+            plot_instance._add_annotation(artist, *placement)
+
+        plt.show()
+
     def add_action_and_effects(self, action: RxAction, timestep: int,  parent: int | None = None):
         # Parent: Node ID of the action causing this topic-publish. Should only be None for inputs
         node_id = next_id()
@@ -204,10 +212,10 @@ class Orchestrator(Node):
         for node, node_data in self.graph.nodes(data=True):
             other_action: RxAction = node_data["data"]  # type: ignore
             if other_action.node == action.node and node != node_id:
-                self.graph.add_edge(node_id, node, edge_type="same-node")
+                self.graph.add_edge(node_id, node, edge_type=EdgeType.SAME_NODE)
 
         if parent is not None:
-            self.graph.add_edge(node_id, parent, edge_type="causality")
+            self.graph.add_edge(node_id, parent, edge_type=EdgeType.CAUSALITY)
 
         topic_input_cause = TopicInput(action.topic)
         node_model = self.node_model_by_name(action.node)
@@ -223,7 +231,8 @@ class Orchestrator(Node):
                 for node, node_data in self.graph.nodes(data=True):
                     other_action: RxAction = node_data["data"]  # type: ignore
                     if other_action.topic == effect.output_topic:
-                        self.graph.add_edge(node_id, node, edge_type="same-topic")
+                        # TODO: I think this occurs in other, unneeded cases?
+                        self.graph.add_edge(node_id, node, edge_type=EdgeType.SAME_TOPIC)
 
         # Recursively add action nodes for publish events in the current action
         for effect in effects:
@@ -239,7 +248,6 @@ class Orchestrator(Node):
         while repeat:
             repeat = False
             for graph_node_id, node_data in self.graph.nodes(data=True):
-                d(f" Node {graph_node_id}: {node_data}")
                 # Skip actions that still have ordering constraints
                 if cast(int, self.graph.out_degree(graph_node_id)) > 0:
                     continue
@@ -279,30 +287,63 @@ class Orchestrator(Node):
         lc(f"Received message on intercepted topic {topic_name}")
 
         # Complete the action which sent this message
+        cause_action_id = None
+        input_timestep = None
         try:
             cause_action_id = self.find_running_action(topic_name)
             causing_action: RxAction = self.graph.nodes[cause_action_id]["data"]  # type: ignore
             l(f"  This completes the {causing_action.topic} callback of {causing_action.node}! Removing node...")
-            self.graph.remove_node(cause_action_id)
+            # Removing node happens below, since we still need it to find actions caused by this...
         except ActionNotFoundError:
             if topic_name in [name for (_type, name) in external_input_topics_config]:
-                l("  This is an external input.")
-                pass
+                # Find the timestep of the earliest matching waiting action, such that we don't accidentally
+                #  buffer this data for later inputs below.
+                for action_node_id, node_data in self.graph.nodes(data=True):
+                    rxdata: RxAction = node_data["data"]  # type: ignore
+                    if rxdata.topic != topic_name:
+                        continue
+                    if rxdata.state != ActionState.WAITING:
+                        continue
+                    t = cast(int, node_data["timestep"])  # type: ignore
+                    if input_timestep is None or t < input_timestep:
+                        input_timestep = t
+                l(f"  This is an external input for timestep {input_timestep}.")
             else:
                 l("  This is not an external input!")
                 raise
 
         # Buffer this data for next actions
-        # TODO: This buffers the data for all upcoming timesteps.
-        #   It should only buffer for the next, or the other actions should not be WAITING.
         i: int = 0
-        for _node, node_data in self.graph.nodes(data=True):
-            d: RxAction = node_data["data"]  # type: ignore
-            if d.state == ActionState.WAITING and d.topic == topic_name:
-                i += 1
-                d.state = ActionState.READY
-                d.data = msg
-        l(f"  {i} actions are now ready to forward data")
+        for action_node_id, node_data in self.graph.nodes(data=True):
+            rxdata: RxAction = node_data["data"]  # type: ignore
+            if rxdata.topic != topic_name:
+                continue
+            if rxdata.state != ActionState.WAITING:
+                continue
+
+            # If we caused this publish, only advance the actions directly caused by this ons
+            if cause_action_id is not None:
+                # Skip if this is action is not caused by cause_action_id
+                #  or edge type is not "causality"
+                if not self.graph.has_successor(action_node_id, cause_action_id) \
+                        or not self.graph.edges[action_node_id, cause_action_id]["edge_type"] == EdgeType.CAUSALITY:
+                    continue
+            else:
+                # This is an input, so we only buffer the data for the earliest timestep.
+                assert input_timestep is not None
+                if node_data["timestep"] != input_timestep:  # type: ignore
+                    continue
+
+            d(f" Buffering data and readying action {action_node_id}: {node_data}")
+            i += 1
+            rxdata.state = ActionState.READY
+            assert rxdata.data is None
+            rxdata.data = msg
+
+        l(f"  Buffered data for {i} actions")
+
+        if cause_action_id != None:
+            self.graph.remove_node(cause_action_id)
 
         self.process()
 
@@ -320,6 +361,7 @@ class Orchestrator(Node):
         causing_action: RxAction = self.graph.nodes[cause_action_id]["data"]  # type: ignore
         l(f"  This completes the {causing_action.topic} callback of {causing_action.node}! Removing node...")
         self.graph.remove_node(cause_action_id)
+        self.process()
 
 
 def main():
