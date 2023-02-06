@@ -293,6 +293,8 @@ class Orchestrator(Node):
                 raise
 
         # Buffer this data for next actions
+        # TODO: This buffers the data for all upcoming timesteps.
+        #   It should only buffer for the next, or the other actions should not be WAITING.
         i: int = 0
         for _node, node_data in self.graph.nodes(data=True):
             d: RxAction = node_data["data"]  # type: ignore
