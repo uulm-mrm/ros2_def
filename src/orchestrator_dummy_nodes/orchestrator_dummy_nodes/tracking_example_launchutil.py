@@ -1,4 +1,6 @@
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from collections.abc import Callable
 
@@ -9,8 +11,14 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
     """
 
     time_scale = 20
+    logger = LaunchConfiguration("log_level")
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            "log_level",
+            default_value=["info"],
+            description="Logging level",
+        ),
         # RADAR
         Node(
             package='orchestrator_dummy_nodes',
@@ -21,6 +29,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
                 {"timer_uncertainty_s": 0.005*time_scale},
             ],
             remappings=[("output", "meas/radar")],
+            arguments=['--ros-args', '--log-level', ['radar:=', logger]],
         ),  # type: ignore
         Node(
             package='orchestrator_dummy_nodes',
@@ -31,6 +40,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             ],
             remappings=[("input", remapping_fn("detector_radar", "meas/radar")),
                         ("output", "detections/radar")],
+            arguments=['--ros-args', '--log-level', ['detector_radar:=', logger]],
         ),
 
         # CAMERA
@@ -43,6 +53,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
                 {"timer_uncertainty_s": 0.0*time_scale},
             ],
             remappings=[("output", "meas/camera")],
+            arguments=['--ros-args', '--log-level', ['camera:=', logger]],
         ),
         Node(
             package='orchestrator_dummy_nodes',
@@ -53,6 +64,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             ],
             remappings=[("input", remapping_fn("detector_camera", "meas/camera")),
                         ("output", "detections/camera")],
+            arguments=['--ros-args', '--log-level', ['detector_camera:=', logger]],
         ),
 
         # LIDAR
@@ -65,6 +77,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
                 {"timer_uncertainty_s": 0.0*time_scale},
             ],
             remappings=[("output", "meas/lidar")],
+            arguments=['--ros-args', '--log-level', ['lidar:=', logger]],
         ),
         Node(
             package='orchestrator_dummy_nodes',
@@ -75,6 +88,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             ],
             remappings=[("input", remapping_fn("detector_lidar", "meas/lidar")),
                         ("output", "detections/lidar")],
+            arguments=['--ros-args', '--log-level', ['detector_lidar:=', logger]],
         ),
 
         # TRACKING
@@ -84,7 +98,8 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             name='tracking',
             remappings=[("input_radar", remapping_fn("tracking", "detections/radar")),
                         ("input_lidar", remapping_fn("tracking", "detections/lidar")),
-                        ("input_camera", remapping_fn("tracking", "detections/camera"))]
+                        ("input_camera", remapping_fn("tracking", "detections/camera"))],
+            arguments=['--ros-args', '--log-level', ['tracking:=', logger]],
         ),
 
         # GRIDMAP
@@ -97,6 +112,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             ],
             remappings=[("input", remapping_fn("gridmap", "meas/radar")),
                         ("output", "occupancy_grid")],
+            arguments=['--ros-args', '--log-level', ['gridmap:=', logger]],
         ),
 
         # PLAUSIBILITY
@@ -108,5 +124,6 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
                         ("gridmap", remapping_fn("plausibility", "occupancy_grid")),
                         ("tracks_out", "plausible_tracks"),
                         ("tracks_out_gridmap", "gridmap_tracks")],
+            arguments=['--ros-args', '--log-level', ['plausibility:=', logger]],
         )
     ])

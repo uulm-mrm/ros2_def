@@ -21,6 +21,7 @@ class Detector(Node):
         time.sleep(self.processing_time)
         output = String()
         output.data = "Detection from input: "+msg.debug_data
+        self.get_logger().debug("Got input, publishing output")
         self.output_publisher.publish(output)
 
 

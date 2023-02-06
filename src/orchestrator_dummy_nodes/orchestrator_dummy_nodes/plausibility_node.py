@@ -14,11 +14,13 @@ class PlausibilityNode(Node):
 
     def gridmap_callback(self, msg: String):
         output = String()
+        self.get_logger().debug("Got gridmap input, publishing tracks")
         output.data = f"Tracks extracted from gridmap input: {msg.data}"
         self.gridmap_tracks_pub.publish(output)
 
     def tracks_callback(self, msg):
         output = String()
+        self.get_logger().debug("Got tracks input, publishing plausible tracks")
         output.data = f"Plausible tracks from input: {msg.data}"
         self.track_pub.publish(output)
 
