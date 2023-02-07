@@ -1,0 +1,83 @@
+{
+    "nodes": {
+        "radar": {
+            "config_file": "TODO",
+            "inputs": {},
+            "outputs": {
+                "output": "meas/radar"
+            }
+        },
+        "detector_radar": {
+            "config_file": "detector.json",
+            "inputs": {
+                "input": "meas/radar"
+            },
+            "outputs": {
+                "output": "detections/radar"
+            }
+        },
+        "camera": {
+            "config_file": "TODO",
+            "inputs": {},
+            "outputs": {
+                "output": "meas/camera"
+            }
+        },
+        "detector_camera": {
+            "config_file": "detector.json",
+            "inputs": {
+                "input": "meas/camera"
+            },
+            "outputs": {
+                "output": "detections/camera"
+            }
+        },
+        "lidar": {
+            "config_file": "TODO",
+            "inputs": {},
+            "outputs": {
+                "output": "meas/lidar"
+            }
+        },
+        "detector_lidar": {
+            "config_file": "detector.json",
+            "inputs": {
+                "input": "meas/lidar"
+            },
+            "outputs": {
+                "output": "detections/lidar"
+            }
+        },
+        "tracking": {
+            "config_file": "tracking.json",
+            "inputs": {
+                "input_radar": "detections/radar",
+                "input_lidar": "detections/lidar",
+                "input_camera": "detections/camera"
+            },
+            "outputs": {
+                "tracks": "tracks"
+            }
+        },
+        "gridmap": {
+            "config_file": "detector.json",
+            "inputs": {
+                "input": "meas/radar"
+            },
+            "outputs": {
+                "output": "occupancy_grid"
+            }
+        },
+        "plausibility": {
+            "config_file": "plausibility.json",
+            "inputs": {
+                "tracks_in": "tracks",
+                "gridmap": "occupancy_grid"
+            },
+            "outputs": {
+                "tracks_out": "plausible_tracks",
+                "tracks_out_gridmap": "gridmap_tracks"
+            }
+        }
+    }
+}

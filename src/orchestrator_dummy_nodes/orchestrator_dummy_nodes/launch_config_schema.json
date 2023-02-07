@@ -1,0 +1,65 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "launch_config_schema",
+    "title": "Launch Configuration",
+    "description": "Extended ros graph launch configuration",
+    "type": "object",
+    "properties": {
+        "nodes": {
+            "type": "object",
+            "title":"List of named nodes",
+            "patternProperties": {
+                "^.+": {
+                    "type": "object",
+                    "title":"Node instance specification",
+                    "properties": {
+                        "config_file": {
+                            "type": "string"
+                        },
+                        "inputs": {
+                            "title": "List of inputs and remappings",
+                            "patternProperties": {
+                                "^.+": {
+                                    "$ref": "#/$defs/input_spec"
+                                }
+                            }
+                        },
+                        "outputs": {
+                            "title": "List of outputs and remappings",
+                            "patternProperties": {
+                                "^.+": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "required": [
+                        "config_file",
+                        "inputs",
+                        "outputs"
+                    ],
+                    "additionalProperties": false
+                }
+            }
+        }
+    },
+    "required": [
+        "nodes"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+        "input_spec": {
+            "oneOf": [
+                {
+                    "title": "Remapped Topic Name",
+                    "type": "string"
+                },
+                {
+                    "title": "Time Synchronizer Group",
+                    "type": "object",
+                    "$comment": "TODO: "
+                }
+            ]
+        }
+    }
+}

@@ -23,5 +23,13 @@
         "build": true,
         "install": true,
         "log": true
-    }
+    },
+    "json.schemas": [
+        {
+            "fileMatch": [
+                "/*_launch_config.json"
+            ],
+            "url": "./src/orchestrator_dummy_nodes/orchestrator_dummy_nodes/launch_config_schema.json"
+        }
+    ]
 }
