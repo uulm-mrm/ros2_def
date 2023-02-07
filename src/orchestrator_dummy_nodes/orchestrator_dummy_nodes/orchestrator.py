@@ -1,10 +1,3 @@
-# Release Input if any available
-# Lookup expected actions
-#  -> causes new inputs, which are not released yet!
-
-# If no available: New input
-
-
 import time
 
 import rclpy
