@@ -113,7 +113,7 @@ def analyze(DG: nx.DiGraph):
     for sn in sensor_nodes:
         print("Analyzing input from sensor node", sn)
         descendants = list(nx.descendants(DG, sn))
-        descendants.sort(key=lambda n: nx.shortest_path_length(DG, sn, n))
+        descendants.sort(key=lambda n: nx.shortest_path_length(DG, sn, n)) # type: ignore
         for target in descendants:
             paths = list(nx.all_simple_paths(DG, sn, target))
             if len(paths) > 1:

@@ -1,4 +1,3 @@
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TypeAlias
@@ -81,4 +80,3 @@ class NodeModel(ABC):
     @abstractmethod
     def effects_for_input(self, input: Cause) -> list[Effect]:
         ...
-

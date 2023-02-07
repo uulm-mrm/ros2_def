@@ -1,5 +1,5 @@
 from typing import Type
-from orchestrator_dummy_nodes.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
+from .orchestrator_lib.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput, TopicPublish
 from std_msgs.msg import String
 
 

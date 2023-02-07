@@ -1,4 +1,4 @@
-from orchestrator_dummy_nodes.topic_remapping import initial_name_from_intercepted, intercepted_name
+from orchestrator_dummy_nodes.orchestrator_lib.name_utils import initial_name_from_intercepted, intercepted_name
 
 
 def test_trivial():

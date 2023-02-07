@@ -1,5 +1,9 @@
 import importlib
-from typing import Generator, Type
+from typing import Generator, Type, TypeAlias
+
+
+TopicName: TypeAlias = str
+NodeName: TypeAlias = str
 
 
 def remove_prefix(text, prefix):

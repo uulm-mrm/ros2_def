@@ -8,7 +8,7 @@ from std_msgs.msg import String, Int32
 class PUPublisher(Node):
 
     def __init__(self):
-        super().__init__('parallel_undeterministic_publisher')
+        super().__init__('parallel_undeterministic_publisher')  # type: ignore
         self.declare_parameter('nr_publishers', 6)
         nr_publishers = self.get_parameter('nr_publishers').get_parameter_value().integer_value
 

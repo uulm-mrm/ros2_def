@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, cast
-from orchestrator_dummy_nodes.topic_remapping import initial_name_from_intercepted
+from .orchestrator_lib.name_utils import initial_name_from_intercepted
+from rclpy.impl.rcutils_logger import RcutilsLogger
 import rclpy
 from rclpy.node import Node
 from rclpy.subscription import Subscription
@@ -12,12 +13,6 @@ from orchestrator_interfaces.msg import Status
 
 import std_msgs.msg
 import importlib
-
-
-class RcutilsLogger:
-    def debug(self, message: str) -> None: ...
-    def info(self, message: str) -> None: ...
-    def warning(self, message: str) -> None: ...
 
 
 def l() -> RcutilsLogger:

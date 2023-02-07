@@ -1,6 +1,6 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from orchestrator_dummy_nodes.topic_remapping import intercepted_name
+from orchestrator_dummy_nodes.orchestrator_lib.name_utils import intercepted_name
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import TextSubstitution
 from launch.substitutions import LaunchConfiguration
