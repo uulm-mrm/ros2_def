@@ -1,0 +1,26 @@
+{
+    "name": "planner",
+    "callbacks": [
+        {
+            "name": "Input buffering callback",
+            "trigger": {
+                "type": "topic",
+                "name": "input"
+            },
+            "outputs": []
+        },
+        {
+            "name": "Fixed-frequency planning callback",
+            "trigger": {
+                "type": "timer",
+                "period": 0.1
+            },
+            "outputs": [
+                "output"
+            ],
+            "service_calls": [
+                "egomotion"
+            ]
+        }
+    ]
+}

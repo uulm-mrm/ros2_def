@@ -1,0 +1,89 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "node_config_schema",
+    "title": "Node Configuration",
+    "description": "Behavior specification of a ROS node",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "callbacks": {
+            "title": "List of callback specifications",
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/callback_spec"
+            }
+        }
+    },
+    "required": [
+        "name",
+        "callbacks"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+        "callback_spec": {
+            "title": "Callback specification",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "trigger": {
+                    "oneOf": [
+                        {
+                            "title": "Internal input topic name",
+                            "type": "string"
+                        },
+                        {
+                            "title": "Internal input topic name",
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "const": "topic"
+                                },
+                                "name": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "type",
+                                "name"
+                            ],
+                            "additionalProperties": false
+                        },
+                        {
+                            "title": "Timer",
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "const": "timer"
+                                },
+                                "period": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "type",
+                                "period"
+                            ],
+                            "additionalProperties": false
+                        }
+                    ]
+                },
+                "outputs": {
+                    "type": "array"
+                },
+                "service_calls": {
+                    "type": "array"
+                }
+            },
+            "required": [
+                "trigger",
+                "outputs"
+            ]
+        }
+    }
+}

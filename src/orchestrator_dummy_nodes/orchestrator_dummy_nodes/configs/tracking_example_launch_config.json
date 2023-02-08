@@ -2,79 +2,64 @@
     "nodes": {
         "radar": {
             "config_file": "TODO",
-            "inputs": {},
-            "outputs": {
+            "remappings": {
                 "output": "meas/radar"
             }
         },
         "detector_radar": {
             "config_file": "detector.json",
-            "inputs": {
-                "input": "meas/radar"
-            },
-            "outputs": {
+            "remappings": {
+                "input": "meas/radar",
                 "output": "detections/radar"
             }
         },
         "camera": {
             "config_file": "TODO",
-            "inputs": {},
-            "outputs": {
+            "remappings": {
                 "output": "meas/camera"
             }
         },
         "detector_camera": {
             "config_file": "detector.json",
-            "inputs": {
-                "input": "meas/camera"
-            },
-            "outputs": {
+            "remappings": {
+                "input": "meas/camera",
                 "output": "detections/camera"
             }
         },
         "lidar": {
             "config_file": "TODO",
-            "inputs": {},
-            "outputs": {
+            "remappings": {
                 "output": "meas/lidar"
             }
         },
         "detector_lidar": {
             "config_file": "detector.json",
-            "inputs": {
-                "input": "meas/lidar"
-            },
-            "outputs": {
+            "remappings": {
+                "input": "meas/lidar",
                 "output": "detections/lidar"
             }
         },
         "tracking": {
             "config_file": "tracking.json",
-            "inputs": {
+            "remappings": {
                 "input_radar": "detections/radar",
                 "input_lidar": "detections/lidar",
-                "input_camera": "detections/camera"
-            },
-            "outputs": {
+                "input_camera": "detections/camera",
                 "tracks": "tracks"
             }
         },
         "gridmap": {
             "config_file": "detector.json",
-            "inputs": {
-                "input": "meas/radar"
-            },
-            "outputs": {
+            "remappings": {
+                "input": "meas/radar",
                 "output": "occupancy_grid"
             }
         },
         "plausibility": {
             "config_file": "plausibility.json",
-            "inputs": {
+            "remappings": {
                 "tracks_in": "tracks",
-                "gridmap": "occupancy_grid"
-            },
-            "outputs": {
+                "gridmap": "occupancy_grid",
                 "tracks_out": "plausible_tracks",
                 "tracks_out_gridmap": "gridmap_tracks"
             }

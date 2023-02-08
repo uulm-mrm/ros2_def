@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "launch_config_schema",
+    "title": "Launch Configuration",
+    "description": "Extended ros graph launch configuration",
+    "type": "object",
+    "properties": {
+        "nodes": {
+            "type": "object",
+            "title": "List of named nodes",
+            "patternProperties": {
+                "^.+": {
+                    "type": "object",
+                    "title": "Node instance specification",
+                    "properties": {
+                        "config_file": {
+                            "type": "string"
+                        },
+                        "remappings": {
+                            "title": "List of remappings",
+                            "patternProperties": {
+                                "^.+": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "required": [
+                        "config_file",
+                        "remappings"
+                    ],
+                    "additionalProperties": false
+                }
+            }
+        }
+    },
+    "required": [
+        "nodes"
+    ],
+    "additionalProperties": false
+}

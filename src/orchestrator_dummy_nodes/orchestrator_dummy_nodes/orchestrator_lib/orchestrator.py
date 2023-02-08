@@ -241,6 +241,19 @@ class Orchestrator:
         # Complete the action which sent this message
         cause_action_id = None
         input_timestep = None
+
+        # TODO: This input-timestep handling should be resolved using same-node edges! External inputs should only be buffered by
+        #  Root nodes!(?)
+        # are all actions requiring external input root nodes?
+        # all actions directly caused by external input have no causality edges.
+        #  future exception: action with multiple input topics, when one of them is not an external input...
+        # an action directly caused by external input *can* have a same-node connection to another action
+        #  (e.g. 2 external-input callbacks on the same node)
+        # Maybe each external input should be a graph node, such that the actions for that timestep are directly connected?
+        # -> Set external input to "running" when time is advanced
+        # -> On rx, buffer at each action with causality edge to this running external-input
+        # -> Remove external-input
+
         try:
             cause_action_id = self.__find_running_action(topic_name)
             causing_action: RxAction = self.graph.nodes[cause_action_id]["data"]  # type: ignore

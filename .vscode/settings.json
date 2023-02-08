@@ -29,7 +29,13 @@
             "fileMatch": [
                 "/*_launch_config.json"
             ],
-            "url": "./src/orchestrator_dummy_nodes/orchestrator_dummy_nodes/launch_config_schema.json"
+            "url": "./src/orchestrator_dummy_nodes/orchestrator_dummy_nodes/schemas/launch_config_schema.json"
+        },
+        {
+            "fileMatch": [
+                "/*_node_config.json"
+            ],
+            "url": "./src/orchestrator_dummy_nodes/orchestrator_dummy_nodes/schemas/node_config_schema.json"
         }
     ]
 }

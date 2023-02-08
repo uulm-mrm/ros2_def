@@ -36,7 +36,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             executable='detector',
             name='detector_radar',
             parameters=[
-                {"processing_time": 0.0*time_scale},
+                {"processing_time": 0.01*time_scale},
             ],
             remappings=[("input", remapping_fn("detector_radar", "meas/radar")),
                         ("output", "detections/radar")],
@@ -60,7 +60,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             executable='detector',
             name='detector_camera',
             parameters=[
-                {"processing_time": 0.0*time_scale},
+                {"processing_time": 0.01*time_scale},
             ],
             remappings=[("input", remapping_fn("detector_camera", "meas/camera")),
                         ("output", "detections/camera")],
@@ -84,7 +84,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
             executable='detector',
             name='detector_lidar',
             parameters=[
-                {"processing_time": 0.0*time_scale},
+                {"processing_time": 0.01*time_scale},
             ],
             remappings=[("input", remapping_fn("detector_lidar", "meas/lidar")),
                         ("output", "detections/lidar")],

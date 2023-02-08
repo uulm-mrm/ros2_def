@@ -1,0 +1,22 @@
+{
+    "name": "tracking",
+    "callbacks": [
+        {
+            "name": "Radar processing callback",
+            "trigger": "input_radar",
+            "outputs": []
+        },
+        {
+            "name": "Image processing callback",
+            "trigger": "input_camera",
+            "outputs": []
+        },
+        {
+            "name": "Lidar processing callback",
+            "trigger": "input_lidar",
+            "outputs": [
+                "tracks"
+            ]
+        }
+    ]
+}
