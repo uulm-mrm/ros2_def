@@ -12,7 +12,11 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*'))
+        (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*')),
+        (os.path.join('share', package_name, 'configs'), ['configs/detector_node_config.json',
+                                                          'configs/plausibility_node_config.json',
+                                                          'configs/tracking_node_config.json',
+                                                          'configs/tracking_example_launch_config.json'])
 
     ],
     install_requires=['setuptools'],

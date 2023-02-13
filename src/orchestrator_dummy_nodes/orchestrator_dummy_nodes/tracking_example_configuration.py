@@ -13,9 +13,6 @@ class TrackingNodeModel(NodeModel):
                          [("tracks", "tracks"),
                           ("status", "status")])
 
-    def get_name(self) -> str:
-        return self.name
-
     def get_possible_inputs(self) -> list[Cause]:
         return [self.internal_topic_input("input_lidar"),
                 self.internal_topic_input("input_camera"),

@@ -5,6 +5,9 @@
     "description": "Extended ros graph launch configuration",
     "type": "object",
     "properties": {
+        "inputs": {
+            "$comment": "TODO: specify this"
+        },
         "nodes": {
             "type": "object",
             "title": "List of named nodes",
@@ -14,7 +17,19 @@
                     "title": "Node instance specification",
                     "properties": {
                         "config_file": {
-                            "type": "string"
+                            "type": "array",
+                            "prefixItems": [
+                                {
+                                    "title": "Package name",
+                                    "type": "string"
+                                },
+                                {
+                                    "title": "Config file name",
+                                    "type": "string"
+                                }
+                            ],
+                            "items": false,
+                            "minItems": 2
                         },
                         "remappings": {
                             "title": "List of remappings",

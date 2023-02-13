@@ -74,7 +74,11 @@
                     ]
                 },
                 "outputs": {
-                    "type": "array"
+                    "type": "array",
+                    "items": {
+                        "$comment": "TODO!",
+                        "type": "string"
+                    }
                 },
                 "service_calls": {
                     "type": "array"

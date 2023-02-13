@@ -1,46 +1,54 @@
 {
-    "nodes": {
-        "radar": {
-            "config_file": "TODO",
-            "remappings": {
-                "output": "meas/radar"
-            }
+    "inputs": [
+        {
+            "name": "meas/radar",
+            "type": "orchestrator_interfaces/msg/SampleMessage"
         },
+        {
+            "name": "meas/camera",
+            "type": "orchestrator_interfaces/msg/SampleMessage"
+        },
+        {
+            "name": "meas/lidar",
+            "type": "orchestrator_interfaces/msg/SampleMessage"
+        }
+    ],
+    "nodes": {
         "detector_radar": {
-            "config_file": "detector.json",
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "detector_node_config.json"
+            ],
             "remappings": {
                 "input": "meas/radar",
                 "output": "detections/radar"
             }
         },
-        "camera": {
-            "config_file": "TODO",
-            "remappings": {
-                "output": "meas/camera"
-            }
-        },
         "detector_camera": {
-            "config_file": "detector.json",
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "detector_node_config.json"
+            ],
             "remappings": {
                 "input": "meas/camera",
                 "output": "detections/camera"
             }
         },
-        "lidar": {
-            "config_file": "TODO",
-            "remappings": {
-                "output": "meas/lidar"
-            }
-        },
         "detector_lidar": {
-            "config_file": "detector.json",
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "detector_node_config.json"
+            ],
             "remappings": {
                 "input": "meas/lidar",
                 "output": "detections/lidar"
             }
         },
         "tracking": {
-            "config_file": "tracking.json",
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "tracking_node_config.json"
+            ],
             "remappings": {
                 "input_radar": "detections/radar",
                 "input_lidar": "detections/lidar",
@@ -49,14 +57,20 @@
             }
         },
         "gridmap": {
-            "config_file": "detector.json",
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "detector_node_config.json"
+            ],
             "remappings": {
                 "input": "meas/radar",
                 "output": "occupancy_grid"
             }
         },
         "plausibility": {
-            "config_file": "plausibility.json",
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "plausibility_node_config.json"
+            ],
             "remappings": {
                 "tracks_in": "tracks",
                 "gridmap": "occupancy_grid",
