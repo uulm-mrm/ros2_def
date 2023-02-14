@@ -32,7 +32,7 @@ def load_node_config(package: str, name: str, schema):
 
 def load_launch_config(package, name, schema):
     launch_config_package_path = get_package_share_path(package)
-    launch_config_path = launch_config_package_path / name
+    launch_config_path = launch_config_package_path / "configs" / name
     with open(launch_config_path) as f:
         launch_config = json.load(f)
     validate(instance=launch_config, schema=schema)
