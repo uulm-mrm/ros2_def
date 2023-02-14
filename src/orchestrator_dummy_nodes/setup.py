@@ -40,7 +40,6 @@ setup(
             'orchestrator = orchestrator_dummy_nodes.orchestrator:main',
             'plausibility_node = orchestrator_dummy_nodes.plausibility_node:main',
             'forwarding_node = orchestrator_dummy_nodes.forwarding_node:main',
-            'remapping_generation = orchestrator_dummy_nodes.remapping_generation:main',
         ],
     },
 )
