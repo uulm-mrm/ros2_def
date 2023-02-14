@@ -1,8 +1,10 @@
 from launch import LaunchDescription
-from launch_ros.actions import Node
-from orchestrator_dummy_nodes.orchestrator_lib.name_utils import intercepted_name
 from orchestrator_dummy_nodes.tracking_example_launchutil import get_tracking_nodes
+from orchestrator.remapping_generation import generate_remappings_from_config
 
 
 def generate_launch_description():
-    return get_tracking_nodes(lambda node_name, topic: intercepted_name(node_name, topic))
+    return LaunchDescription([
+        *generate_remappings_from_config("orchestrator_dummy_nodes", "tracking_example_launch_config.json"),
+        *get_tracking_nodes(lambda _node_name, topic: topic)
+    ])

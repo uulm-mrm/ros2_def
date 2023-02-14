@@ -13,7 +13,7 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
     time_scale = 20
     logger = LaunchConfiguration("log_level")
 
-    return LaunchDescription([
+    return [
         DeclareLaunchArgument(
             "log_level",
             default_value=["info"],
@@ -126,4 +126,4 @@ def get_tracking_nodes(remapping_fn: Callable[[str, str], str]):
                         ("tracks_out_gridmap", "gridmap_tracks")],
             arguments=['--ros-args', '--log-level', ['plausibility:=', logger]],
         )
-    ])
+    ]
