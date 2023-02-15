@@ -1,4 +1,5 @@
-from typing import Any, cast
+from dataclasses import dataclass
+from typing import Any, cast, TypeAlias
 
 from .node_model import NodeModel, StatusPublish, TopicInput, TopicPublish
 from .name_utils import NodeName, TopicName, collect_intercepted_topics
@@ -8,6 +9,7 @@ from orchestrator_dummy_nodes.ros_utils.logger import lc
 
 from orchestrator_interfaces.msg import Status
 
+from rclpy import Future
 from rclpy.node import Node as RosNode
 from rclpy.subscription import Subscription
 from rclpy.publisher import Publisher
@@ -17,6 +19,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import netgraph
 
+Timestamp: TypeAlias = Any
+
 
 def _next_id() -> int:
     n = _next_id.value
@@ -25,6 +29,13 @@ def _next_id() -> int:
 
 
 _next_id.value = 0
+
+
+@dataclass
+class FutureInput:
+    time: Timestamp
+    topic: TopicName
+    future: Future
 
 
 class Orchestrator:
@@ -48,14 +59,9 @@ class Orchestrator:
         #  but we need to inform the node models that they happened
         self.output_subs: list[Subscription] = []
 
-        self.graph: nx.DiGraph = nx.DiGraph()
+        self.next_input: FutureInput | None = None
 
-        # TODO: Add new timesteps automatically
-        self.timestep: int = 0
-        self.__add_input(self.timestep)
-        for _i in range(11):
-            self.timestep += 1
-            self.__add_input(self.timestep)
+        self.graph: nx.DiGraph = nx.DiGraph()
 
     def initialize_ros_communication(self):
         for node, canonical_name, intercepted_name, type in collect_intercepted_topics(self.ros_node.get_topic_names_and_types()):
@@ -89,20 +95,57 @@ class Orchestrator:
 
         self.status_subscription = self.ros_node.create_subscription(Status, "status", self.__status_callback, 10)
 
-    def __add_input(self, timestep):
-        inputs = [TopicInput(top) for (_type, top) in self.external_input_topics_config]
-        lc(self.l, f"Adding inputs on {len(inputs)} topics")
+    def wait_until_publish_allowed(self, t: Timestamp, topic: TopicName) -> Future:
+        """
+        Get a future that will be complete once the specified topic can be published.
+        The caller should spin the executor of the RosNode while waiting, otherwise the future
+        may never be done (and processing might not continue).
+        """
 
+        # TODO: Handle this...
+        if self.next_input is not None:
+            raise RuntimeError("Data source wants to provide next input before last one was published!")
+
+        future = Future()
+        self.next_input = FutureInput(t, topic, future)
+
+        if not self.__graph_is_busy():
+            self.__request_next_input()
+
+        return future
+
+    def __add_topic_input(self, t: Timestamp, topic: TopicName):
+
+        lc(self.l, f"Adding input on topic \"{topic}\"")
+        input = TopicInput(topic)
         expected_rx_actions = []
 
         for node in self.node_models:
-            for input in inputs:
-                if input in node.get_possible_inputs():
-                    expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), input.input_topic))
+            if input in node.get_possible_inputs():
+                expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), input.input_topic))
 
-        self.l.info(f" Those inputs cause {len(expected_rx_actions)} rx actions")
+        self.l.info(f" This input causes {len(expected_rx_actions)} rx actions")
+
         for action in expected_rx_actions:
-            self.__add_action_and_effects(action, timestep)
+            self.__add_action_and_effects(action, t)
+
+    def __request_next_input(self):
+        """
+        Request publishing of next input.
+        Requires the data provider to already be waiting to publish (called wait_until_publish_allowed before).
+        """
+        # TODO: Handle timers
+        if self.next_input is None:
+            # This is not really a problem, but indicates that the data provider is slower than data processing,
+            # which is somewhat unusual. This is probably a problem with the data provider...
+            # TODO: Only warn here, and immediately call __produce_next_input if data provider offers sample
+            # and we are currently not processing...
+            raise RuntimeError("Orchestrator is ready for next input but no data provider is waiting.")
+        next = self.next_input
+        self.next_input = None
+
+        self.__add_topic_input(next.time, next.topic)
+        next.future.set_result(None)
 
     def __add_action_and_effects(self, action: RxAction, timestep: int,  parent: int | None = None):
         # Parent: Node ID of the action causing this topic-publish. Should only be None for inputs
@@ -162,6 +205,40 @@ class Orchestrator:
                 data.state = ActionState.RUNNING
                 self.interception_pubs[data.node][data.topic].publish(data.data)
         self.l.info(" Done processing!")
+
+        if self.next_input is not None and self.__ready_for_next_input():
+            self.l.info("  We are now ready for the next input, requesting...")
+            self.__request_next_input()
+        else:
+            self.l.info("  Next input can not be requested yet.")
+
+    def __ready_for_next_input(self) -> bool:
+        """
+        Check if we are ready for the next input.
+
+        This is the case iff there are no nodes which are currently waiting
+        for this topic or have already buffered this topic, which both means
+        that the input has already been requested (or even received).
+        """
+        if self.next_input is None:
+            raise RuntimeError("There is no next input!")
+
+        for _graph_node_id, node_data in self.graph.nodes(data=True):
+            data: RxAction = node_data["data"]  # type: ignore
+            if data.state == ActionState.READY or data.state == ActionState.WAITING:
+                if data.topic == self.next_input.topic:
+                    return False
+
+        return True
+
+    def __graph_is_busy(self) -> bool:
+        has_running = False
+        for graph_node_id, node_data in self.graph.nodes(data=True):
+            data: RxAction = node_data["data"]  # type: ignore
+            if data.state == ActionState.RUNNING or data.state == ActionState.WAITING:
+                has_running = True
+                break
+        return has_running
 
     def __find_running_action(self, published_topic_name: TopicName) -> int:
         for node_id, node_data in self.graph.nodes(data=True):
