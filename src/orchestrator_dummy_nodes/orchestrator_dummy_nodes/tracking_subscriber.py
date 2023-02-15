@@ -25,20 +25,16 @@ class TrackingSubscriber(Node):
     def lidar_callback(self, msg: String):
         if self.cached_camera is None:
             self.get_logger().warn("Received lidar data without camera!")
-            self.publish_status()
-            return
         camera = self.cached_camera
         self.cached_camera = None
 
         if self.cached_radar is None:
             self.get_logger().warn("Received lidar data without radar!")
-            self.publish_status()
-            return
         radar = self.cached_radar
         self.cached_radar = None
 
         tracks = String()
-        tracks.data = f"Tracks from inputs: [{camera.data}, {radar.data}, {msg.data}]"
+        tracks.data = f"Tracks from inputs: [{camera}, {radar}, {msg}]"
         self.get_logger().info("Publishing tracks!")
         self.tracks_publisher.publish(tracks)
 
