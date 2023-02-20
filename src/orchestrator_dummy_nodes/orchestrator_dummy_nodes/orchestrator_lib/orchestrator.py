@@ -14,6 +14,7 @@ from rclpy.node import Node as RosNode
 from rclpy.subscription import Subscription
 from rclpy.publisher import Publisher
 from rclpy.impl.rcutils_logger import RcutilsLogger
+from rclpy.time import Time
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -114,6 +115,12 @@ class Orchestrator:
 
         return future
 
+    def wait_until_time_publish_allowed(self, t: Time) -> Future:
+        f = Future()
+        f.set_result(None)
+        raise NotImplementedError()
+        return f
+
     def __add_topic_input(self, t: Timestamp, topic: TopicName):
 
         lc(self.l, f"Adding input on topic \"{topic}\"")
@@ -206,11 +213,13 @@ class Orchestrator:
                 self.interception_pubs[data.node][data.topic].publish(data.data)
         self.l.info(" Done processing!")
 
-        if self.next_input is not None and self.__ready_for_next_input():
-            self.l.info("  We are now ready for the next input, requesting...")
-            self.__request_next_input()
+        if self.next_input is None:
+            self.l.info(" Next input can not be requested yet, no input data has been offered.")
+        elif not self.__ready_for_next_input():
+            self.l.info(" Next input can not be requested yet, because the last sample on the same topic has not been processed yet.")
         else:
-            self.l.info("  Next input can not be requested yet.")
+            self.l.info(" We are now ready for the next input, requesting...")
+            self.__request_next_input()
 
     def __ready_for_next_input(self) -> bool:
         """
@@ -249,7 +258,7 @@ class Orchestrator:
                 for output in outputs:
                     if output == TopicPublish(published_topic_name):
                         return node_id
-        raise ActionNotFoundError(f"There is no currently running action which should have published a message on {published_topic_name}")
+        raise ActionNotFoundError(f"There is no currently running action which should have published a message on topic \"{published_topic_name}\"")
 
     def __find_running_action_status(self, node_name: NodeName) -> int:
         for node_id, node_data in self.graph.nodes(data=True):
@@ -295,7 +304,7 @@ class Orchestrator:
 
         node_to_community = {}
         for node, node_data in self.graph.nodes(data=True):
-            timestep: int = node_data["timestep"]  # type: ignore
+            timestep = cast(Time, node_data["timestep"])  # type: ignore
             node_to_community[node] = timestep
 
         plot_instance = netgraph.InteractiveGraph(self.graph,
@@ -314,6 +323,9 @@ class Orchestrator:
 
     def __interception_subscription_callback(self, topic_name: TopicName, msg: Any):
         lc(self.l, f"Received message on intercepted topic {topic_name}")
+
+        if topic_name == "clock":
+            return
 
         # Complete the action which sent this message
         cause_action_id = None
@@ -346,12 +358,12 @@ class Orchestrator:
                         continue
                     if rxdata.state != ActionState.WAITING:
                         continue
-                    t = cast(int, node_data["timestep"])  # type: ignore
+                    t = cast(Time, node_data["timestep"])  # type: ignore
                     if input_timestep is None or t < input_timestep:
                         input_timestep = t
                 self.l.info(f"  This is an external input for timestep {input_timestep}.")
             else:
-                self.l.info("  This is not an external input!")
+                self.l.error(" This is not an external input!")
                 raise
 
         # Buffer this data for next actions

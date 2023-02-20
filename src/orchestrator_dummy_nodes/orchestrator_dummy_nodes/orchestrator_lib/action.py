@@ -25,3 +25,10 @@ class EdgeType(Enum):
     CAUSALITY = 0  # Edge points to the action which produces a required input
     SAME_NODE = 1  # Edge points to a previous action at the same node
     SAME_TOPIC = 2  # Points to a previous action receiving a topic published by this action
+
+
+@dataclass
+class TimerCallback:
+    state: ActionState
+    node: str
+    time: int
