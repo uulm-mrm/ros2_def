@@ -12,6 +12,11 @@ class TopicInput(Cause):
     input_topic: str
 
 
+@dataclass(frozen=True)
+class TimerInput(Cause):
+    period: int  # Timer period in ns
+
+
 class Effect:
     pass
 

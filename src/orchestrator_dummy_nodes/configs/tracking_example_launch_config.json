@@ -77,6 +77,15 @@
                 "tracks_out": "plausible_tracks",
                 "tracks_out_gridmap": "gridmap_tracks"
             }
+        },
+        "planning": {
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "planning_node_config.json"
+            ],
+            "remappings": {
+                "output": "trajectory"
+            }
         }
     }
 }

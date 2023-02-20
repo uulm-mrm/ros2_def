@@ -1,4 +1,5 @@
-from orchestrator_dummy_nodes.orchestrator_lib.node_model import Cause, Effect, NodeModel, SimpleRemapRules, StatusPublish, TopicInput, TopicPublish
+from typing import cast
+from orchestrator_dummy_nodes.orchestrator_lib.node_model import Cause, Effect, NodeModel, SimpleRemapRules, StatusPublish, TopicInput, TopicPublish, TimerInput
 
 
 class ConfigFileNodeModel(NodeModel):
@@ -13,9 +14,17 @@ class ConfigFileNodeModel(NodeModel):
         # node config.
         for callback in node_config["callbacks"]:
             trigger = callback["trigger"]
-            if not isinstance(trigger, str):
-                raise NotImplementedError("Timer triggers are not implemented yet!")
-            inputs[trigger] = trigger
+            if isinstance(trigger, str):
+                inputs[trigger] = trigger
+            elif isinstance(trigger, dict):
+                if trigger["type"] == "topic":
+                    trigger = cast(str, trigger["name"])
+                    inputs[trigger] = trigger
+                elif trigger["type"] == "timer":
+                    inputs["clock"] = "clock"
+                else:
+                    raise NotImplementedError(f"Callback type {trigger['type']} not implemented")
+
             for output in callback["outputs"]:
                 if output in inputs:
                     raise RuntimeError(f"Topic {output} of node {name} defined as both input and output!")
@@ -44,11 +53,23 @@ class ConfigFileNodeModel(NodeModel):
         super().__init__(name, input_list, output_list)
 
         # Mapping from external topic input to external topic outputs
-        self.effects: dict[TopicInput, list[Effect]] = {}
+        self.effects: dict[Cause, list[Effect]] = {}
         for callback in node_config["callbacks"]:
             trigger = callback["trigger"]
-            if not isinstance(trigger, str):
-                raise NotImplementedError("Timer triggers are not implemented yet!")
+            if isinstance(trigger, str):
+                trigger = self.internal_topic_input(trigger)
+            elif isinstance(trigger, dict):
+                if trigger["type"] == "topic":
+                    trigger = self.internal_topic_input(trigger["name"])
+                elif trigger["type"] == "timer":
+                    ti = TimerInput(int(trigger["period"]))
+                    if ti in self.effects:
+                        raise RuntimeError(f"Multiple timers with period {trigger['period']} for node {name}")
+                    trigger = ti
+                else:
+                    raise NotImplementedError(f"Callback type {trigger['type']} not implemented")
+            else:
+                raise RuntimeError(f"Invalid trigger for callback {callback}")
             outputs = callback["outputs"]
             # TODO: finalize output specification
             if not isinstance(outputs, list):
@@ -61,7 +82,7 @@ class ConfigFileNodeModel(NodeModel):
             if len(output_effects) == 0:
                 output_effects.append(StatusPublish())
 
-            self.effects[self.internal_topic_input(trigger)] = output_effects
+            self.effects[trigger] = output_effects
 
     def get_possible_inputs(self) -> list[Cause]:
         return list(self.effects.keys())

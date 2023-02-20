@@ -2,7 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetParameter
 
 
 def generate_launch_description():
@@ -15,6 +15,9 @@ def generate_launch_description():
             default_value=["info"],
             description="Logging level",
         ),
+
+        SetParameter(name="use_sim_time", value=True),
+
         # RADAR
         Node(
             package='orchestrator_dummy_nodes',
@@ -88,5 +91,14 @@ def generate_launch_description():
                         ("tracks_out", "plausible_tracks"),
                         ("tracks_out_gridmap", "gridmap_tracks")],
             arguments=['--ros-args', '--log-level', ['plausibility:=', logger]],
-        )
+        ),
+
+        # PLANNING
+        Node(
+            package='orchestrator_dummy_nodes',
+            executable='simple_timer_publisher',
+            name='planning',
+            remappings=[("output", "trajectory")],
+            arguments=['--ros-args', '--log-level', ['planning:=', logger]],
+        ),
     ])

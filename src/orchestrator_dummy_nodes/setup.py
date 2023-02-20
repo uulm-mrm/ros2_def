@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*')),
         (os.path.join('share', package_name, 'configs'), ['configs/detector_node_config.json',
+                                                          'configs/planning_node_config.json',
                                                           'configs/plausibility_node_config.json',
                                                           'configs/tracking_node_config.json',
                                                           'configs/tracking_example_launch_config.json'])
@@ -34,6 +35,7 @@ setup(
             'graph_analysis = orchestrator_dummy_nodes.graph_analysis:main',
             'serializing_interceptor = orchestrator_dummy_nodes.serializing_interceptor:main',
             'timed_sensor_publisher = orchestrator_dummy_nodes.timed_sensor_publisher:main',
+            'simple_timer_publisher = orchestrator_dummy_nodes.simple_timer_publisher:main',
             'tracking_subscriber = orchestrator_dummy_nodes.tracking_subscriber:main',
             'detector = orchestrator_dummy_nodes.detector:main',
             'test = orchestrator_dummy_nodes.test:main',

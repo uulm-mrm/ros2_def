@@ -1,6 +1,6 @@
 import sys
 
-from orchestrator_dummy_nodes.orchestrator_lib.node_model import TopicInput
+from orchestrator_dummy_nodes.orchestrator_lib.node_model import TopicInput, TimerInput
 from orchestrator_dummy_nodes.orchestrator_lib.name_utils import intercepted_name
 from .model_loader import *
 
@@ -16,17 +16,28 @@ def _find_node_model(name: str, models: list[NodeModel]) -> NodeModel:
     raise RuntimeError(f"No model for node with name {name}")
 
 
+def _contains_timer_events(node: NodeModel):
+    for input in node.get_possible_inputs():
+        if isinstance(input, TimerInput):
+            return True
+    return False
+
+
 def generate_remappings_from_config(package_name: str, launch_config_file: str) -> list[SetRemap]:
-    """Generate remappings for topic interception by orchestrator."""
+    """
+    Generate remappings for topic interception by orchestrator.
+
+    Generates interception remapping for each input topic.
+    Additionally intercepts /clock if time-triggered callbacks exist.
+    """
     launch_config = load_launch_config(package_name, launch_config_file, load_launch_config_schema())
     node_models = load_models(launch_config, load_node_config_schema())
 
     remap_actions = []
 
     for node_name, node in launch_config["nodes"].items():
+        model = _find_node_model(node_name, node_models)
         for internal_name, ros_name in node["remappings"].items():
-
-            model = _find_node_model(node_name, node_models)
             if TopicInput(ros_name) not in model.get_possible_inputs():
                 continue
 
@@ -35,6 +46,8 @@ def generate_remappings_from_config(package_name: str, launch_config_file: str) 
             remap_actions.append(
                 SetRemap(src=remap_src, dst=remap_dst)
             )
+        if _contains_timer_events(model):
+            remap_actions.append(SetRemap(src=f"{node_name}:clock", dst=intercepted_name(node_name, "clock")))
 
     return remap_actions
 

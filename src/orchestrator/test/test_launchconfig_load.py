@@ -15,7 +15,7 @@ def test_load_tracking_example():
     model_config_schema = load_node_config_schema()
     models = load_models(launch_config, model_config_schema)
 
-    assert len(models) == 6
+    assert len(models) == 7
 
     tracking_index = None
     for i, model in enumerate(models):
