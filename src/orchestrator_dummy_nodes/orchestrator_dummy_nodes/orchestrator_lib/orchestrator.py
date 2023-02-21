@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, cast, TypeAlias
 
-from .node_model import Cause, NodeModel, StatusPublish, TopicInput, TopicPublish
+from .node_model import Cause, NodeModel, StatusPublish, TimerInput, TopicInput, TopicPublish
 from .name_utils import NodeName, TopicName, collect_intercepted_topics
-from .action import ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallback
+from .action import Action, ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallbackAction
 
 from orchestrator_dummy_nodes.ros_utils.logger import lc
 
@@ -139,17 +139,35 @@ class Orchestrator:
         return f
 
     def __add_pending_timers_until(self, t: Time):
-        """Add all remaining timer events """
+        """
+        Add all remaining timer events.
+
+        At time of calling, simulator_time should be the last time for which all timers have already
+        been added.
+        """
         # When receiving time T, timers <=T fire
         # A timer doesnt fire at 0
         # For time jumps > 2*dt, timer always fires exactly twice
+        # It seems that with use_sim_time, timers always start at 0, even if time has been published before.
+        # Subscription QOS does not require transient_local.
 
-        # TODO: Start time != 0? -> Initializing last_time (last_time = t at first iteration? seems ok)
+        if self.simulator_time is None:
+            raise RuntimeError("simulator_time has to be initialized before adding timer events")
 
-        timers = cast(Any, t)
-        last_time = cast(Time, 1)  # time until which timer actions have been added already
+        last_time: int = self.simulator_time.nanoseconds  # time until which timer actions have been added already
 
-        expected_timer_actions: list[TimerCallback] = []
+        @dataclass
+        class Timer:
+            node: str
+            period: int
+
+        timers: list[Timer] = []
+        for node_model in self.node_models:
+            for input_cause in node_model.get_possible_inputs():
+                if isinstance(input_cause, TimerInput):
+                    timer = Timer(node_model.get_name(), input_cause.period)
+
+        expected_timer_actions: list[TimerCallbackAction] = []
 
         for timer in timers:
             nr_fires = last_time // timer.period
@@ -161,13 +179,11 @@ class Orchestrator:
                 raise RuntimeError(f"Requested timestep too large! Stepping time from {last_time} to {t} ({dt}) "
                                    "would require firing the timer multiple times within the same timestep. This is probably unintended!")
             if next_fire <= t:
-                action = TimerCallback(ActionState.READY, timer.node, nominal_execution_time=next_fire, clock_input_time=t)
+                action = TimerCallbackAction(ActionState.READY, timer.node, t, timer.period)
                 expected_timer_actions.append(action)
 
         for action in expected_timer_actions:
-            self.__add_action_and_effects(action, action.nominal_execution_time)
-
-        pass
+            self.__add_action_and_effects(action)
 
     def __add_topic_input(self, t: Time, topic: TopicName):
 
@@ -177,12 +193,12 @@ class Orchestrator:
 
         for node in self.node_models:
             if input in node.get_possible_inputs():
-                expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), input.input_topic))
+                expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), t, input.input_topic))
 
         self.l.info(f"  This input causes {len(expected_rx_actions)} rx actions")
 
         for action in expected_rx_actions:
-            self.__add_action_and_effects(action, t)
+            self.__add_action_and_effects(action)
 
     def __request_next_input(self):
         """
@@ -191,11 +207,7 @@ class Orchestrator:
         """
         # TODO: Handle timers
         if self.next_input is None:
-            # This is not really a problem, but indicates that the data provider is slower than data processing,
-            # which is somewhat unusual. This is probably a problem with the data provider...
-            # TODO: Only warn here, and immediately call __produce_next_input if data provider offers sample
-            # and we are currently not processing...
-            raise RuntimeError("Orchestrator is ready for next input but no data provider is waiting.")
+            raise RuntimeError("No unused input available. Check if next_input exists before calling __request_next_input.")
         next = self.next_input
         self.next_input = None
 
@@ -204,25 +216,33 @@ class Orchestrator:
         self.__add_topic_input(next.time, next.topic)
         next.future.set_result(None)
 
-    def __add_action_and_effects(self, action: RxAction, timestep: Time,  parent: int | None = None):
-        # TODO: Handle TimerAction
+    def __add_action_and_effects(self, action: Action, parent: int | None = None):
+
         # Parent: Node ID of the action causing this topic-publish. Should only be None for inputs
         node_id = _next_id()
-        self.graph.add_node(node_id, data=action, timestep=timestep)
+        self.graph.add_node(node_id, data=action)
 
         # Sibling connections: Complete all actions at this node before the to-be-added action
         for node, node_data in self.graph.nodes(data=True):
-            other_action: RxAction = node_data["data"]  # type: ignore
+            other_action = cast(Action, node_data["data"])  # type: ignore
             if other_action.node == action.node and node != node_id:
                 self.graph.add_edge(node_id, node, edge_type=EdgeType.SAME_NODE)
+
+        # TODO: Same-Topic edge for input action???
 
         if parent is not None:
             self.graph.add_edge(node_id, parent, edge_type=EdgeType.CAUSALITY)
 
-        topic_input_cause = TopicInput(action.topic)
-        self.__add_all_effects_for_cause(action.node, topic_input_cause, node_id)
+        if isinstance(action, TimerCallbackAction):
+            cause = TimerInput(period=action.period)
+        elif isinstance(action, RxAction):
+            cause = TopicInput(action.topic)
+        else:
+            raise NotImplementedError()
 
-    def __add_all_effects_for_cause(self, node_name: str, cause: Cause, cause_node_id):
+        self.__add_all_effects_for_cause(action.node, cause, node_id, action.timestamp)
+
+    def __add_all_effects_for_cause(self, node_name: str, cause: Cause, cause_node_id, time: Time):
         node_model = self.__node_model_by_name(node_name)
         assert cause in node_model.get_possible_inputs()
         effects = node_model.effects_for_input(cause)
@@ -245,8 +265,8 @@ class Orchestrator:
                 resulting_input = TopicInput(effect.output_topic)
                 for node in self.node_models:
                     if resulting_input in node.get_possible_inputs():
-                        self.__add_action_and_effects(RxAction(ActionState.WAITING, node.get_name(),
-                                                      resulting_input.input_topic), timestep, cause_node_id)
+                        self.__add_action_and_effects(
+                            RxAction(ActionState.WAITING, node.get_name(), time, resulting_input.input_topic), cause_node_id)
 
     def __process(self):
         lc(self.l, f"Processing Graph with {self.graph.number_of_nodes()} nodes")

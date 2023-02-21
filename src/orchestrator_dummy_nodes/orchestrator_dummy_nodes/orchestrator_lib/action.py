@@ -15,22 +15,24 @@ class ActionNotFoundError(Exception):
 
 
 @dataclass
-class RxAction:
+class Action:
     state: ActionState
     node: str
+    timestamp: Time
+
+
+@dataclass
+class RxAction(Action):
     topic: str
     data: Any | None = None
+
+
+@dataclass
+class TimerCallbackAction(Action):
+    period: int  # The period identifies the callback amongst possibly multiple timers with different period in a single node
 
 
 class EdgeType(Enum):
     CAUSALITY = 0  # Edge points to the action which produces a required input
     SAME_NODE = 1  # Edge points to a previous action at the same node
     SAME_TOPIC = 2  # Points to a previous action receiving a topic published by this action
-
-
-@dataclass
-class TimerCallback:
-    state: ActionState
-    node: str
-    nominal_execution_time: Time
-    clock_input_time: Time
