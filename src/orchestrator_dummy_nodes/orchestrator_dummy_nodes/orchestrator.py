@@ -1,3 +1,4 @@
+import datetime
 import time
 
 import rclpy
@@ -19,6 +20,13 @@ from rosgraph_msgs.msg import Clock
 
 def l(msg):
     return get_logger("l").info(msg)
+
+
+def spin_for(node, duration):
+    start = datetime.datetime.now()
+    while datetime.datetime.now() - start < duration:
+        remaining = datetime.datetime.now() - start
+        rclpy.spin_once(node, timeout_sec=remaining.total_seconds())
 
 
 class BagPlayer(Node):
@@ -75,18 +83,19 @@ class BagPlayer(Node):
 
         if self.t.nanoseconds % 10**9 == 0:
             # Publish sensors once per second
-            f = self.orchestrator.wait_until_publish_allowed(self.t, "meas/lidar")
+            f = self.orchestrator.wait_until_publish_allowed("meas/lidar")
             rclpy.spin_until_future_complete(self, f)
             self.publish_lidar()
 
-            f = self.orchestrator.wait_until_publish_allowed(self.t, "meas/radar")
+            f = self.orchestrator.wait_until_publish_allowed("meas/radar")
             rclpy.spin_until_future_complete(self, f)
             self.publish_radar()
 
-            f = self.orchestrator.wait_until_publish_allowed(self.t, "meas/camera")
+            f = self.orchestrator.wait_until_publish_allowed("meas/camera")
             rclpy.spin_until_future_complete(self, f)
             self.publish_camera()
 
+        spin_for(self, datetime.timedelta(seconds=3.0))
         self.t += Duration(seconds=0, nanoseconds=100_000_000)
 
 

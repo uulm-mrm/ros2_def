@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, cast, TypeAlias
 
-from .node_model import NodeModel, StatusPublish, TopicInput, TopicPublish
+from .node_model import Cause, NodeModel, StatusPublish, TopicInput, TopicPublish
 from .name_utils import NodeName, TopicName, collect_intercepted_topics
-from .action import ActionNotFoundError, ActionState, EdgeType, RxAction
+from .action import ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallback
 
 from orchestrator_dummy_nodes.ros_utils.logger import lc
 
@@ -20,8 +20,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import netgraph
 
-Timestamp: TypeAlias = Any
-
 
 def _next_id() -> int:
     n = _next_id.value
@@ -34,8 +32,14 @@ _next_id.value = 0
 
 @dataclass
 class FutureInput:
-    time: Timestamp
+    time: Time
     topic: TopicName
+    future: Future
+
+
+@dataclass
+class FutureTimestep:
+    time: Time
     future: Future
 
 
@@ -62,6 +66,9 @@ class Orchestrator:
 
         self.next_input: FutureInput | None = None
 
+        self.next_timestep: FutureTimestep | None = None
+        self.simulator_time: Time | None = None
+
         self.graph: nx.DiGraph = nx.DiGraph()
 
     def initialize_ros_communication(self):
@@ -69,16 +76,16 @@ class Orchestrator:
             lc(self.l, f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
             # Subscribe to the input topic
             if canonical_name not in self.interception_subs:
-                self.l.info(f" Subscribing to {canonical_name}")
+                self.l.info(f"  Subscribing to {canonical_name}")
                 subscription = self.ros_node.create_subscription(
                     type, canonical_name,
                     lambda msg, topic_name=canonical_name: self.__interception_subscription_callback(topic_name, msg),
                     10)
                 self.interception_subs[canonical_name] = subscription
             else:
-                self.l.info(" Subscription already exists")
+                self.l.info("  Subscription already exists")
             # Create separate publisher for each node
-            self.l.info(f" Creating publisher for {intercepted_name}")
+            self.l.info(f"  Creating publisher for {intercepted_name}")
             publisher = self.ros_node.create_publisher(type, intercepted_name, 10)
             if node not in self.interception_pubs:
                 self.interception_pubs[node] = {}
@@ -96,7 +103,7 @@ class Orchestrator:
 
         self.status_subscription = self.ros_node.create_subscription(Status, "status", self.__status_callback, 10)
 
-    def wait_until_publish_allowed(self, t: Timestamp, topic: TopicName) -> Future:
+    def wait_until_publish_allowed(self, topic: TopicName) -> Future:
         """
         Get a future that will be complete once the specified topic can be published.
         The caller should spin the executor of the RosNode while waiting, otherwise the future
@@ -105,23 +112,64 @@ class Orchestrator:
 
         # TODO: Handle this...
         if self.next_input is not None:
-            raise RuntimeError("Data source wants to provide next input before last one was published!")
+            raise RuntimeError("Data source wants to provide next input before waiting on the last one!")
+
+        if self.simulator_time is None:
+            raise RuntimeError("Data source has to provide time before first data")
+
+        lc(self.l, f"Data source offers input on topic \"{topic}\" for current time {self.simulator_time}")
 
         future = Future()
-        self.next_input = FutureInput(t, topic, future)
+        self.next_input = FutureInput(self.simulator_time, topic, future)
 
         if not self.__graph_is_busy():
+            self.l.info("  There are no running actions, immediately requesting data...")
             self.__request_next_input()
 
         return future
 
     def wait_until_time_publish_allowed(self, t: Time) -> Future:
+
+        if self.next_timestep is not None:
+            raise RuntimeError("Data source wants to provide next timestep before waiting on the last one!")
+
         f = Future()
-        f.set_result(None)
-        raise NotImplementedError()
+        self.next_timestep = FutureTimestep(t, f)
+
         return f
 
-    def __add_topic_input(self, t: Timestamp, topic: TopicName):
+    def __add_pending_timers_until(self, t: Time):
+        """Add all remaining timer events """
+        # When receiving time T, timers <=T fire
+        # A timer doesnt fire at 0
+        # For time jumps > 2*dt, timer always fires exactly twice
+
+        # TODO: Start time != 0? -> Initializing last_time (last_time = t at first iteration? seems ok)
+
+        timers = cast(Any, t)
+        last_time = cast(Time, 1)  # time until which timer actions have been added already
+
+        expected_timer_actions: list[TimerCallback] = []
+
+        for timer in timers:
+            nr_fires = last_time // timer.period
+            last_fire = nr_fires * timer.period
+            next_fire = last_fire + timer.period
+
+            dt = t - last_time
+            if dt > timer.period:
+                raise RuntimeError(f"Requested timestep too large! Stepping time from {last_time} to {t} ({dt}) "
+                                   "would require firing the timer multiple times within the same timestep. This is probably unintended!")
+            if next_fire <= t:
+                action = TimerCallback(ActionState.READY, timer.node, nominal_execution_time=next_fire, clock_input_time=t)
+                expected_timer_actions.append(action)
+
+        for action in expected_timer_actions:
+            self.__add_action_and_effects(action, action.nominal_execution_time)
+
+        pass
+
+    def __add_topic_input(self, t: Time, topic: TopicName):
 
         lc(self.l, f"Adding input on topic \"{topic}\"")
         input = TopicInput(topic)
@@ -131,7 +179,7 @@ class Orchestrator:
             if input in node.get_possible_inputs():
                 expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), input.input_topic))
 
-        self.l.info(f" This input causes {len(expected_rx_actions)} rx actions")
+        self.l.info(f"  This input causes {len(expected_rx_actions)} rx actions")
 
         for action in expected_rx_actions:
             self.__add_action_and_effects(action, t)
@@ -151,10 +199,13 @@ class Orchestrator:
         next = self.next_input
         self.next_input = None
 
+        self.l.info(f"Requesting data on topic {next.topic} for timestamp {next.time}")
+
         self.__add_topic_input(next.time, next.topic)
         next.future.set_result(None)
 
-    def __add_action_and_effects(self, action: RxAction, timestep: int,  parent: int | None = None):
+    def __add_action_and_effects(self, action: RxAction, timestep: Time,  parent: int | None = None):
+        # TODO: Handle TimerAction
         # Parent: Node ID of the action causing this topic-publish. Should only be None for inputs
         node_id = _next_id()
         self.graph.add_node(node_id, data=action, timestep=timestep)
@@ -169,9 +220,12 @@ class Orchestrator:
             self.graph.add_edge(node_id, parent, edge_type=EdgeType.CAUSALITY)
 
         topic_input_cause = TopicInput(action.topic)
-        node_model = self.__node_model_by_name(action.node)
-        assert topic_input_cause in node_model.get_possible_inputs()
-        effects = node_model.effects_for_input(topic_input_cause)
+        self.__add_all_effects_for_cause(action.node, topic_input_cause, node_id)
+
+    def __add_all_effects_for_cause(self, node_name: str, cause: Cause, cause_node_id):
+        node_model = self.__node_model_by_name(node_name)
+        assert cause in node_model.get_possible_inputs()
+        effects = node_model.effects_for_input(cause)
 
         # Multi-Publisher Connections:
         # Add edge to all RxActions for the topics that are published by this action
@@ -183,7 +237,7 @@ class Orchestrator:
                     other_action: RxAction = node_data["data"]  # type: ignore
                     if other_action.topic == effect.output_topic:
                         # TODO: I think this occurs in other, unneeded cases?
-                        self.graph.add_edge(node_id, node, edge_type=EdgeType.SAME_TOPIC)
+                        self.graph.add_edge(cause_node_id, node, edge_type=EdgeType.SAME_TOPIC)
 
         # Recursively add action nodes for publish events in the current action
         for effect in effects:
@@ -191,7 +245,8 @@ class Orchestrator:
                 resulting_input = TopicInput(effect.output_topic)
                 for node in self.node_models:
                     if resulting_input in node.get_possible_inputs():
-                        self.__add_action_and_effects(RxAction(ActionState.WAITING, node.get_name(), resulting_input.input_topic), timestep, node_id)
+                        self.__add_action_and_effects(RxAction(ActionState.WAITING, node.get_name(),
+                                                      resulting_input.input_topic), timestep, cause_node_id)
 
     def __process(self):
         lc(self.l, f"Processing Graph with {self.graph.number_of_nodes()} nodes")
@@ -207,18 +262,18 @@ class Orchestrator:
                 if data.state != ActionState.READY:
                     continue
                 self.l.info(
-                    f"  Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
+                    f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
                 repeat = True
                 data.state = ActionState.RUNNING
                 self.interception_pubs[data.node][data.topic].publish(data.data)
-        self.l.info(" Done processing!")
+        self.l.info("  Done processing! Checking if next input can be requested...")
 
         if self.next_input is None:
-            self.l.info(" Next input can not be requested yet, no input data has been offered.")
+            self.l.info("  Next input can not be requested yet, no input data has been offered.")
         elif not self.__ready_for_next_input():
-            self.l.info(" Next input can not be requested yet, because the last sample on the same topic has not been processed yet.")
+            self.l.info("  Next input can not be requested yet, because the last sample on the same topic has not been processed yet.")
         else:
-            self.l.info(" We are now ready for the next input, requesting...")
+            self.l.info("  We are now ready for the next input, requesting...")
             self.__request_next_input()
 
     def __ready_for_next_input(self) -> bool:

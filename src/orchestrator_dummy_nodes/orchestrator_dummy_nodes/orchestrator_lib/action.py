@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+from rclpy.time import Time
 
 
 class ActionState(Enum):
-    WAITING = 1  # Waiting for data, no message buffered
+    WAITING = 1  # Waiting for external input (message data or time increment)
     READY = 2  # Data is buffered, ready to execute once allowed by ordering constraints
     RUNNING = 3  # Running, expecting output as specified by model
 
@@ -31,4 +32,5 @@ class EdgeType(Enum):
 class TimerCallback:
     state: ActionState
     node: str
-    time: int
+    nominal_execution_time: Time
+    clock_input_time: Time
