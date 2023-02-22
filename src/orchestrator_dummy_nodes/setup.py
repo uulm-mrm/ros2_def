@@ -39,7 +39,7 @@ setup(
             'tracking_subscriber = orchestrator_dummy_nodes.tracking_subscriber:main',
             'detector = orchestrator_dummy_nodes.detector:main',
             'test = orchestrator_dummy_nodes.test:main',
-            'orchestrator = orchestrator_dummy_nodes.orchestrator:main',
+            'orchestrator = orchestrator_dummy_nodes.orchestrator_node:main',
             'plausibility_node = orchestrator_dummy_nodes.plausibility_node:main',
             'forwarding_node = orchestrator_dummy_nodes.forwarding_node:main',
         ],

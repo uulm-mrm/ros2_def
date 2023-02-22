@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
-from orchestrator.orchestrator_lib.node_model import Cause
+from orchestrator.orchestrator_lib.node_model import Cause, TopicInput, TimerInput
 from rclpy.time import Time
 
 
@@ -25,12 +25,15 @@ class Action:
 
 @dataclass
 class RxAction(Action):
-    topic: str
+    cause: TopicInput
+    topic: str # TODO: this is in cause
     data: Any | None = None
 
 
 @dataclass
 class TimerCallbackAction(Action):
+    cause: TimerInput
+    # TODO: this actually is in the cause field...
     period: int  # The period identifies the callback amongst possibly multiple timers with different period in a single node
 
 

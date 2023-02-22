@@ -14,7 +14,8 @@
         "/opt/carolo/install/spatz_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/colcon-discover-submodule/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/gja38/sandbox_otto/src/orchestrator"
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.inlayHints.functionReturnTypes": true,
