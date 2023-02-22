@@ -5,7 +5,7 @@ from launch.substitutions import PathJoinSubstitution
 
 from launch_ros.substitutions import FindPackageShare
 
-from orchestrator.remapping_generation import generate_remappings_from_config
+from orchestrator.orchestrator_lib.remapping_generation import generate_remappings_from_config
 
 
 def generate_launch_description():

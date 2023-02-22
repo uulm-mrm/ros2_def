@@ -1,4 +1,4 @@
-from orchestrator.model_loader import load_launch_config_schema
+from orchestrator.orchestrator_lib.model_loader import load_launch_config_schema
 
 import json
 from jsonschema import validate

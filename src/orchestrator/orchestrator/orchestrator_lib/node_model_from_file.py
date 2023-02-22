@@ -1,5 +1,5 @@
 from typing import cast
-from orchestrator_dummy_nodes.orchestrator_lib.node_model import Cause, Effect, NodeModel, SimpleRemapRules, StatusPublish, TopicInput, TopicPublish, TimerInput
+from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, SimpleRemapRules, StatusPublish, TopicInput, TopicPublish, TimerInput
 
 
 class ConfigFileNodeModel(NodeModel):

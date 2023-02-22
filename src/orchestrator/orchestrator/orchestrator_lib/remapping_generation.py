@@ -1,7 +1,7 @@
 import sys
 
-from orchestrator_dummy_nodes.orchestrator_lib.node_model import TopicInput, TimerInput
-from orchestrator_dummy_nodes.orchestrator_lib.name_utils import intercepted_name
+from orchestrator.orchestrator_lib.node_model import TopicInput, TimerInput
+from orchestrator.orchestrator_lib.name_utils import intercepted_name
 from .model_loader import *
 
 from launch_ros.actions import SetRemap

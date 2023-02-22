@@ -6,13 +6,13 @@ from rclpy.node import Node
 from rclpy.logging import get_logger
 from rclpy.time import Time, Duration
 
-from .orchestrator_lib.orchestrator import Orchestrator
+from orchestrator.orchestrator_lib.orchestrator import Orchestrator
 
 from orchestrator_dummy_nodes.tracking_example_configuration import \
     external_input_topics as external_input_topics_config, \
     output_topics
 
-from orchestrator.model_loader import *
+from orchestrator.orchestrator_lib.model_loader import *
 
 from orchestrator_interfaces.msg import SampleMessage
 from rosgraph_msgs.msg import Clock

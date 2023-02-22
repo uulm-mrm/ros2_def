@@ -3,14 +3,14 @@
         "--max-line-length=150"
     ],
     "python.autoComplete.extraPaths": [
-        "/home/gja38/sandbox_otto/install/orchestrator_dummy_nodes/lib/python3.10/site-packages",
+        "/home/gja38/sandbox_otto/install/orchestrator_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/spatz_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/colcon-discover-submodule/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
     ],
     "python.analysis.extraPaths": [
-        "/home/gja38/sandbox_otto/install/orchestrator_dummy_nodes/lib/python3.10/site-packages",
+        "/home/gja38/sandbox_otto/install/orchestrator_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/spatz_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/colcon-discover-submodule/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",

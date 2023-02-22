@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+from orchestrator.orchestrator_lib.node_model import Cause
 from rclpy.time import Time
 
 
@@ -19,6 +20,7 @@ class Action:
     state: ActionState
     node: str
     timestamp: Time
+    cause: Cause
 
 
 @dataclass

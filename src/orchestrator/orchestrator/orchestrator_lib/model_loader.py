@@ -1,6 +1,6 @@
 from .node_model_from_file import ConfigFileNodeModel
 
-from orchestrator_dummy_nodes.orchestrator_lib.node_model import NodeModel
+from orchestrator.orchestrator_lib.node_model import NodeModel
 
 from ament_index_python.packages import get_package_share_path
 

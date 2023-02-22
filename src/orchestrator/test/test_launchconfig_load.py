@@ -1,6 +1,6 @@
 from test_node_model_from_config import assert_tracking_model_correct
 
-from orchestrator.model_loader import load_launch_config, load_launch_config_schema, load_models, load_node_config_schema
+from orchestrator.orchestrator_lib.model_loader import load_launch_config, load_launch_config_schema, load_models, load_node_config_schema
 
 
 def test_load_tracking_example():

@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Any, cast, TypeAlias
 
-from .node_model import Cause, NodeModel, StatusPublish, TimerInput, TopicInput, TopicPublish
-from .name_utils import NodeName, TopicName, collect_intercepted_topics
-from .action import Action, ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallbackAction
+from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, StatusPublish, TimerInput, TopicInput, TopicPublish
+from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, collect_intercepted_topics
+from orchestrator.orchestrator_lib.action import Action, ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallbackAction
 
-from orchestrator_dummy_nodes.ros_utils.logger import lc
+from orchestrator.orchestrator_lib.ros_utils.logger import lc
 
 from orchestrator_interfaces.msg import Status
 
@@ -30,9 +30,9 @@ def _next_id() -> int:
 _next_id.value = 0
 
 
+# Inputs always correspond to current simulator time
 @dataclass
 class FutureInput:
-    time: Time
     topic: TopicName
     future: Future
 
@@ -64,9 +64,13 @@ class Orchestrator:
         #  but we need to inform the node models that they happened
         self.output_subs: list[Subscription] = []
 
-        self.next_input: FutureInput | None = None
+        # Offered input by the data source, which can be requested by completing the contained future
+        self.next_input: FutureInput | FutureTimestep | None = None
 
-        self.next_timestep: FutureTimestep | None = None
+        # The current time of the data source. This should be set once all actions for this time have been added,
+        #  altough they might not be done yet.
+        #  When setting this, the data source is allowed to publish the time on /clock, and the corresponding next_input
+        #  shall be requested.
         self.simulator_time: Time | None = None
 
         self.graph: nx.DiGraph = nx.DiGraph()
@@ -110,7 +114,6 @@ class Orchestrator:
         may never be done (and processing might not continue).
         """
 
-        # TODO: Handle this...
         if self.next_input is not None:
             raise RuntimeError("Data source wants to provide next input before waiting on the last one!")
 
@@ -120,7 +123,7 @@ class Orchestrator:
         lc(self.l, f"Data source offers input on topic \"{topic}\" for current time {self.simulator_time}")
 
         future = Future()
-        self.next_input = FutureInput(self.simulator_time, topic, future)
+        self.next_input = FutureInput(topic, future)
 
         if not self.__graph_is_busy():
             self.l.info("  There are no running actions, immediately requesting data...")
@@ -159,23 +162,23 @@ class Orchestrator:
         @dataclass
         class Timer:
             node: str
-            period: int
+            cause: TimerInput
 
         timers: list[Timer] = []
         for node_model in self.node_models:
             for input_cause in node_model.get_possible_inputs():
                 if isinstance(input_cause, TimerInput):
-                    timer = Timer(node_model.get_name(), input_cause.period)
+                    timer = Timer(node_model.get_name(), input_cause)
 
         expected_timer_actions: list[TimerCallbackAction] = []
 
         for timer in timers:
-            nr_fires = last_time // timer.period
-            last_fire = nr_fires * timer.period
-            next_fire = last_fire + timer.period
+            nr_fires = last_time // timer.cause.period
+            last_fire = nr_fires * timer.cause.period
+            next_fire = last_fire + timer.cause.period
 
             dt = t - last_time
-            if dt > timer.period:
+            if dt > timer.cause.period:
                 raise RuntimeError(f"Requested timestep too large! Stepping time from {last_time} to {t} ({dt}) "
                                    "would require firing the timer multiple times within the same timestep. This is probably unintended!")
             if next_fire <= t:
@@ -205,16 +208,24 @@ class Orchestrator:
         Request publishing of next input.
         Requires the data provider to already be waiting to publish (called wait_until_publish_allowed before).
         """
-        # TODO: Handle timers
-        if self.next_input is None:
-            raise RuntimeError("No unused input available. Check if next_input exists before calling __request_next_input.")
-        next = self.next_input
-        self.next_input = None
 
-        self.l.info(f"Requesting data on topic {next.topic} for timestamp {next.time}")
-
-        self.__add_topic_input(next.time, next.topic)
-        next.future.set_result(None)
+        match self.next_input:
+            case FutureInput():
+                next = self.next_input
+                self.next_input = None
+                self.l.info(f"Requesting data on topic {next.topic} for current time {self.simulator_time}")
+                assert self.simulator_time is not None
+                self.__add_topic_input(self.simulator_time, next.topic)
+                next.future.set_result(None)
+            case FutureTimestep():
+                next = self.next_input
+                self.next_input = None
+                self.l.info(f"Requesting clock input for time {next.time}")
+                self.__add_pending_timers_until(next.time)
+                self.simulator_time = next.time
+                next.future.set_result(None)
+            case None:
+                raise RuntimeError("No unused input available. Check if next_input exists before calling __request_next_input.")
 
     def __add_action_and_effects(self, action: Action, parent: int | None = None):
 
@@ -254,8 +265,8 @@ class Orchestrator:
                 # Add edge to all RxActions for this topic.
                 # Not doing this would allow concurrent publishing on the same topic, which results in undeterministic receive order
                 for node, node_data in self.graph.nodes(data=True):
-                    other_action: RxAction = node_data["data"]  # type: ignore
-                    if other_action.topic == effect.output_topic:
+                    other_action: Action = node_data["data"]  # type: ignore
+                    if isinstance(other_action, RxAction) and other_action.topic == effect.output_topic:
                         # TODO: I think this occurs in other, unneeded cases?
                         self.graph.add_edge(cause_node_id, node, edge_type=EdgeType.SAME_TOPIC)
 
@@ -277,21 +288,27 @@ class Orchestrator:
                 # Skip actions that still have ordering constraints
                 if cast(int, self.graph.out_degree(graph_node_id)) > 0:
                     continue
-                data: RxAction = node_data["data"]  # type: ignore
+                data: Action = node_data["data"]  # type: ignore
                 # Skip actions which are still missing their data
                 if data.state != ActionState.READY:
                     continue
-                self.l.info(
-                    f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
-                repeat = True
-                data.state = ActionState.RUNNING
-                self.interception_pubs[data.node][data.topic].publish(data.data)
+                match data:
+                    case RxAction():
+                        self.l.info(
+                            f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
+                        repeat = True
+                        data.state = ActionState.RUNNING
+                        self.interception_pubs[data.node][data.topic].publish(data.data)
+                    case TimerCallbackAction():
+                        raise NotImplementedError()
+                    case _:
+                        raise RuntimeError()
         self.l.info("  Done processing! Checking if next input can be requested...")
 
         if self.next_input is None:
             self.l.info("  Next input can not be requested yet, no input data has been offered.")
         elif not self.__ready_for_next_input():
-            self.l.info("  Next input can not be requested yet, because the last sample on the same topic has not been processed yet.")
+            self.l.info("  Next input is available, but we are not ready for it yet.")
         else:
             self.l.info("  We are now ready for the next input, requesting...")
             self.__request_next_input()
@@ -304,32 +321,41 @@ class Orchestrator:
         for this topic or have already buffered this topic, which both means
         that the input has already been requested (or even received).
         """
-        if self.next_input is None:
-            raise RuntimeError("There is no next input!")
 
-        for _graph_node_id, node_data in self.graph.nodes(data=True):
-            data: RxAction = node_data["data"]  # type: ignore
-            if data.state == ActionState.READY or data.state == ActionState.WAITING:
-                if data.topic == self.next_input.topic:
-                    return False
-
-        return True
+        match self.next_input:
+            case None:
+                raise RuntimeError("There is no next input!")
+            case FutureTimestep():
+                # always ready for timer event?
+                # only issue i see is preventing explosion of graph size if *many* timer events without data inputs occur?
+                # TODO: heuristic for this?
+                return True
+            case FutureInput():
+                for _graph_node_id, node_data in self.graph.nodes(data=True):
+                    data: Action = node_data["data"]  # type: ignore
+                    if data.state == ActionState.READY or data.state == ActionState.WAITING:
+                        if isinstance(data, RxAction) and data.topic == self.next_input.topic:
+                            return False
+                return True
+            case _:
+                raise RuntimeError()
 
     def __graph_is_busy(self) -> bool:
         has_running = False
         for graph_node_id, node_data in self.graph.nodes(data=True):
-            data: RxAction = node_data["data"]  # type: ignore
+            data: Action = node_data["data"]  # type: ignore
             if data.state == ActionState.RUNNING or data.state == ActionState.WAITING:
                 has_running = True
                 break
         return has_running
 
     def __find_running_action(self, published_topic_name: TopicName) -> int:
+        """Find running action which published the message on the specified topic"""
         for node_id, node_data in self.graph.nodes(data=True):
-            d: RxAction = node_data["data"]  # type: ignore
+            d: Action = node_data["data"]  # type: ignore
             if d.state == ActionState.RUNNING:
                 node_model = self.__node_model_by_name(d.node)
-                outputs = node_model.effects_for_input(TopicInput(d.topic))
+                outputs = node_model.effects_for_input(d.cause)
                 for output in outputs:
                     if output == TopicPublish(published_topic_name):
                         return node_id
@@ -337,7 +363,7 @@ class Orchestrator:
 
     def __find_running_action_status(self, node_name: NodeName) -> int:
         for node_id, node_data in self.graph.nodes(data=True):
-            d: RxAction = node_data["data"]  # type: ignore
+            d: Action = node_data["data"]  # type: ignore
             if d.state == ActionState.RUNNING and d.node == node_name:
                 node_model = self.__node_model_by_name(d.node)
                 outputs = node_model.effects_for_input(TopicInput(d.topic))
@@ -349,8 +375,14 @@ class Orchestrator:
     def plot_graph(self):
         annotations = {}
         for node, node_data in self.graph.nodes(data=True):
-            d: RxAction = node_data["data"]  # type: ignore
-            annotations[node] = f"{d.node}: rx {d.topic}"
+            d: Action = node_data["data"]  # type: ignore
+            match d:
+                case RxAction():
+                    annotations[node] = f"{d.node}: rx {d.topic}"
+                case TimerCallbackAction():
+                    annotations[node] = f"{d.node}: timer @{d.timestamp}"
+                case _:
+                    raise RuntimeError()
 
         color_map = {
             EdgeType.SAME_NODE: "tab:green",
@@ -420,7 +452,7 @@ class Orchestrator:
 
         try:
             cause_action_id = self.__find_running_action(topic_name)
-            causing_action: RxAction = self.graph.nodes[cause_action_id]["data"]  # type: ignore
+            causing_action: Action = self.graph.nodes[cause_action_id]["data"]  # type: ignore
             self.l.info(f"  This completes the {causing_action.topic} callback of {causing_action.node}! Removing node...")
             # Removing node happens below, since we still need it to find actions caused by this...
         except ActionNotFoundError:
@@ -428,7 +460,7 @@ class Orchestrator:
                 # Find the timestep of the earliest matching waiting action, such that we don't accidentally
                 #  buffer this data for later inputs below.
                 for action_node_id, node_data in self.graph.nodes(data=True):
-                    rxdata: RxAction = node_data["data"]  # type: ignore
+                    rxdata: Action = node_data["data"]  # type: ignore
                     if rxdata.topic != topic_name:
                         continue
                     if rxdata.state != ActionState.WAITING:
@@ -444,7 +476,7 @@ class Orchestrator:
         # Buffer this data for next actions
         i: int = 0
         for action_node_id, node_data in self.graph.nodes(data=True):
-            rxdata: RxAction = node_data["data"]  # type: ignore
+            rxdata: Action = node_data["data"]  # type: ignore
             if rxdata.topic != topic_name:
                 continue
             if rxdata.state != ActionState.WAITING:
@@ -487,7 +519,7 @@ class Orchestrator:
         lc(self.l, f"Received status message from {msg.node_name}")
         # Complete the action which sent this message
         cause_action_id = self.__find_running_action_status(msg.node_name)
-        causing_action: RxAction = self.graph.nodes[cause_action_id]["data"]  # type: ignore
+        causing_action: Action = self.graph.nodes[cause_action_id]["data"]  # type: ignore
         self.l.info(f"  This completes the {causing_action.topic} callback of {causing_action.node}! Removing node...")
         self.graph.remove_node(cause_action_id)
         self.__process()
