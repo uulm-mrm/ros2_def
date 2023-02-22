@@ -32,7 +32,7 @@ def spin_for(node, duration):
 class BagPlayer(Node):
     def __init__(self) -> None:
         super().__init__("orchestrator")  # type: ignore
-        l(f"Orchestrator Node Starting!")
+        self.get_logger().info(f"Orchestrator Node Starting!")
 
         self.t = Time(seconds=0, nanoseconds=0)
 
