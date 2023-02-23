@@ -5,7 +5,7 @@
             "name": "Planning timer callback",
             "trigger": {
                 "type": "timer",
-                "period": 1000000000
+                "period": 300000000
             },
             "outputs": [
                 "output"

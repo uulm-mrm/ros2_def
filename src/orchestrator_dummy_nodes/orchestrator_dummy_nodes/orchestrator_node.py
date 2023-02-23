@@ -6,13 +6,14 @@ from rclpy.node import Node
 from rclpy.logging import get_logger
 from rclpy.time import Time, Duration
 
-from orchestrator.orchestrator_lib.orchestrator import Orchestrator
 
 from orchestrator_dummy_nodes.tracking_example_configuration import \
     external_input_topics as external_input_topics_config, \
     output_topics
-
+    
+from orchestrator.orchestrator_lib.orchestrator import Orchestrator
 from orchestrator.orchestrator_lib.model_loader import *
+from orchestrator.orchestrator_lib.ros_utils.spin import spin_for
 
 from orchestrator_interfaces.msg import SampleMessage
 from rosgraph_msgs.msg import Clock
@@ -20,13 +21,6 @@ from rosgraph_msgs.msg import Clock
 
 def l(msg):
     return get_logger("l").info(msg)
-
-
-def spin_for(node, duration):
-    start = datetime.datetime.now()
-    while datetime.datetime.now() - start < duration:
-        remaining = datetime.datetime.now() - start
-        rclpy.spin_once(node, timeout_sec=remaining.total_seconds())
 
 
 class BagPlayer(Node):
@@ -95,7 +89,7 @@ class BagPlayer(Node):
             rclpy.spin_until_future_complete(self, f)
             self.publish_camera()
 
-        spin_for(self, datetime.timedelta(seconds=3.0))
+        #spin_for(self, datetime.timedelta(seconds=3.0))
         self.t += Duration(seconds=0, nanoseconds=100_000_000)
 
 

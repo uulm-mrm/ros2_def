@@ -1,7 +1,7 @@
 from typing import Type
 from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, StatusPublish, TopicInput
 from std_msgs.msg import String
-
+from orchestrator_interfaces.msg import SampleMessage
 
 class TrackingNodeModel(NodeModel):
 
@@ -94,7 +94,7 @@ plausibility_node = PlausibilityCheckNodeModel("plausibility", "occupancy_grid",
 nodes: list[NodeModel] = [radar_detector, camera_detector, lidar_detector, tracking, gridmap, plausibility_node]
 
 external_input_topics: list[tuple[Type, str]] = [(String, "meas/radar"), (String, "meas/camera"), (String, "meas/lidar")]
-output_topics: list[tuple[Type, str]] = [(String, "plausible_tracks"), (String, "gridmap_tracks")]
+output_topics: list[tuple[Type, str]] = [(String, "plausible_tracks"), (String, "gridmap_tracks"), (SampleMessage, "trajectory")]
 
 # Manually decide intercepted topics for now.
 # Each topic has many names:

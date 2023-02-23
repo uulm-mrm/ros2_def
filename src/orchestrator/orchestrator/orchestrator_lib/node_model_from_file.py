@@ -88,6 +88,4 @@ class ConfigFileNodeModel(NodeModel):
         return list(self.effects.keys())
 
     def effects_for_input(self, input: Cause) -> list[Effect]:
-        if not isinstance(input, TopicInput):
-            raise NotImplementedError("Other inputs than topics are not implemented for ConfigFileNodeModel.")
         return self.effects[input]

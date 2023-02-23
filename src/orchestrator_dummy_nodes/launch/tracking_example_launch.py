@@ -98,6 +98,9 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='simple_timer_publisher',
             name='planning',
+            parameters=[
+                {"timer_period_s": 0.3}
+            ],
             remappings=[("output", "trajectory")],
             arguments=['--ros-args', '--log-level', ['planning:=', logger]],
         ),
