@@ -17,22 +17,24 @@ class TimerInput(Cause):
     period: int  # Timer period in ns
 
 
-class Effect:
-    pass
-
-
 @dataclass(frozen=True)
-class TopicPublish(Effect):
+class TopicPublish():
     output_topic: str
 
 
 @dataclass(frozen=True)
-class StatusPublish(Effect):
+class StatusPublish():
     pass
+
+
+@dataclass
+class ServiceCall():
+    service_name: str
 
 
 SimpleRemapRule: TypeAlias = tuple[str, str]
 SimpleRemapRules: TypeAlias = list[SimpleRemapRule]
+Effect: TypeAlias = TopicPublish | StatusPublish | ServiceCall
 
 
 class NodeModel(ABC):
@@ -47,6 +49,7 @@ class NodeModel(ABC):
         return self.name
 
     def internal_name_from_topic(self, topic: str):
+        """Map remapped topic name to internal name"""
         for input_name, input_topic in self.input_remappings:
             if input_topic == topic:
                 if not isinstance(input_name, str):
@@ -60,6 +63,7 @@ class NodeModel(ABC):
         raise ValueError(f"Topic {topic} is not known to node")
 
     def topic_name_from_internal(self, internal_name: str) -> str:
+        """Map internal topic name to remapped name"""
         for input_name, input_topic in self.input_remappings:
             if input_name == internal_name:
                 if not isinstance(input_topic, str):
@@ -73,9 +77,11 @@ class NodeModel(ABC):
         raise ValueError(f"Internal name {internal_name} has no topic name")
 
     def internal_topic_pub(self, internal_name: str) -> TopicPublish:
+        """Create TopicPublish effect by internal name"""
         return TopicPublish(self.topic_name_from_internal(internal_name))
 
     def internal_topic_input(self, internal_name: str) -> TopicInput:
+        """Create TopicInput cause by internal name"""
         return TopicInput(self.topic_name_from_internal(internal_name))
 
     @abstractmethod

@@ -1,0 +1,16 @@
+{
+    "name": "service_caller",
+    "callbacks": [
+        {
+            "name": "data input callback",
+            "trigger": {
+                "type": "topic",
+                "name": "input"
+            },
+            "outputs": [],
+            "service_calls": [
+                "service"
+            ]
+        }
+    ]
+}

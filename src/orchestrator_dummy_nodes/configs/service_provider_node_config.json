@@ -1,0 +1,13 @@
+{
+    "name": "service_provider",
+    "callbacks": [
+        {
+            "name": "data update callback",
+            "trigger": {
+                "type": "topic",
+                "name": "input"
+            },
+            "outputs": []
+        }
+    ]
+}

@@ -5,7 +5,7 @@ from typing import Any, cast, TypeAlias
 
 from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, StatusPublish, TimerInput, TopicInput, TopicPublish
 from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, collect_intercepted_topics
-from orchestrator.orchestrator_lib.action import Action, ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallbackAction
+from orchestrator.orchestrator_lib.action import ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallbackAction, Action
 
 from orchestrator.orchestrator_lib.ros_utils.logger import lc
 from orchestrator.orchestrator_lib.ros_utils.spin import spin_for
@@ -294,12 +294,11 @@ class Orchestrator:
         if parent is not None:
             self.graph.add_edge(cause_node_id, parent, edge_type=EdgeType.CAUSALITY)
 
-        if isinstance(action, TimerCallbackAction):
-            cause = TimerInput(period=action.period)
-        elif isinstance(action, RxAction):
-            cause = TopicInput(action.topic)
-        else:
-            raise NotImplementedError()
+        match action:
+            case TimerCallbackAction():
+                cause = TimerInput(period=action.period)
+            case RxAction():
+                cause = TopicInput(action.topic)
 
         node_model = self.__node_model_by_name(action.node)
         assert cause in node_model.get_possible_inputs()
@@ -356,8 +355,6 @@ class Orchestrator:
                         time_msg = rosgraph_msgs.msg.Clock()
                         time_msg.clock = data.timestamp.to_msg()
                         self.interception_pubs[data.node]["clock"].publish(time_msg)
-                    case _:
-                        raise RuntimeError()
                 repeat = True
         self.l.info("  Done processing! Checking if next input can be requested...")
 
@@ -405,8 +402,6 @@ class Orchestrator:
                         if isinstance(data, RxAction) and data.topic == self.next_input.topic:
                             return False
                 return True
-            case _:
-                raise RuntimeError()
 
     def __graph_is_busy(self) -> bool:
         has_running = False
@@ -449,8 +444,6 @@ class Orchestrator:
                     annotations[node] = f"{d.node}: rx {d.topic}"
                 case TimerCallbackAction():
                     annotations[node] = f"{d.node}: timer @{d.timestamp}"
-                case _:
-                    raise RuntimeError()
 
         color_map = {
             EdgeType.SAME_NODE: "tab:green",

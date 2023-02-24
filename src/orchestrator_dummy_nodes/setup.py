@@ -16,6 +16,9 @@ setup(
         (os.path.join('share', package_name, 'configs'), ['configs/detector_node_config.json',
                                                           'configs/planning_node_config.json',
                                                           'configs/plausibility_node_config.json',
+                                                          'configs/service_caller_node_config.json',
+                                                          'configs/service_provider_node_config.json',
+                                                          'configs/service_test_launch_config.json',
                                                           'configs/tracking_node_config.json',
                                                           'configs/tracking_example_launch_config.json'])
 
@@ -33,15 +36,15 @@ setup(
             'multi_subscriber = orchestrator_dummy_nodes.multi_subscriber:main',
             'interceptor = orchestrator_dummy_nodes.interceptor:main',
             'graph_analysis = orchestrator_dummy_nodes.graph_analysis:main',
-            'serializing_interceptor = orchestrator_dummy_nodes.serializing_interceptor:main',
             'timed_sensor_publisher = orchestrator_dummy_nodes.timed_sensor_publisher:main',
             'simple_timer_publisher = orchestrator_dummy_nodes.simple_timer_publisher:main',
             'tracking_subscriber = orchestrator_dummy_nodes.tracking_subscriber:main',
             'detector = orchestrator_dummy_nodes.detector:main',
             'test = orchestrator_dummy_nodes.test:main',
-            'orchestrator = orchestrator_dummy_nodes.orchestrator_node:main',
             'plausibility_node = orchestrator_dummy_nodes.plausibility_node:main',
             'forwarding_node = orchestrator_dummy_nodes.forwarding_node:main',
+            'service_caller_node = orchestrator_dummy_nodes.service_caller_node:main',
+            'service_provider_node = orchestrator_dummy_nodes.service_provider_node:main',
         ],
     },
 )

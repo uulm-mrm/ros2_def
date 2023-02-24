@@ -83,13 +83,18 @@
                     }
                 },
                 "service_calls": {
-                    "type": "array"
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "title": "Service name"
+                    }
                 }
             },
             "required": [
                 "trigger",
                 "outputs"
-            ]
+            ],
+            "additionalProperties": false
         }
     }
 }

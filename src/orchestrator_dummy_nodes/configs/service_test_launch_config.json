@@ -1,0 +1,34 @@
+{
+    "nodes": {
+        "SP": {
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "service_provider_node_config.json"
+            ],
+            "remappings": {
+                "service": "my_service",
+                "input": "i"
+            }
+        },
+        "C1": {
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "service_caller_node_config.json"
+            ],
+            "remappings": {
+                "service": "my_service",
+                "input": "i"
+            }
+        },
+        "C2": {
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "service_caller_node_config.json"
+            ],
+            "remappings": {
+                "service": "my_service",
+                "input": "i"
+            }
+        }
+    }
+}

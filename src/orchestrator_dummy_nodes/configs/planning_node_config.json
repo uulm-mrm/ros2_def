@@ -9,6 +9,9 @@
             },
             "outputs": [
                 "output"
+            ],
+            "service_calls": [
+                "egomotion"
             ]
         }
     ]

@@ -86,6 +86,16 @@
             "remappings": {
                 "output": "trajectory"
             }
+        },
+        "egomotion_provider": {
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "service_provider_node_config.json"
+            ],
+            "remappings": {
+                "input": "meas/camera",
+                "service": "egomotion"
+            }
         }
     }
 }
