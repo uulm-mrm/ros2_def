@@ -1,91 +1,97 @@
-from typing import cast
-from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, SimpleRemapRules, StatusPublish, TopicInput, TopicPublish, TimerInput
+from typing import cast, final
+from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, SimpleRemapRules, StatusPublish, TopicInput, TopicPublish, TimerInput
 
 
+@final
 class ConfigFileNodeModel(NodeModel):
 
-    def __init__(self, node_config, name, remappings) -> None:
+    def __init__(self, node_config: dict, name, remappings) -> None:
 
         # Mappings from internal to external name
-        inputs: dict[str, str] = {}
-        outputs: dict[str, str] = {}
+        mappings: dict[str, str] = {}
 
         # Initialize mappings by identity for all known inputs and outputs from
         # node config.
         for callback in node_config["callbacks"]:
             trigger = callback["trigger"]
             if isinstance(trigger, str):
-                inputs[trigger] = trigger
+                mappings[trigger] = trigger
             elif isinstance(trigger, dict):
                 if trigger["type"] == "topic":
                     trigger = cast(str, trigger["name"])
-                    inputs[trigger] = trigger
+                    mappings[trigger] = trigger
                 elif trigger["type"] == "timer":
-                    inputs["clock"] = "clock"
+                    mappings["clock"] = "clock"
                 else:
                     raise NotImplementedError(f"Callback type {trigger['type']} not implemented")
 
             for output in callback["outputs"]:
-                if output in inputs:
+                if output in mappings:
                     raise RuntimeError(f"Topic {output} of node {name} defined as both input and output!")
-                outputs[output] = output
+                mappings[output] = output
+
+            for service in callback.get("service_calls", []):
+                mappings[service] = service
+
+        for service in node_config.get("services", []):
+            mappings[service] = service
 
         # Apply remappings from launch config
         for internal_name, external_name in remappings.items():
-            if internal_name in inputs:
-                if not inputs[internal_name] == internal_name:
-                    raise RuntimeError(f"Duplicate remapping for topic {internal_name}"
-                                       f" of node {name}: First remapped to"
-                                       f" {inputs[internal_name]}, then again"
-                                       f" to {external_name}!")
-                inputs[internal_name] = external_name
-            elif internal_name in outputs:
-                if not outputs[internal_name] == internal_name:
-                    raise RuntimeError(f"Duplicate remapping for output topic {internal_name}"
-                                       f" of node {name}: First remapped to"
-                                       f" {outputs[internal_name]}, then again"
-                                       f" to {external_name}!")
-                outputs[internal_name] = external_name
+            if internal_name not in mappings:
+                raise RuntimeError(
+                    f"Remapping for \"{internal_name}\" to \"{external_name}\" given, but \"{internal_name}\" is not known at node {name}")
+            if not mappings[internal_name] == internal_name:
+                raise RuntimeError(f"Duplicate remapping for topic {internal_name}"
+                                   f" of node {name}: First remapped to"
+                                   f" {mappings[internal_name]}, then again"
+                                   f" to {external_name}!")
+            mappings[internal_name] = external_name
 
-        input_list: SimpleRemapRules = [(internal, external) for internal, external in inputs.items()]
-        output_list: SimpleRemapRules = [(internal, external) for internal, external in outputs.items()]
-
-        super().__init__(name, input_list, output_list)
+        super().__init__(name, [(internal, external) for internal, external in mappings.items()])
 
         # Mapping from external topic input to external topic outputs
         self.effects: dict[Cause, list[Effect]] = {}
         for callback in node_config["callbacks"]:
             trigger = callback["trigger"]
-            if isinstance(trigger, str):
-                trigger = self.internal_topic_input(trigger)
-            elif isinstance(trigger, dict):
-                if trigger["type"] == "topic":
-                    trigger = self.internal_topic_input(trigger["name"])
-                elif trigger["type"] == "timer":
-                    ti = TimerInput(int(trigger["period"]))
+            match trigger:
+                case str():
+                    trigger = self.internal_topic_input(trigger)
+                case {"type": "topic", "name": topic_name}:
+                    trigger = self.internal_topic_input(topic_name)
+                case {"type": "timer", "period": period}:
+                    ti = TimerInput(int(period))
                     if ti in self.effects:
-                        raise RuntimeError(f"Multiple timers with period {trigger['period']} for node {name}")
+                        raise RuntimeError(f"Multiple timers with period {period} for node {name}")
                     trigger = ti
-                else:
-                    raise NotImplementedError(f"Callback type {trigger['type']} not implemented")
-            else:
-                raise RuntimeError(f"Invalid trigger for callback {callback}")
-            outputs = callback["outputs"]
-            # TODO: finalize output specification
-            if not isinstance(outputs, list):
-                raise NotImplementedError("Outputs other than topic names are not implemented")
-            for output in outputs:
-                if not isinstance(output, str):
-                    raise NotImplementedError("Outputs other than topic names are not implemented")
+                case {"type": trigger_type, **rest}:
+                    raise NotImplementedError(f"Callback type {trigger_type} not implemented")
+                case _:
+                    raise RuntimeError(f"Invalid trigger for callback {callback}")
 
-            output_effects: list[Effect] = [self.internal_topic_pub(output) for output in outputs]
+            output_effects: list[Effect] = []
+            for output in callback.get("outputs", []):
+                output_effects.append(self.internal_topic_pub(output))
+
             if len(output_effects) == 0:
+                # This is intentionally before service call: callback with service call still needs status publish
+                # to notify orchestrator about callback end, since service call is not intercepted
                 output_effects.append(StatusPublish())
 
+            for service_call in callback.get("service_calls", []):
+                output_effects.append(ServiceCall(self.topic_name_from_internal(service_call)))
+
             self.effects[trigger] = output_effects
+
+        self.services: list[ServiceName] = []
+        for service in node_config.get("services", []):
+            self.services.append(self.topic_name_from_internal(service))
 
     def get_possible_inputs(self) -> list[Cause]:
         return list(self.effects.keys())
 
     def effects_for_input(self, input: Cause) -> list[Effect]:
         return self.effects[input]
+
+    def get_provided_services(self) -> list[ServiceName]:
+        return self.services

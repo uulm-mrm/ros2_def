@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 import datetime
 from time import sleep
-from typing import Any, cast, TypeAlias
+from typing import Any, Type, cast, TypeAlias
 
-from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, StatusPublish, TimerInput, TopicInput, TopicPublish
-from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, collect_intercepted_topics
+from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, ServiceCall, StatusPublish, TimerInput, TopicInput, TopicPublish
+from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, collect_intercepted_topics, type_from_string
 from orchestrator.orchestrator_lib.action import ActionNotFoundError, ActionState, EdgeType, RxAction, TimerCallbackAction, Action
 
 from orchestrator.orchestrator_lib.ros_utils.logger import lc
@@ -26,8 +26,10 @@ import netgraph
 
 import rosgraph_msgs.msg
 
+GraphNodeId: TypeAlias = int
 
-def _next_id() -> int:
+
+def _next_id() -> GraphNodeId:
     n = _next_id.value
     _next_id.value += 1
     return n
@@ -50,10 +52,9 @@ class FutureTimestep:
 
 
 class Orchestrator:
-    def __init__(self, ros_node: RosNode, node_config, external_input_topics_config, output_topics, logger: RcutilsLogger | None = None) -> None:
+    def __init__(self, ros_node: RosNode, node_config, external_input_topics_config: list[tuple[Type, TopicName]], logger: RcutilsLogger | None = None) -> None:
         self.ros_node = ros_node
         self.l = logger or ros_node.get_logger()
-        self.output_topics = output_topics
         self.external_input_topics_config = external_input_topics_config
 
         self.node_models: list[NodeModel] = node_config
@@ -85,7 +86,9 @@ class Orchestrator:
         self.graph: nx.DiGraph = nx.DiGraph()
 
     def initialize_ros_communication(self):
-        for node, canonical_name, intercepted_name, type in collect_intercepted_topics(self.ros_node.get_topic_names_and_types()):
+        # TODO: get this info from node models/check missing topics
+        topic_names_and_types = self.ros_node.get_topic_names_and_types()
+        for node, canonical_name, intercepted_name, type in collect_intercepted_topics(topic_names_and_types):
             lc(self.l, f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
             # Subscribe to the input topic
             if canonical_name not in self.interception_subs:
@@ -104,15 +107,31 @@ class Orchestrator:
                 self.interception_pubs[node] = {}
             self.interception_pubs[node][canonical_name] = publisher
 
+        def get_type(topic: str) -> Type:
+            for n, ts in topic_names_and_types:
+                if n == topic:
+                    assert len(ts) == 1
+                    return type_from_string(ts[0])
+            raise RuntimeError(f"Could not find type for input-topic {topic}.")
+
         # Subscribe to outputs (tracking example: plausibility node publishers)
-        for MessageType, topic_name in self.output_topics:
-            self.l.info(f"Subscribing to output topic: {topic_name}")
-            sub = self.ros_node.create_subscription(
-                MessageType,
-                topic_name,
-                lambda msg, topic_name=topic_name: self.__interception_subscription_callback(topic_name, msg),
-                10)
-            self.output_subs.append(sub)
+        for node_model in self.node_models:
+            for cause in node_model.get_possible_inputs():
+                for effect in node_model.effects_for_input(cause):
+                    match effect:
+                        case TopicPublish():
+                            if effect.output_topic not in self.interception_subs:
+                                self.l.info(f"Subscribing to output topic: {effect.output_topic}")
+                                sub = self.ros_node.create_subscription(
+                                    get_type(effect.output_topic),
+                                    effect.output_topic,
+                                    lambda msg, topic_name=effect.output_topic: self.__interception_subscription_callback(topic_name, msg),
+                                    10)
+                                self.output_subs.append(sub)
+                        case StatusPublish():
+                            pass
+                        case ServiceCall():
+                            pass
 
         self.status_subscription = self.ros_node.create_subscription(Status, "status", self.__status_callback, 10)
 
@@ -292,17 +311,16 @@ class Orchestrator:
                 self.graph.add_edge(cause_node_id, node, edge_type=EdgeType.SAME_NODE)
 
         if parent is not None:
+            self.l.debug(f"   Adding edge to parent: {parent}")
             self.graph.add_edge(cause_node_id, parent, edge_type=EdgeType.CAUSALITY)
 
-        match action:
-            case TimerCallbackAction():
-                cause = TimerInput(period=action.period)
-            case RxAction():
-                cause = TopicInput(action.topic)
+        cause: Cause = action.cause
 
         node_model = self.__node_model_by_name(action.node)
         assert cause in node_model.get_possible_inputs()
         effects = node_model.effects_for_input(cause)
+
+        assert len(effects) > 0
 
         # Multi-Publisher Connections:
         # Add edge to all RxActions for the topics that are published by this action
@@ -313,8 +331,24 @@ class Orchestrator:
                 for node, node_data in self.graph.nodes(data=True):
                     other_action: Action = node_data["data"]  # type: ignore
                     if isinstance(other_action, RxAction) and other_action.topic == effect.output_topic:
+                        self.l.debug(f"   Adding edge to node {node}, because it publishes on same topic")
                         # TODO: I think this occurs in other, unneeded cases?
                         self.graph.add_edge(cause_node_id, node, edge_type=EdgeType.SAME_TOPIC)
+
+        # Collect services relating to this action
+        services = set(node_model.get_provided_services())
+        for effect in effects:
+            if isinstance(effect, ServiceCall):
+                services.add(effect.service_name)
+        self.l.debug(f"   This action interactis with services: {services}")
+
+        # Add connection to service group
+        for service in services:
+            for id in self.__service_group(service):
+                if id == cause_node_id:
+                    continue
+                self.l.debug(f"   Adding edge to action in service group: {id}")
+                self.graph.add_edge(cause_node_id, id, edge_type=EdgeType.SERVICE_GROUP)
 
         # Recursively add action nodes for publish events in the current action
         for effect in effects:
@@ -324,6 +358,35 @@ class Orchestrator:
                     if resulting_input in node.get_possible_inputs():
                         self.__add_action_and_effects(
                             RxAction(ActionState.WAITING, node.get_name(), action.timestamp, resulting_input, resulting_input.input_topic), cause_node_id)
+
+    def __find_service_provider_node(self, service: str) -> NodeModel:
+        for node_model in self.node_models:
+            if service in node_model.get_provided_services():
+                return node_model
+        raise RuntimeError(f"Could not find node providing service \"{service}\"")
+
+    def __service_group(self, service: str) -> set[GraphNodeId]:
+        """Find all actions which relate to a service"""
+        l: set[GraphNodeId] = set()
+
+        service_call = ServiceCall(service_name=service)
+        service_provider_node = self.__find_service_provider_node(service).get_name()
+
+        for graph_node_id, node_data in self.graph.nodes(data=True):
+            data: Action = node_data["data"]  # type: ignore
+
+            # Add actions at node provider
+            if data.node == service_provider_node:
+                l.add(graph_node_id)
+                continue
+
+            # Add actions which call the service
+            node_model = self.__node_model_by_name(data.node)
+            if service_call in node_model.effects_for_input(data.cause):
+                l.add(graph_node_id)
+                continue
+
+        return l
 
     def __process(self):
         lc(self.l, f"Processing Graph with {self.graph.number_of_nodes()} nodes")
@@ -448,7 +511,8 @@ class Orchestrator:
         color_map = {
             EdgeType.SAME_NODE: "tab:green",
             EdgeType.SAME_TOPIC: "tab:orange",
-            EdgeType.CAUSALITY: "tab:blue"
+            EdgeType.CAUSALITY: "tab:blue",
+            EdgeType.SERVICE_GROUP: "tab:red"
         }
         edge_colors = {}
         for u, v, edge_data in self.graph.edges(data=True):  # type: ignore
@@ -472,8 +536,8 @@ class Orchestrator:
 
         node_to_community = {}
         for node, node_data in self.graph.nodes(data=True):
-            timestep = cast(Time, node_data["timestep"])  # type: ignore
-            node_to_community[node] = timestep
+            data: Action = node_data["data"]# type: ignore
+            node_to_community[node] = data.timestamp
 
         plot_instance = netgraph.InteractiveGraph(self.graph,
                                                   node_layout='community',

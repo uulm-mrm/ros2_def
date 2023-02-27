@@ -45,6 +45,7 @@ setup(
             'forwarding_node = orchestrator_dummy_nodes.forwarding_node:main',
             'service_caller_node = orchestrator_dummy_nodes.service_caller_node:main',
             'service_provider_node = orchestrator_dummy_nodes.service_provider_node:main',
+            'orchestrator = orchestrator_dummy_nodes.orchestrator_node:main'
         ],
     },
 )

@@ -9,24 +9,14 @@ from orchestrator.orchestrator_lib.remapping_generation import generate_remappin
 def generate_launch_description():
     logger = LaunchConfiguration("log_level")
 
-    remap_actions = generate_remappings_from_config("orchestrator_dummy_nodes", "service_test_launch_config.json")
-    for r in remap_actions:
-        r.__condition = IfCondition(LaunchConfiguration("intercepted"))
-
     return LaunchDescription([
         DeclareLaunchArgument(
             "log_level",
             default_value=["info"],
             description="Logging level",
         ),
-        DeclareLaunchArgument(
-            "intercepted",
-            default_value='false'
-        ),
 
         SetParameter(name="use_sim_time", value=True),
-
-        *remap_actions,
 
         Node(
             package='orchestrator_dummy_nodes',

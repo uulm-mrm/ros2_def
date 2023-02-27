@@ -9,5 +9,8 @@
             },
             "outputs": []
         }
+    ],
+    "services": [
+        "service"
     ]
 }

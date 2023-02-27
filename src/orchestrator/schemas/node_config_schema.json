@@ -14,6 +14,13 @@
             "items": {
                 "$ref": "#/$defs/callback_spec"
             }
+        },
+        "services": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems":true
         }
     },
     "required": [

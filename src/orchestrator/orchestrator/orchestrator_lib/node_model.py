@@ -36,13 +36,14 @@ SimpleRemapRule: TypeAlias = tuple[str, str]
 SimpleRemapRules: TypeAlias = list[SimpleRemapRule]
 Effect: TypeAlias = TopicPublish | StatusPublish | ServiceCall
 
+ServiceName: TypeAlias = str
+
 
 class NodeModel(ABC):
-    def __init__(self, name: str, input_topics: SimpleRemapRules, output_topics: SimpleRemapRules) -> None:
+    def __init__(self, name: str, remappings: SimpleRemapRules) -> None:
         self.name = name
 
-        self.input_remappings: SimpleRemapRules = input_topics
-        self.output_remappings: SimpleRemapRules = output_topics
+        self.remappings: SimpleRemapRules = remappings
         super().__init__()
 
     def get_name(self) -> str:
@@ -50,31 +51,21 @@ class NodeModel(ABC):
 
     def internal_name_from_topic(self, topic: str):
         """Map remapped topic name to internal name"""
-        for input_name, input_topic in self.input_remappings:
+        for input_name, input_topic in self.remappings:
             if input_topic == topic:
                 if not isinstance(input_name, str):
                     raise NotImplementedError("Remapping with substitutions is not implemented")
                 return input_name
-        for output_name, output_topic in self.output_remappings:
-            if output_topic == topic:
-                if not isinstance(output_name, str):
-                    raise NotImplementedError("Remapping with substitutions is not implemented")
-                return output_name
         raise ValueError(f"Topic {topic} is not known to node")
 
     def topic_name_from_internal(self, internal_name: str) -> str:
         """Map internal topic name to remapped name"""
-        for input_name, input_topic in self.input_remappings:
+        for input_name, input_topic in self.remappings:
             if input_name == internal_name:
                 if not isinstance(input_topic, str):
                     raise NotImplementedError("Remapping with substitutions is not implemented")
                 return input_topic
-        for output_name, output_topic in self.output_remappings:
-            if output_name == internal_name:
-                if not isinstance(output_topic, str):
-                    raise NotImplementedError("Remapping with substitutions is not implemented")
-                return output_topic
-        raise ValueError(f"Internal name {internal_name} has no topic name")
+        raise ValueError(f"Internal name \"{internal_name}\" of node \"{self.get_name()}\" has no (external) topic name!")
 
     def internal_topic_pub(self, internal_name: str) -> TopicPublish:
         """Create TopicPublish effect by internal name"""
@@ -90,4 +81,8 @@ class NodeModel(ABC):
 
     @abstractmethod
     def effects_for_input(self, input: Cause) -> list[Effect]:
+        ...
+
+    @abstractmethod
+    def get_provided_services(self) -> list[ServiceName]:
         ...
