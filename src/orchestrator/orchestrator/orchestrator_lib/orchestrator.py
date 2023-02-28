@@ -12,6 +12,7 @@ from orchestrator.orchestrator_lib.ros_utils.spin import spin_for
 
 from orchestrator_interfaces.msg import Status
 
+import rclpy
 from rclpy import Future
 from rclpy.node import Node as RosNode
 from rclpy.subscription import Subscription
@@ -75,7 +76,6 @@ class Orchestrator:
         #  When setting this, the data source is allowed to publish the time on /clock, and the corresponding next_input
         #  shall be requested.
         self.simulator_time: Time | None = None
-        self.sim_time_initialized: bool = False
         self.ignore_inputs = False
         self.discard_next_clock = True
         self.expected_external_inputs: list[TopicName] = []
@@ -169,12 +169,26 @@ class Orchestrator:
 
         for node_model in self.node_models:
             node_name = node_model.get_name()
-            has_timer = False
+            fastest_timer_period = None
             for input_cause in node_model.get_possible_inputs():
                 if isinstance(input_cause, TimerInput):
-                    has_timer = True
-            if has_timer:
-                self.l.info(f"  Initializing sim time at node {node_name}")
+                    if fastest_timer_period is None or fastest_timer_period > input_cause.period:
+                        fastest_timer_period = input_cause.period
+
+            if fastest_timer_period is not None:
+                if initial_time.nanoseconds < fastest_timer_period:
+                    self.l.info(f"  Initializing sim time at node {node_name}, expecting 1 callback")
+                    # TODO: expect no callback
+                    pass
+                elif fastest_timer_period <= initial_time.nanoseconds < 2*fastest_timer_period:
+                    self.l.info(f"  Initializing sim time at node {node_name}, expecting 1 callback")
+                    # TODO: expect 1 callback
+                    pass
+                else:
+                    self.l.info(f"  Initializing sim time at node {node_name}, expecting 2 callbacks")
+                    # TODO: expect 2 callbacks
+                    pass
+
                 pub = self.interception_pubs[node_name]["clock"]
                 pub.publish(msg)
 
@@ -186,11 +200,10 @@ class Orchestrator:
 
     def wait_until_time_publish_allowed(self, t: Time) -> Future:
 
-        if not self.sim_time_initialized:
+        if self.simulator_time is None:
             self.__initialize_sim_time(t)
             self.simulator_time = t
             self.discard_next_clock = True
-            self.sim_time_initialized = True
             f = Future()
             f.set_result(None)
             return f
@@ -619,6 +632,8 @@ class Orchestrator:
                 cause_action_id = self.__find_running_action(topic_name)
                 causing_action: Action = self.graph.nodes[cause_action_id]["data"]  # type: ignore
                 self.l.info(f"  This completes the {causing_action.cause} callback of {causing_action.node}! Removing node...")
+                # TODO: it does not. maybe the callback publishes more data?
+                # I guess it can be removed once all actions with a causality node to this have buffered data?
                 # Removing node happens below, since we still need it to find actions caused by this...
             except ActionNotFoundError:
                 if topic_name in self.expected_external_inputs:
