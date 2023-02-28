@@ -85,6 +85,7 @@ class Orchestrator:
     def initialize_ros_communication(self):
         # TODO: get this info from node models/check missing topics
         topic_names_and_types = self.ros_node.get_topic_names_and_types()
+        self.l.debug(f"Known topics: {topic_names_and_types}")
         for node, canonical_name, intercepted_name, type in collect_intercepted_topics(topic_names_and_types):
             lc(self.l, f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
             # Subscribe to the input topic
@@ -105,6 +106,8 @@ class Orchestrator:
             self.interception_pubs[node][canonical_name] = publisher
 
         def get_type(topic: str) -> Type:
+            if not topic.startswith("/"):
+                topic = "/" + topic
             for n, ts in topic_names_and_types:
                 if n == topic:
                     assert len(ts) == 1
@@ -405,6 +408,7 @@ class Orchestrator:
                     continue
                 match data:
                     case RxAction():
+                        assert data.data is not None
                         self.l.info(
                             f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
                         data.state = ActionState.RUNNING
