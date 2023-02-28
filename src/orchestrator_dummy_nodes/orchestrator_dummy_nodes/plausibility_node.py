@@ -28,9 +28,13 @@ class PlausibilityNode(Node):
 def main():
     rclpy.init()
     node = PlausibilityNode()
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+
     node.destroy_node()
-    rclpy.shutdown()
+    rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

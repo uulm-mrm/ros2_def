@@ -55,10 +55,13 @@ def main(args=None):
     rclpy.init(args=args)
 
     tracking_subscriber = TrackingSubscriber()
-    rclpy.spin(tracking_subscriber)
+    try:
+        rclpy.spin(tracking_subscriber)
+    except KeyboardInterrupt:
+        pass
 
     tracking_subscriber.destroy_node()
-    rclpy.shutdown()
+    rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

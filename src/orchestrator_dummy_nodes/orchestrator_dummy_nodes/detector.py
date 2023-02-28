@@ -29,10 +29,13 @@ def main(args=None):
     rclpy.init(args=args)
 
     detector = Detector()
-    rclpy.spin(detector)
+    try:
+        rclpy.spin(detector)
+    except KeyboardInterrupt:
+        pass
 
     detector.destroy_node()
-    rclpy.shutdown()
+    rclpy.try_shutdown()
 
 
 if __name__ == '__main__':
