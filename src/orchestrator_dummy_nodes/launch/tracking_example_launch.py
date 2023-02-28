@@ -23,6 +23,7 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='detector',
             name='detector_radar',
+            exec_name = 'detector_radar',
             parameters=[
                 {"processing_time": 0.01*time_scale},
             ],
@@ -36,6 +37,7 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='detector',
             name='detector_camera',
+            exec_name = 'detector_camera',
             parameters=[
                 {"processing_time": 0.01*time_scale},
             ],
@@ -49,6 +51,7 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='detector',
             name='detector_lidar',
+            exec_name = 'detector_lidar',
             parameters=[
                 {"processing_time": 0.01*time_scale},
             ],
@@ -62,6 +65,7 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='tracking_subscriber',
             name='tracking',
+            exec_name = 'tracking',
             remappings=[("input_radar", "detections/radar"),
                         ("input_lidar", "detections/lidar"),
                         ("input_camera", "detections/camera")],
@@ -73,6 +77,7 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='detector',
             name='gridmap',
+            exec_name = 'gridmap',
             parameters=[
                 {"processing_time": 0.03*time_scale},
             ],
@@ -86,6 +91,7 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='plausibility_node',
             name='plausibility',
+            exec_name = 'plausibility',
             remappings=[("tracks_in", "tracks"),
                         ("gridmap", "occupancy_grid"),
                         ("tracks_out", "plausible_tracks"),
@@ -98,10 +104,24 @@ def generate_launch_description():
             package='orchestrator_dummy_nodes',
             executable='simple_timer_publisher',
             name='planning',
+            exec_name = 'planning',
             parameters=[
                 {"timer_period_s": 0.3}
             ],
             remappings=[("output", "trajectory")],
             arguments=['--ros-args', '--log-level', ['planning:=', logger]],
+        ),
+
+        Node(
+            package='orchestrator_dummy_nodes',
+            executable='service_provider_node',
+            name='egomotion_provider',
+            exec_name = 'egomotion_provider',
+            parameters=[
+                {"timer_period_s": 0.3}
+            ],
+            remappings=[("service", "egomotion"),
+                        ("input", "meas/camera")],
+            arguments=['--ros-args', '--log-level', ['egomotion:=', logger]],
         ),
     ])

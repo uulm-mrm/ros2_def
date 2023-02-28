@@ -14,8 +14,6 @@ from orchestrator.orchestrator_lib.ros_utils.spin import spin_for
 from orchestrator_interfaces.msg import SampleMessage
 from rosgraph_msgs.msg import Clock
 
-from std_msgs.msg import String
-
 
 def l(msg):
     return get_logger("l").info(msg)
@@ -45,7 +43,7 @@ class BagPlayer(Node):
                 self.lidar_publisher = self.create_publisher(SampleMessage, "meas/lidar", 10)
             case "service":
                 self.mode = "service"
-                self.input_publisher = self.create_publisher(String, "i", 10)
+                self.input_publisher = self.create_publisher(SampleMessage, "i", 10)
                 launch_config = load_launch_config(
                     "orchestrator_dummy_nodes",
                     "service_test_launch_config.json",
@@ -93,7 +91,7 @@ class BagPlayer(Node):
 
         f = self.orchestrator.wait_until_publish_allowed("i")
         rclpy.spin_until_future_complete(self, f)
-        msg = String()
+        msg = SampleMessage()
         self.input_publisher.publish(msg)
 
         spin_for(self, datetime.timedelta(seconds=3))
