@@ -52,10 +52,9 @@ class FutureTimestep:
 
 
 class Orchestrator:
-    def __init__(self, ros_node: RosNode, node_config, external_input_topics_config: list[tuple[Type, TopicName]], logger: RcutilsLogger | None = None) -> None:
+    def __init__(self, ros_node: RosNode, node_config, logger: RcutilsLogger | None = None) -> None:
         self.ros_node = ros_node
         self.l = logger or ros_node.get_logger()
-        self.external_input_topics_config = external_input_topics_config
 
         self.node_models: list[NodeModel] = node_config
 
@@ -63,9 +62,6 @@ class Orchestrator:
         self.interception_subs: dict[TopicName, Subscription] = {}
         # Publisher for each node (node_name -> topic_name -> pub)
         self.interception_pubs: dict[NodeName, dict[TopicName, Publisher]] = {}
-
-        self.external_input_topics = external_input_topics_config
-        # self.external_input_subs: list[Subscription] = []
 
         # Subscriptions for outputs which we do not need to buffer,
         #  but we need to inform the node models that they happened
@@ -82,6 +78,7 @@ class Orchestrator:
         self.sim_time_initialized: bool = False
         self.ignore_inputs = False
         self.discard_next_clock = True
+        self.expected_external_inputs: list[TopicName] = []
 
         self.graph: nx.DiGraph = nx.DiGraph()
 
@@ -259,8 +256,10 @@ class Orchestrator:
             self.__add_action_and_effects(action)
 
     def __add_topic_input(self, t: Time, topic: TopicName):
-
         lc(self.l, f"Adding input on topic \"{topic}\"")
+
+        self.expected_external_inputs.append(topic)
+
         input = TopicInput(topic)
         expected_rx_actions = []
 
@@ -536,7 +535,7 @@ class Orchestrator:
 
         node_to_community = {}
         for node, node_data in self.graph.nodes(data=True):
-            data: Action = node_data["data"]# type: ignore
+            data: Action = node_data["data"]  # type: ignore
             node_to_community[node] = data.timestamp
 
         plot_instance = netgraph.InteractiveGraph(self.graph,
@@ -618,9 +617,10 @@ class Orchestrator:
                 self.l.info(f"  This completes the {causing_action.cause} callback of {causing_action.node}! Removing node...")
                 # Removing node happens below, since we still need it to find actions caused by this...
             except ActionNotFoundError:
-                if topic_name in [name for (_type, name) in self.external_input_topics_config]:
+                if topic_name in self.expected_external_inputs:
                     # This is an external input...
                     self.l.info("  This is an external input")
+                    self.expected_external_inputs.remove(topic_name)
                     # Find the timestep of the earliest matching waiting action, such that we don't accidentally
                     #  buffer this data for later inputs below.
                     for action_node_id, node_data in self.graph.nodes(data=True):

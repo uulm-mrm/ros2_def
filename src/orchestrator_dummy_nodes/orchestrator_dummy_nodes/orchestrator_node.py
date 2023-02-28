@@ -44,7 +44,6 @@ class BagPlayer(Node):
         self.orchestrator = Orchestrator(
             self,
             node_config,
-            [(String, "i")],
             logger=get_logger("l"))
         time.sleep(3)
         self.orchestrator.initialize_ros_communication()
