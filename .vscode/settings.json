@@ -41,5 +41,8 @@
     ],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMatchNotExhaustive": "error",
-    }
+        "reportUnusedVariable": "warning"
+    },
+    "editor.stickyScroll.enabled": true,
+    "terminal.integrated.scrollback": 10000
 }

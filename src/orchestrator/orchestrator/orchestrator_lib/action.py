@@ -37,7 +37,31 @@ class TimerCallbackAction(_BaseAction):
     period: int  # The period identifies the callback amongst possibly multiple timers with different period in a single node
 
 
-Action: TypeAlias = TimerCallbackAction | RxAction
+@dataclass
+class DataProviderInputAction():
+    state: ActionState
+    published_topic: str
+
+
+@dataclass
+class OrchestratorBufferAction():
+    """
+    Dummy action to enable waiting for an output without actually triggering any other actions.
+    Used during timer-initialization, for initial timer callbacks.
+    """
+    cause: TopicInput
+    pass
+
+
+@dataclass
+class OrchestratorStatusAction():
+    pass
+
+
+Action: TypeAlias = TimerCallbackAction | RxAction | OrchestratorBufferAction | OrchestratorStatusAction | DataProviderInputAction
+
+CallbackAction: TypeAlias = TimerCallbackAction | RxAction
+OrchestratorAction: TypeAlias = OrchestratorBufferAction | OrchestratorStatusAction | DataProviderInputAction
 
 
 class EdgeType(Enum):
