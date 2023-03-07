@@ -23,17 +23,20 @@ def generate_launch_description():
             executable='service_provider_node',
             name='SP',
             arguments=['--ros-args', '--log-level', ['SP:=', logger]],
+            remappings=[("service", "my_service"), ("input", "i")],
         ),
         Node(
             package='orchestrator_dummy_nodes',
             executable='service_caller_node',
             name='C1',
             arguments=['--ros-args', '--log-level', ['C1:=', logger]],
+            remappings=[("service", "my_service"), ("input", "i")],
         ),
         Node(
             package='orchestrator_dummy_nodes',
             executable='service_caller_node',
             name='C2',
             arguments=['--ros-args', '--log-level', ['C2:=', logger]],
+            remappings=[("service", "my_service"), ("input", "i")],
         ),
     ])
