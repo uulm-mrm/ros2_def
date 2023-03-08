@@ -616,6 +616,8 @@ class Orchestrator:
                     annotations[node] = f"buffer {d.cause.input_topic}"
                 case OrchestratorStatusAction():
                     annotations[node] = "rx status"
+                case DataProviderInputAction():
+                    annotations[node] = f"input {d.published_topic}"
 
         color_map = {
             EdgeType.SAME_NODE: "tab:green",
