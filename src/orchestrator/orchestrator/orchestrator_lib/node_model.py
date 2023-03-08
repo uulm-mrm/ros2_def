@@ -3,18 +3,17 @@ from dataclasses import dataclass
 from typing import TypeAlias
 
 
-class Cause(ABC):
-    pass
-
-
 @dataclass(frozen=True)
-class TopicInput(Cause):
+class TopicInput():
     input_topic: str
 
 
 @dataclass(frozen=True)
-class TimerInput(Cause):
+class TimerInput():
     period: int  # Timer period in ns
+
+
+Cause: TypeAlias = TopicInput | TimerInput
 
 
 @dataclass(frozen=True)

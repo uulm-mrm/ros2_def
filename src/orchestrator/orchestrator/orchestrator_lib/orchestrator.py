@@ -4,15 +4,14 @@ from time import sleep
 from typing import Any, Generator, Tuple, Type, cast, TypeAlias
 
 from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, ServiceCall, StatusPublish, TimerInput, TopicInput, TopicPublish
-from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, collect_intercepted_topics, type_from_string
+from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, intercepted_name
 from orchestrator.orchestrator_lib.action import ActionNotFoundError, ActionState, DataProviderInputAction, EdgeType, RxAction, TimerCallbackAction, Action, OrchestratorBufferAction, OrchestratorStatusAction, CallbackAction
 
 from orchestrator.orchestrator_lib.ros_utils.logger import lc
-from orchestrator.orchestrator_lib.ros_utils.spin import spin_for
+from orchestrator.orchestrator_lib.ros_utils.pubsub import wait_for_node_pub, wait_for_node_sub, wait_for_topic
 
 from orchestrator_interfaces.msg import Status
 
-import rclpy
 from rclpy import Future
 from rclpy.node import Node as RosNode
 from rclpy.subscription import Subscription
@@ -64,10 +63,6 @@ class Orchestrator:
         # Publisher for each node (node_name -> topic_name -> pub)
         self.interception_pubs: dict[NodeName, dict[TopicName, Publisher]] = {}
 
-        # Subscriptions for outputs which we do not need to buffer,
-        #  but we need to inform the node models that they happened
-        self.output_subs: list[Subscription] = []
-
         # Offered input by the data source, which can be requested by completing the contained future
         self.next_input: FutureInput | FutureTimestep | None = None
 
@@ -80,57 +75,66 @@ class Orchestrator:
         self.graph: nx.DiGraph = nx.DiGraph()
 
     def initialize_ros_communication(self):
-        # TODO: get this info from node models/check missing topics
-        topic_names_and_types = self.ros_node.get_topic_names_and_types()
-        self.l.debug(f"Known topics: {topic_names_and_types}")
-        for node, canonical_name, intercepted_name, type in collect_intercepted_topics(topic_names_and_types):
-            lc(self.l, f"Intercepted input \"{canonical_name}\" of type {type.__name__} from node \"{node}\" as \"{intercepted_name}\"")
+        """
+        Subscribe to all required ros topics as per launch-config.
+
+        If a topic is not found, or a subscriber/publisher does not exist,
+        this will wait for it and spin the node while waiting.
+        """
+
+        self.status_subscription = self.ros_node.create_subscription(Status, "status", self.__status_callback, 10)
+
+        def intercept_topic(canonical_name: TopicName, node: NodeModel):
+            intercepted_topic_name = intercepted_name(node.get_name(), canonical_name)
+            lc(self.l, f"Intercepted input \"{canonical_name}\" "
+               f" from node \"{node.get_name()}\" as \"{intercepted_topic_name}\"")
+            TopicType = wait_for_topic(canonical_name, self.l, self.ros_node)
             # Subscribe to the input topic
             if canonical_name not in self.interception_subs:
                 self.l.info(f"  Subscribing to {canonical_name}")
+
                 subscription = self.ros_node.create_subscription(
-                    type, canonical_name,
+                    TopicType, canonical_name,
                     lambda msg, topic_name=canonical_name: self.__interception_subscription_callback(topic_name, msg),
                     10)
                 self.interception_subs[canonical_name] = subscription
+                self.l.info(f"Added interception_subs[{canonical_name}] = {subscription.topic}")
             else:
                 self.l.info("  Subscription already exists")
+
             # Create separate publisher for each node
-            self.l.info(f"  Creating publisher for {intercepted_name}")
-            publisher = self.ros_node.create_publisher(type, intercepted_name, 10)
-            if node not in self.interception_pubs:
-                self.interception_pubs[node] = {}
-            self.interception_pubs[node][canonical_name] = publisher
+            self.l.info(f"  Creating publisher for {intercepted_topic_name}")
+            publisher = self.ros_node.create_publisher(TopicType, intercepted_topic_name, 10)
+            if node.get_name() not in self.interception_pubs:
+                self.interception_pubs[node.get_name()] = {}
+            self.interception_pubs[node.get_name()][canonical_name] = publisher
+            wait_for_node_sub(intercepted_topic_name, node.get_name(), self.l, self.ros_node)
 
-        def get_type(topic: str) -> Type:
-            if not topic.startswith("/"):
-                topic = "/" + topic
-            for n, ts in topic_names_and_types:
-                if n == topic:
-                    assert len(ts) == 1
-                    return type_from_string(ts[0])
-            raise RuntimeError(f"Could not find type for input-topic {topic}.")
-
-        # Subscribe to outputs (tracking example: plausibility node publishers)
         for node_model in self.node_models:
-            for cause in node_model.get_possible_inputs():
-                for effect in node_model.effects_for_input(cause):
+            for input_cause in node_model.get_possible_inputs():
+                match input_cause:
+                    case TopicInput():
+                        intercept_topic(input_cause.input_topic, node_model)
+                    case TimerInput():
+                        intercept_topic("clock", node_model)
+
+                for effect in node_model.effects_for_input(input_cause):
                     match effect:
                         case TopicPublish():
                             if effect.output_topic not in self.interception_subs:
-                                self.l.info(f"Subscribing to output topic: {effect.output_topic}")
+                                self.l.info(f" Subscribing to output topic: {effect.output_topic}")
                                 sub = self.ros_node.create_subscription(
-                                    get_type(effect.output_topic),
+                                    wait_for_topic(effect.output_topic, self.l, self.ros_node),
                                     effect.output_topic,
                                     lambda msg, topic_name=effect.output_topic: self.__interception_subscription_callback(topic_name, msg),
                                     10)
-                                self.output_subs.append(sub)
+                                self.interception_subs[effect.output_topic] = sub
+                                wait_for_node_pub(effect.output_topic, node_model.get_name(), self.l, self.ros_node)
                         case StatusPublish():
+                            wait_for_node_pub("status", node_model.get_name(), self.l, self.ros_node)
                             pass
                         case ServiceCall():
                             pass
-
-        self.status_subscription = self.ros_node.create_subscription(Status, "status", self.__status_callback, 10)
 
     def wait_until_publish_allowed(self, topic: TopicName) -> Future:
         """
@@ -412,7 +416,6 @@ class Orchestrator:
                     other_action: Action = node_data["data"]  # type: ignore
                     if isinstance(other_action, OrchestratorBufferAction) and other_action.cause.input_topic == effect.output_topic:
                         self.l.debug(f"   Adding edge to node {node}, because it ")
-                        # TODO: I think this occurs in other, unneeded cases?
                         self.graph.add_edge(cause_node_id, node, edge_type=EdgeType.SAME_TOPIC)
 
         # Collect services relating to this action
@@ -420,7 +423,7 @@ class Orchestrator:
         for effect in effects:
             if isinstance(effect, ServiceCall):
                 services.add(effect.service_name)
-        self.l.debug(f"   This action interactis with services: {services}")
+        self.l.debug(f"   This action interacts with services: {services}")
 
         # Add connection to service group
         for service in services:
