@@ -62,19 +62,21 @@ class BagPlayer(Node):
             self,
             node_config,
             logger=get_logger("l"))
-        time.sleep(3)
         self.orchestrator.initialize_ros_communication()
 
     def publish_lidar(self):
         msg = SampleMessage()
+        msg.debug_data = "lidar measurement"
         self.lidar_publisher.publish(msg)
 
     def publish_radar(self):
         msg = SampleMessage()
+        msg.debug_data = "radar measurement"
         self.radar_publisher.publish(msg)
 
     def publish_camera(self):
         msg = SampleMessage()
+        msg.debug_data = "camera measurement"
         self.camera_publisher.publish(msg)
 
     def publish_time(self):
