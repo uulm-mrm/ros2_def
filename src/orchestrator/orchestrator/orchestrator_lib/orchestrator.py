@@ -135,7 +135,6 @@ class Orchestrator:
                         case ServiceCall():
                             pass
             for tsi in node_model.time_sync_infos():
-                # TODO: tsi hashable
                 assert tsi not in self.time_sync_models
                 if node_model.get_name() not in self.time_sync_models:
                     self.time_sync_models[node_model.get_name()] = {}
@@ -824,8 +823,6 @@ class Orchestrator:
 
         in_degree = self.__in_degree_by_type(cause_action_id, EdgeType.CAUSALITY)
         self.l.debug(f"cause action is node {cause_action_id}: {causing_action} with in-degree {in_degree}")
-
-        # TODO: this does not happen?
 
         # Complete the action which sent this message
         if in_degree == 0:
