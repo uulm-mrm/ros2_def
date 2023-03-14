@@ -13,14 +13,17 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*')),
-        (os.path.join('share', package_name, 'configs'), ['configs/detector_node_config.json',
-                                                          'configs/planning_node_config.json',
-                                                          'configs/plausibility_node_config.json',
-                                                          'configs/service_caller_node_config.json',
-                                                          'configs/service_provider_node_config.json',
-                                                          'configs/service_test_launch_config.json',
-                                                          'configs/tracking_node_config.json',
-                                                          'configs/tracking_example_launch_config.json'])
+        (os.path.join('share', package_name, 'configs'), [
+            'configs/camera_input_node_config.json',
+            'configs/detector_node_config.json',
+            'configs/planning_node_config.json',
+            'configs/plausibility_node_config.json',
+            'configs/service_caller_node_config.json',
+            'configs/service_provider_node_config.json',
+            'configs/service_test_launch_config.json',
+            'configs/time_sync_test_launch_config.json',
+            'configs/tracking_node_config.json',
+            'configs/tracking_example_launch_config.json'])
 
     ],
     install_requires=['setuptools'],
@@ -45,7 +48,8 @@ setup(
             'forwarding_node = orchestrator_dummy_nodes.forwarding_node:main',
             'service_caller_node = orchestrator_dummy_nodes.service_caller_node:main',
             'service_provider_node = orchestrator_dummy_nodes.service_provider_node:main',
-            'orchestrator = orchestrator_dummy_nodes.orchestrator_node:main'
+            'orchestrator = orchestrator_dummy_nodes.orchestrator_node:main',
+            'camera_input_node = orchestrator_dummy_nodes.camera_input_node:main'
         ],
     },
 )

@@ -37,7 +37,8 @@
                                 "^.+": {
                                     "type": "string"
                                 }
-                            }
+                            },
+                            "type": "object"
                         }
                     },
                     "required": [

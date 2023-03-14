@@ -1,0 +1,19 @@
+{
+    "name": "camera_input",
+    "callbacks": [
+        {
+            "trigger": {
+                "type": "approximate_time_sync",
+                "input_topics": [
+                    "camera_info",
+                    "image"
+                ],
+                "slop": 0.1,
+                "queue_size": 4
+            },
+            "outputs": [
+                "output"
+            ]
+        }
+    ]
+}

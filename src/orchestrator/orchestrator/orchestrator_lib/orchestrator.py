@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from typing import Any, Generator, Tuple, Type, cast, TypeAlias
 
-from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, ServiceCall, StatusPublish, TimerInput, TopicInput, TopicPublish
+from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, ServiceCall, StatusPublish, TimeSyncInfo, TimerInput, TopicInput, TopicPublish
 from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, intercepted_name
 from orchestrator.orchestrator_lib.action import ActionNotFoundError, ActionState, DataProviderInputAction, EdgeType, RxAction, TimerCallbackAction, Action, OrchestratorBufferAction, OrchestratorStatusAction, CallbackAction
 from orchestrator.orchestrator_lib.ros_utils.logger import lc
+from orchestrator.orchestrator_lib.ros_utils.message_filter import ApproximateTimeSynchronizerTracker
 from orchestrator.orchestrator_lib.ros_utils.pubsub import wait_for_node_pub, wait_for_node_sub, wait_for_topic
 
 from orchestrator_interfaces.msg import Status
@@ -59,6 +60,7 @@ class Orchestrator:
         self.interception_subs: dict[TopicName, Subscription] = {}
         # Publisher for each node (node_name -> topic_name -> pub)
         self.interception_pubs: dict[NodeName, dict[TopicName, Publisher]] = {}
+        self.time_sync_models: dict[NodeName, dict[TimeSyncInfo, ApproximateTimeSynchronizerTracker]] = {}
 
         # Offered input by the data source, which can be requested by completing the contained future
         self.next_input: FutureInput | FutureTimestep | None = None
@@ -132,6 +134,13 @@ class Orchestrator:
                             pass
                         case ServiceCall():
                             pass
+            for tsi in node_model.time_sync_infos():
+                # TODO: tsi hashable
+                assert tsi not in self.time_sync_models
+                if node_model.get_name() not in self.time_sync_models:
+                    self.time_sync_models[node_model.get_name()] = {}
+                self.time_sync_models[node_model.get_name()][tsi] = ApproximateTimeSynchronizerTracker(
+                    list(tsi.input_topics), tsi.queue_size, tsi.slop)
 
     def wait_until_publish_allowed(self, topic: TopicName) -> Future:
         """
@@ -319,12 +328,22 @@ class Orchestrator:
 
         for node in self.node_models:
             if input in node.get_possible_inputs():
-                expected_rx_actions.append(RxAction(ActionState.WAITING, node.get_name(), t, TopicInput(input.input_topic), input.input_topic))
+                time_sync = False
+                if node.time_sync_info(input.input_topic) is not None:
+                    time_sync = True
+                expected_rx_actions.append(
+                    RxAction(ActionState.WAITING,
+                             node.get_name(),
+                             t,
+                             TopicInput(input.input_topic), input.input_topic, is_approximate_time_synced=time_sync))
 
         self.l.info(f"  This input causes {len(expected_rx_actions)} rx actions")
 
         for action in expected_rx_actions:
             self.__add_action_and_effects(action, parent=buffer_action_id)
+
+        #self.plot_graph()
+        
         return input_action_id
 
     def __request_next_input(self):
@@ -372,7 +391,7 @@ class Orchestrator:
             if self.graph.has_edge(id, parent):
                 yield id, data
 
-    def __causality_childs_of_buffer(self, buffer_id: GraphNodeId) -> Generator[GraphNodeId, None, None]:
+    def __causality_childs_of(self, buffer_id: GraphNodeId) -> Generator[GraphNodeId, None, None]:
         for node in self.graph.predecessors(buffer_id):
             edge_type: EdgeType = self.graph.edges[node, buffer_id]["edge_type"]
             if edge_type == EdgeType.CAUSALITY:
@@ -446,8 +465,17 @@ class Orchestrator:
                     # Recursively add RX actions as children of buffer node
                     for node in self.node_models:
                         if resulting_input in node.get_possible_inputs():
+                            time_sync = False
+                            if node.time_sync_info(resulting_input.input_topic) is not None:
+                                time_sync = True
                             self.__add_action_and_effects(
-                                RxAction(ActionState.WAITING, node.get_name(), action.timestamp, resulting_input, resulting_input.input_topic), buffer_node_id)
+                                RxAction(
+                                    ActionState.WAITING,
+                                    node.get_name(),
+                                    action.timestamp,
+                                    resulting_input,
+                                    resulting_input.input_topic, is_approximate_time_synced=time_sync
+                                ), buffer_node_id)
                 case StatusPublish():
                     status_node_id = _next_id()
                     self.graph.add_node(status_node_id, data=OrchestratorStatusAction())
@@ -482,12 +510,17 @@ class Orchestrator:
 
         return l
 
+    def __remove_node_recursive(self, graph_node: GraphNodeId):
+        for child in self.__causality_childs_of(graph_node):
+            self.__remove_node_recursive(child)
+        self.graph.remove_node(graph_node)
+
     def __process(self):
         lc(self.l, f"Processing Graph with {self.graph.number_of_nodes()} nodes")
         repeat: bool = True
         while repeat:
             repeat = False
-            for graph_node_id, data in self.__callback_nodes_with_data():
+            for graph_node_id, data in list(self.__callback_nodes_with_data()):
                 self.l.debug(f"Node {graph_node_id}: {data}")
                 # Skip actions that still have ordering constraints
                 if cast(int, self.graph.out_degree(graph_node_id)) > 0:
@@ -498,6 +531,31 @@ class Orchestrator:
                     self.l.debug("Is not ready")
                     continue
                 match data:
+                    case RxAction(is_approximate_time_synced=True):
+                        assert isinstance(data, RxAction)
+                        # Search time synchronizer
+                        time_sync_tracker: None | ApproximateTimeSynchronizerTracker = None
+                        for tsi, ts in self.time_sync_models[data.node].items():
+                            if data.cause.input_topic in tsi.input_topics:
+                                time_sync_tracker = ts
+                                break
+                        assert time_sync_tracker is not None
+                        callback_occurs = time_sync_tracker.test_input(data.cause.input_topic, data.data)
+                        if callback_occurs:
+                            self.l.info(
+                                f"    Action is ready and has no constraints, and (multi-input-)callback will occur: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
+                        else:
+                            self.l.info(
+                                f"    Action is ready and has no constraints, but (multi-input-)callback will not occur: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data and removing effects...")
+                            # TODO: Ensure status publish happens!!!
+                            for child in list(self.__causality_childs_of(graph_node_id)):
+                                child_data: Action = self.graph.nodes[child]["data"]
+                                if not isinstance(child_data, OrchestratorStatusAction):
+                                    # TODO: maybe dont do that during dictionary iteration
+                                    self.l.debug(f"Removing effect {child_data}")
+                                    self.__remove_node_recursive(child)
+                        data.state = ActionState.RUNNING
+                        self.interception_pubs[data.node][data.topic].publish(data.data)
                     case RxAction():
                         assert data.data is not None
                         self.l.info(
@@ -522,6 +580,8 @@ class Orchestrator:
         else:
             self.l.info("  We are now ready for the next input, requesting...")
             self.__request_next_input()
+        
+        #self.plot_graph()
 
     def __ready_for_next_input(self) -> bool:
         """
@@ -700,7 +760,7 @@ class Orchestrator:
                 if buffer_data.cause.input_topic == topic_name:
                     i = 0
                     # Iterate over all callbacks below this buffer
-                    for child_id in list(self.__causality_childs_of_buffer(buffer_id)):
+                    for child_id in list(self.__causality_childs_of(buffer_id)):
                         action: Action = self.graph.nodes[child_id]["data"]
                         match action:
                             case RxAction():
@@ -762,8 +822,13 @@ class Orchestrator:
 
         self.graph.remove_node(status_node_id)
 
+        in_degree = self.__in_degree_by_type(cause_action_id, EdgeType.CAUSALITY)
+        self.l.debug(f"cause action is node {cause_action_id}: {causing_action} with in-degree {in_degree}")
+
+        # TODO: this does not happen?
+
         # Complete the action which sent this message
-        if self.__in_degree_by_type(cause_action_id, EdgeType.CAUSALITY) == 0:
+        if in_degree == 0:
             self.l.info(f"  This completes the {type(causing_action).__name__} callback! Removing...")
             self.graph.remove_node(cause_action_id)
 

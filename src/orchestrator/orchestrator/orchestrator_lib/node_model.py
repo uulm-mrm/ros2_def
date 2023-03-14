@@ -13,6 +13,13 @@ class TimerInput():
     period: int  # Timer period in ns
 
 
+@dataclass(frozen=True)
+class TimeSyncInfo():
+    input_topics: tuple[str, ...]
+    slop: float
+    queue_size: int
+
+
 Cause: TypeAlias = TopicInput | TimerInput
 
 
@@ -84,4 +91,12 @@ class NodeModel(ABC):
 
     @abstractmethod
     def get_provided_services(self) -> list[ServiceName]:
+        ...
+
+    @abstractmethod
+    def time_sync_info(self, topic_name: str) -> None | TimeSyncInfo:
+        ...
+
+    @abstractmethod
+    def time_sync_infos(self) -> list[TimeSyncInfo]:
         ...

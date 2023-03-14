@@ -1,0 +1,14 @@
+{
+    "nodes": {
+        "camera_input": {
+            "config_file": [
+                "orchestrator_dummy_nodes",
+                "camera_input_node_config.json"
+            ],
+            "remappings": {
+                "camera_info": "camera_info",
+                "image": "image"
+            }
+        }
+    }
+}

@@ -1,13 +1,6 @@
-import sys
 from typing import Any, List, Mapping
 from threading import Lock
 from message_filters import SimpleFilter, ApproximateTimeSynchronizer
-
-
-# I guess this wont work below 3.7 anyways, but this file in particular makes use of
-# map iteration, which is only guarenteed to be in insertion order starting with 3.7
-# https://docs.python.org/3/library/stdtypes.html#dictionary-view-objects
-assert sys.version_info >= (3, 7)
 
 
 class ApproximateTimeSynchronizerTracker:

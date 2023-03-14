@@ -28,7 +28,9 @@ class RxAction(_BaseAction):
     cause: TopicInput
     topic: str  # TODO: this is in cause
     data: Any | None = None
-
+     # If this belongs to approximate time sync group, the resulting callback might
+     # not be executed every time.
+    is_approximate_time_synced: bool = False
 
 @dataclass
 class TimerCallbackAction(_BaseAction):

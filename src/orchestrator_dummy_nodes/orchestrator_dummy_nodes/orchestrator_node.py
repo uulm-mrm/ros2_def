@@ -29,7 +29,7 @@ class BagPlayer(Node):
         self.declare_parameter('mode', '')
         mode = self.get_parameter('mode').get_parameter_value().string_value
 
-        self.mode: Literal["tracking", "service"]
+        self.mode: Literal["tracking", "service", "time_sync"]
         match mode:
             case "tracking":
                 self.mode = "tracking"
@@ -48,6 +48,15 @@ class BagPlayer(Node):
                     "orchestrator_dummy_nodes",
                     "service_test_launch_config.json",
                     load_launch_config_schema())
+            case "time_sync":
+                self.mode = "time_sync"
+                self.camera_info_publisher = self.create_publisher(SampleMessage, "camera_info", 10)
+                self.image_publisher = self.create_publisher(SampleMessage, "image", 10)
+                launch_config = load_launch_config(
+                    "orchestrator_dummy_nodes",
+                    "time_sync_test_launch_config.json",
+                    load_launch_config_schema()
+                )
             case _:
                 self.get_logger().fatal(f"Unknown mode: {mode}")
                 exit(1)
@@ -122,12 +131,36 @@ class BagPlayer(Node):
         spin_for(self, datetime.timedelta(seconds=0.1))
         self.t += Duration(seconds=0, nanoseconds=100_000_000)
 
+    def timestep_time_sync(self):
+        f = self.orchestrator.wait_until_time_publish_allowed(self.t)
+        rclpy.spin_until_future_complete(self, f)
+        self.publish_time()
+
+        ci_msg = SampleMessage()
+        ci_msg.header.stamp = self.t.to_msg()
+        f = self.orchestrator.wait_until_publish_allowed("camera_info")
+        rclpy.spin_until_future_complete(self, f)
+        self.camera_info_publisher.publish(ci_msg)
+
+        if self.t.nanoseconds % 10**9 == 0:
+            image_msg = SampleMessage()
+            image_msg.header.stamp = self.t.to_msg()
+            f = self.orchestrator.wait_until_publish_allowed("image")
+            rclpy.spin_until_future_complete(self, f)
+            self.image_publisher.publish(image_msg)
+
+        spin_for(self, datetime.timedelta(seconds=0.3))
+        self.t += Duration(seconds=0, nanoseconds=100_000_000)
+
+
     def timestep(self):
         match self.mode:
             case "tracking":
                 self.timestep_tracking()
             case "service":
                 self.timestep_service()
+            case "time_sync":
+                self.timestep_time_sync()
 
 
 def main():
