@@ -42,7 +42,7 @@ def load_launch_config(package, name, schema):
 def load_models(launch_config, node_config_schema) -> list[NodeModel]:
     models = []
     for name, node in launch_config["nodes"].items():
-        remappings = node["remappings"]
+        remappings: dict[str, str] = node.get("remappings", {})
         package, filename = node["config_file"]
         config = load_node_config(package, filename, node_config_schema)
         model = ConfigFileNodeModel(config, name, remappings)

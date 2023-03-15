@@ -42,8 +42,7 @@
                         }
                     },
                     "required": [
-                        "config_file",
-                        "remappings"
+                        "config_file"
                     ],
                     "additionalProperties": false
                 }

@@ -36,8 +36,18 @@ def generate_remappings_from_config(package_name: str, launch_config_file: str) 
     remap_actions = []
 
     for node_name, node in launch_config["nodes"].items():
+        remappings: dict[str, str] = node.get("remappings", {})
         model = _find_node_model(node_name, node_models)
-        for internal_name, ros_name in node["remappings"].items():
+        for input in model.get_possible_inputs():
+            match input:
+                case TopicInput():
+                    # Add identity remapping for input topics if no explicit remapping exists.
+                    # This ensures that interception remapping is generated below.
+                    remappings.setdefault(input.input_topic, input.input_topic)
+                case TimerInput():
+                    pass
+
+        for internal_name, ros_name in remappings.items():
             if TopicInput(ros_name) not in model.get_possible_inputs():
                 continue
 
