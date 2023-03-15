@@ -92,7 +92,6 @@ class ConfigFileNodeModel(NodeModel):
                     for t in input_topics:
                         add_effect(self.internal_topic_input(t), outputs, service_calls)
                         # Additional status callback
-                        # TODO: ensure multiple status publish are OK
                         self.effects[self.internal_topic_input(t)].append(StatusPublish())
                     self.approximate_time_sync_infos.append(
                         TimeSyncInfo(tuple(input_topics), slop, queue)

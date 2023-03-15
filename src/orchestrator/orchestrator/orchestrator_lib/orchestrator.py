@@ -341,8 +341,6 @@ class Orchestrator:
         for action in expected_rx_actions:
             self.__add_action_and_effects(action, parent=buffer_action_id)
 
-        #self.plot_graph()
-        
         return input_action_id
 
     def __request_next_input(self):
@@ -546,11 +544,9 @@ class Orchestrator:
                         else:
                             self.l.info(
                                 f"    Action is ready and has no constraints, but (multi-input-)callback will not occur: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data and removing effects...")
-                            # TODO: Ensure status publish happens!!!
                             for child in list(self.__causality_childs_of(graph_node_id)):
                                 child_data: Action = self.graph.nodes[child]["data"]
                                 if not isinstance(child_data, OrchestratorStatusAction):
-                                    # TODO: maybe dont do that during dictionary iteration
                                     self.l.debug(f"Removing effect {child_data}")
                                     self.__remove_node_recursive(child)
                         data.state = ActionState.RUNNING
@@ -579,8 +575,6 @@ class Orchestrator:
         else:
             self.l.info("  We are now ready for the next input, requesting...")
             self.__request_next_input()
-        
-        #self.plot_graph()
 
     def __ready_for_next_input(self) -> bool:
         """
