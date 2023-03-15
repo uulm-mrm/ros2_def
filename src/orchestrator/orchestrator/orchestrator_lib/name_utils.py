@@ -1,6 +1,6 @@
 import importlib
 from typing import Generator, Type, TypeAlias
-
+import rosidl_runtime_py.utilities
 
 TopicName: TypeAlias = str
 NodeName: TypeAlias = str
@@ -33,9 +33,7 @@ def initial_name_from_intercepted(intercepted_name: str) -> tuple[str, str]:
 
 
 def type_from_string(typestring: str):
-    parts = typestring.split("/")
-    module = importlib.import_module(parts[0]+"."+parts[1])
-    return getattr(module, parts[2])
+    return rosidl_runtime_py.utilities.get_message(typestring)
 
 
 def collect_intercepted_topics(topic_names_and_types) -> Generator[tuple[str, str, str, Type], None, None]:

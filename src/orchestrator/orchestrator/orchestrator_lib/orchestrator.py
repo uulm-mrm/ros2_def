@@ -50,7 +50,7 @@ class FutureTimestep:
 
 
 class Orchestrator:
-    def __init__(self, ros_node: RosNode, node_config, logger: RcutilsLogger | None = None) -> None:
+    def __init__(self, ros_node: RosNode, node_config: list[NodeModel], logger: RcutilsLogger | None = None) -> None:
         self.ros_node = ros_node
         self.l = logger or ros_node.get_logger()
 
