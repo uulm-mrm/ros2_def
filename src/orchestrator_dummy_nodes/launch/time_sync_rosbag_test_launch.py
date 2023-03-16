@@ -1,7 +1,6 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.substitutions import TextSubstitution, LaunchConfiguration
-from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 
 from orchestrator.orchestrator_lib.remapping_generation import generate_remappings_from_config
@@ -31,7 +30,8 @@ def generate_launch_description():
                 {"rate": 1.0},
                 {"no_wait": LaunchConfiguration("no_wait")},
                 {"launch_config_package": config_package},
-                {"launch_config_file": config_file}]
+                {"launch_config_file": config_file}],
+            on_exit=[Shutdown(reason="Player done.")]
         ),
         *generate_remappings_from_config(config_package, config_file),
         Node(

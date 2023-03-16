@@ -94,11 +94,10 @@ def main():
         node.get_logger().info(f"Publishing message on {topic_name}")
         publishers[topic_name].publish(serialized_data)
 
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        node.destroy_node()
-        rclpy.try_shutdown()
+
+    orchestrator.wait_until_pending_actions_complete()
+    node.destroy_node()
+    rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

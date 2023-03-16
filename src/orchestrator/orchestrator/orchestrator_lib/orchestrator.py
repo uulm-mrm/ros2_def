@@ -10,6 +10,7 @@ from orchestrator.orchestrator_lib.ros_utils.pubsub import wait_for_node_pub, wa
 
 from orchestrator_interfaces.msg import Status
 
+import rclpy
 from rclpy import Future
 from rclpy.node import Node as RosNode
 from rclpy.subscription import Subscription
@@ -260,6 +261,11 @@ class Orchestrator:
             self.l.info("  Graph is not empty, requesting time at later state.")
 
         return f
+
+    def wait_until_pending_actions_complete(self):
+        f = Future()
+        while not self.__graph_is_empty():
+            rclpy.spin_until_future_complete(self.ros_node, f, timeout_sec=0.01)
 
     def __add_pending_timers_until(self, t: Time):
         """
