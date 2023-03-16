@@ -87,7 +87,10 @@ class Orchestrator:
             intercepted_topic_name = intercepted_name(node.get_name(), canonical_name)
             lc(self.l, f"Intercepted input \"{canonical_name}\" "
                f" from node \"{node.get_name()}\" as \"{intercepted_topic_name}\"")
-            TopicType = wait_for_topic(canonical_name, self.l, self.ros_node)
+
+            # Wait until subscriber exists, get type
+            TopicType = wait_for_node_sub(intercepted_topic_name, node.get_name(), self.l, self.ros_node)
+
             # Subscribe to the input topic
             if canonical_name not in self.interception_subs:
                 self.l.info(f"  Subscribing to {canonical_name}")
@@ -97,7 +100,6 @@ class Orchestrator:
                     lambda msg, topic_name=canonical_name: self.__interception_subscription_callback(topic_name, msg),
                     10)
                 self.interception_subs[canonical_name] = subscription
-                self.l.info(f"Added interception_subs[{canonical_name}] = {subscription.topic}")
             else:
                 self.l.info("  Subscription already exists")
 
@@ -107,7 +109,6 @@ class Orchestrator:
             if node.get_name() not in self.interception_pubs:
                 self.interception_pubs[node.get_name()] = {}
             self.interception_pubs[node.get_name()][canonical_name] = publisher
-            wait_for_node_sub(intercepted_topic_name, node.get_name(), self.l, self.ros_node)
 
         for node_model in self.node_models:
             for input_cause in node_model.get_possible_inputs():
@@ -656,6 +657,10 @@ class Orchestrator:
         raise ActionNotFoundError(f"There is no currently running action for node {node_name} which should have published a status message")
 
     def plot_graph(self):
+
+        if self.graph.number_of_nodes() == 0:
+            return
+
         annotations = {}
         for node, node_data in self.graph.nodes(data=True):
             d: Action = node_data["data"]  # type: ignore

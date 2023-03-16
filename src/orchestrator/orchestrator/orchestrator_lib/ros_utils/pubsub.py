@@ -31,25 +31,30 @@ def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node) -> Type:
     return msgtype
 
 
-def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node):
+def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node) -> Type:
     topic_name = node.resolve_topic_name(topic_name)
 
-    def node_is_subscribed():
+    def try_get_type() -> Type | None:
         for info in node.get_subscriptions_info_by_topic(topic_name):
             if info.node_name == node_name:
-                return True
-        return False
+                return type_from_string(info.topic_type)
+        return None
 
-    if node_is_subscribed():
+    topic_type = try_get_type()
+
+    if topic_type:
         logger.info(f"  Node \"{node_name}\" is already subscribed to \"{topic_name}\"")
     else:
         logger.info(f"  Waiting for node \"{node_name}\" to subscribe to \"{topic_name}\"")
 
-    while not node_is_subscribed():
+    while not topic_type:
         if node.executor is not None:
             node.executor.spin_until_future_complete(Future(), 0.1)
         else:
             rclpy.spin_until_future_complete(node, Future(), timeout_sec=0.1)
+        topic_type = try_get_type()
+
+    return topic_type
 
 
 def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node):
