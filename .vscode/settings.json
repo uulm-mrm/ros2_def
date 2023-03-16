@@ -44,5 +44,6 @@
         "reportUnusedVariable": "warning"
     },
     "editor.stickyScroll.enabled": true,
-    "terminal.integrated.scrollback": 10000
+    "terminal.integrated.scrollback": 10000,
+    "python.analysis.stubPath": ".vscode/stubs"
 }

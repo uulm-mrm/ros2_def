@@ -154,6 +154,8 @@ class Orchestrator:
         if self.simulator_time is None:
             raise RuntimeError("Data source has to provide time before first data")
 
+        topic = topic.removeprefix("/")
+
         lc(self.l, f"Data source offers input on topic \"{topic}\" for current time {self.simulator_time}")
 
         future = Future()
