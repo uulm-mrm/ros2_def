@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import importlib
-from typing import Generator, Type, TypeAlias
+from typing import Generator, Type
+from typing_extensions import TypeAlias
 import rosidl_runtime_py.utilities
 
 TopicName: TypeAlias = str
@@ -23,12 +26,13 @@ def initial_name_from_intercepted(intercepted_name: str) -> tuple[str, str]:
     intercepted_name = remove_prefix(intercepted_name, "/")
     parts = intercepted_name.split("/")
     if len(parts) < 4:
-        raise RuntimeError(f"Invalid intercepted name: {intercepted_name}: At least 4 components required.")
+        raise RuntimeError(
+            f"Invalid intercepted name: {intercepted_name}: At least 4 components required.")
     if parts[0] != "intercepted":
         raise RuntimeError()
     sub_index = parts.index("sub")
     node_name = "/".join(parts[1:sub_index])
-    topic_name = "/".join(parts[sub_index+1:])
+    topic_name = "/".join(parts[sub_index + 1:])
     return node_name, topic_name
 
 
@@ -41,5 +45,6 @@ def collect_intercepted_topics(topic_names_and_types) -> Generator[tuple[str, st
         if intercepted_name.startswith("/intercepted"):
             for type in types:
                 type = type_from_string(type)
-                node, canonical_name = initial_name_from_intercepted(intercepted_name)
+                node, canonical_name = initial_name_from_intercepted(
+                    intercepted_name)
                 yield node, canonical_name, intercepted_name, type

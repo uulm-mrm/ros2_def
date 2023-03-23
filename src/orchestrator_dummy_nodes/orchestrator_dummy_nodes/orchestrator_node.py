@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import datetime
 import time
 from typing import Literal
@@ -30,36 +32,41 @@ class BagPlayer(Node):
         mode = self.get_parameter('mode').get_parameter_value().string_value
 
         self.mode: Literal["tracking", "service", "time_sync"]
-        match mode:
-            case "tracking":
-                self.mode = "tracking"
-                launch_config = load_launch_config(
-                    "orchestrator_dummy_nodes",
-                    "tracking_example_launch_config.json",
-                    load_launch_config_schema())
+        if mode == "tracking":
+            self.mode = "tracking"
+            launch_config = load_launch_config(
+                "orchestrator_dummy_nodes",
+                "tracking_example_launch_config.json",
+                load_launch_config_schema())
 
-                self.radar_publisher = self.create_publisher(SampleMessage, "meas/radar", 10)
-                self.camera_publisher = self.create_publisher(SampleMessage, "meas/camera", 10)
-                self.lidar_publisher = self.create_publisher(SampleMessage, "meas/lidar", 10)
-            case "service":
-                self.mode = "service"
-                self.input_publisher = self.create_publisher(SampleMessage, "i", 10)
-                launch_config = load_launch_config(
-                    "orchestrator_dummy_nodes",
-                    "service_test_launch_config.json",
-                    load_launch_config_schema())
-            case "time_sync":
-                self.mode = "time_sync"
-                self.camera_info_publisher = self.create_publisher(SampleMessage, "camera_info", 10)
-                self.image_publisher = self.create_publisher(SampleMessage, "image", 10)
-                launch_config = load_launch_config(
-                    "orchestrator_dummy_nodes",
-                    "time_sync_test_launch_config.json",
-                    load_launch_config_schema()
-                )
-            case _:
-                self.get_logger().fatal(f"Unknown mode: {mode}")
-                exit(1)
+            self.radar_publisher = self.create_publisher(
+                SampleMessage, "meas/radar", 10)
+            self.camera_publisher = self.create_publisher(
+                SampleMessage, "meas/camera", 10)
+            self.lidar_publisher = self.create_publisher(
+                SampleMessage, "meas/lidar", 10)
+        elif mode == "service":
+            self.mode = "service"
+            self.input_publisher = self.create_publisher(
+                SampleMessage, "i", 10)
+            launch_config = load_launch_config(
+                "orchestrator_dummy_nodes",
+                "service_test_launch_config.json",
+                load_launch_config_schema())
+        elif mode == "time_sync":
+            self.mode = "time_sync"
+            self.camera_info_publisher = self.create_publisher(
+                SampleMessage, "camera_info", 10)
+            self.image_publisher = self.create_publisher(
+                SampleMessage, "image", 10)
+            launch_config = load_launch_config(
+                "orchestrator_dummy_nodes",
+                "time_sync_test_launch_config.json",
+                load_launch_config_schema()
+            )
+        else:
+            self.get_logger().fatal(f"Unknown mode: {mode}")
+            exit(1)
 
         self.get_logger().info(f"Mode is {self.mode}")
 
@@ -105,7 +112,7 @@ class BagPlayer(Node):
         msg = SampleMessage()
         self.input_publisher.publish(msg)
 
-        spin_for(self, datetime.timedelta(seconds=3))
+        spin_for(self, datetime.timedelta(seconds=0.5))
         self.t += Duration(seconds=3, nanoseconds=0)
 
     def timestep_tracking(self):
@@ -114,7 +121,7 @@ class BagPlayer(Node):
         self.get_logger().info(f"Timestep {self.t}!")
         self.publish_time()
 
-        if self.t.nanoseconds % 10**9 == 0:
+        if self.t.nanoseconds % 10 ** 9 == 0:
             # Publish sensors once per second
             f = self.orchestrator.wait_until_publish_allowed("meas/lidar")
             rclpy.spin_until_future_complete(self, f)
@@ -142,7 +149,7 @@ class BagPlayer(Node):
         rclpy.spin_until_future_complete(self, f)
         self.camera_info_publisher.publish(ci_msg)
 
-        if self.t.nanoseconds % 10**9 == 0:
+        if self.t.nanoseconds % 10 ** 9 == 0:
             image_msg = SampleMessage()
             image_msg.header.stamp = self.t.to_msg()
             f = self.orchestrator.wait_until_publish_allowed("image")
@@ -152,15 +159,13 @@ class BagPlayer(Node):
         spin_for(self, datetime.timedelta(seconds=0.3))
         self.t += Duration(seconds=0, nanoseconds=100_000_000)
 
-
     def timestep(self):
-        match self.mode:
-            case "tracking":
-                self.timestep_tracking()
-            case "service":
-                self.timestep_service()
-            case "time_sync":
-                self.timestep_time_sync()
+        if self.mode == "tracking":
+            self.timestep_tracking()
+        elif self.mode == "service":
+            self.timestep_service()
+        elif self.mode == "time_sync":
+            self.timestep_time_sync()
 
 
 def main():

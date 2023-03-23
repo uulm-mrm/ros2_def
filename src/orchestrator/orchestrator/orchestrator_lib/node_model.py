@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import Union, Tuple, List, Optional
+
+from typing_extensions import TypeAlias
 
 
 @dataclass(frozen=True)
@@ -15,12 +17,12 @@ class TimerInput():
 
 @dataclass(frozen=True)
 class TimeSyncInfo():
-    input_topics: tuple[str, ...]
+    input_topics: Tuple[str, ...]
     slop: float
     queue_size: int
 
 
-Cause: TypeAlias = TopicInput | TimerInput
+Cause: TypeAlias = Union[TopicInput, TimerInput]
 
 
 @dataclass(frozen=True)
@@ -38,9 +40,9 @@ class ServiceCall():
     service_name: str
 
 
-SimpleRemapRule: TypeAlias = tuple[str, str]
-SimpleRemapRules: TypeAlias = list[SimpleRemapRule]
-Effect: TypeAlias = TopicPublish | StatusPublish | ServiceCall
+SimpleRemapRule: TypeAlias = Tuple[str, str]
+SimpleRemapRules: TypeAlias = List[SimpleRemapRule]
+Effect: TypeAlias = Union[TopicPublish, StatusPublish, ServiceCall]
 
 ServiceName: TypeAlias = str
 
@@ -60,7 +62,8 @@ class NodeModel(ABC):
         for input_name, input_topic in self.remappings:
             if input_topic == topic:
                 if not isinstance(input_name, str):
-                    raise NotImplementedError("Remapping with substitutions is not implemented")
+                    raise NotImplementedError(
+                        "Remapping with substitutions is not implemented")
                 return input_name
         raise ValueError(f"Topic {topic} is not known to node")
 
@@ -69,9 +72,11 @@ class NodeModel(ABC):
         for input_name, input_topic in self.remappings:
             if input_name == internal_name:
                 if not isinstance(input_topic, str):
-                    raise NotImplementedError("Remapping with substitutions is not implemented")
+                    raise NotImplementedError(
+                        "Remapping with substitutions is not implemented")
                 return input_topic
-        raise ValueError(f"Internal name \"{internal_name}\" of node \"{self.get_name()}\" has no (external) topic name!")
+        raise ValueError(
+            f"Internal name \"{internal_name}\" of node \"{self.get_name()}\" has no (external) topic name!")
 
     def internal_topic_pub(self, internal_name: str) -> TopicPublish:
         """Create TopicPublish effect by internal name"""
@@ -82,21 +87,21 @@ class NodeModel(ABC):
         return TopicInput(self.topic_name_from_internal(internal_name))
 
     @abstractmethod
-    def get_possible_inputs(self) -> list[Cause]:
+    def get_possible_inputs(self) -> List[Cause]:
         ...
 
     @abstractmethod
-    def effects_for_input(self, input: Cause) -> list[Effect]:
+    def effects_for_input(self, input: Cause) -> List[Effect]:
         ...
 
     @abstractmethod
-    def get_provided_services(self) -> list[ServiceName]:
+    def get_provided_services(self) -> List[ServiceName]:
         ...
 
     @abstractmethod
-    def time_sync_info(self, topic_name: str) -> None | TimeSyncInfo:
+    def time_sync_info(self, topic_name: str) -> Optional[TimeSyncInfo]:
         ...
 
     @abstractmethod
-    def time_sync_infos(self) -> list[TimeSyncInfo]:
+    def time_sync_infos(self) -> List[TimeSyncInfo]:
         ...

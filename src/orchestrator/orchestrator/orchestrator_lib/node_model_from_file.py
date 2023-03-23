@@ -1,11 +1,14 @@
-from typing import cast, final
-from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, SimpleRemapRules, StatusPublish, TimeSyncInfo, TopicInput, TopicPublish, TimerInput
+from __future__ import annotations
+
+from typing import cast, final, Dict, List
+from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, \
+    SimpleRemapRules, StatusPublish, TimeSyncInfo, TopicInput, TopicPublish, TimerInput
 
 
 @final
 class ConfigFileNodeModel(NodeModel):
 
-    def __init__(self, node_config: dict, name, remappings) -> None:
+    def __init__(self, node_config: dict, name, remappings: Dict[str, str]) -> None:
 
         # Mappings from internal to external name
         mappings: dict[str, str] = {}
@@ -14,23 +17,26 @@ class ConfigFileNodeModel(NodeModel):
         # node config.
         for callback in node_config["callbacks"]:
             trigger = callback["trigger"]
-            match trigger:
-                case str():
-                    mappings[trigger] = trigger
-                case {"type": "topic", **_rest}:
-                    trigger = cast(str, trigger["name"])
-                    mappings[trigger] = trigger
-                case {"type": "timer", **_rest}:
-                    mappings["clock"] = "clock"
-                case {"type": "approximate_time_sync", **_rest}:
-                    for topic in trigger["input_topics"]:
-                        mappings[topic] = topic
-                case _:
-                    raise NotImplementedError(f"Callback type {trigger['type']} not implemented")
+
+            if isinstance(trigger, str):
+                mappings[trigger] = trigger
+            elif "type" in trigger and trigger["type"] == "topic":
+                trigger = cast(str, trigger["name"])
+                mappings[trigger] = trigger
+            elif "type" in trigger and trigger["type"] == "timer":
+                mappings["clock"] = "clock"
+
+            elif "type" in trigger and trigger["type"] == "approximate_time_sync":
+                for topic in trigger["input_topics"]:
+                    mappings[topic] = topic
+            else:
+                raise NotImplementedError(
+                    f"Callback type {trigger['type']} not implemented")
 
             for output in callback["outputs"]:
                 if output in mappings:
-                    raise RuntimeError(f"Topic {output} of node {name} defined as both input and output!")
+                    raise RuntimeError(
+                        f"Topic {output} of node {name} defined as both input and output!")
                 mappings[output] = output
 
             for service in callback.get("service_calls", []):
@@ -51,7 +57,8 @@ class ConfigFileNodeModel(NodeModel):
                                    f" to {external_name}!")
             mappings[internal_name] = external_name
 
-        super().__init__(name, [(internal, external) for internal, external in mappings.items()])
+        super().__init__(name, [(internal, external)
+                                for internal, external in mappings.items()])
 
         # Mapping from external topic input to external topic outputs
         self.effects: dict[Cause, list[Effect]] = {}
@@ -67,7 +74,8 @@ class ConfigFileNodeModel(NodeModel):
                 output_effects.append(StatusPublish())
 
             for service_call in service_calls:
-                output_effects.append(ServiceCall(self.topic_name_from_internal(service_call)))
+                output_effects.append(ServiceCall(
+                    self.topic_name_from_internal(service_call)))
 
             self.effects[trigger] = output_effects
 
@@ -77,29 +85,44 @@ class ConfigFileNodeModel(NodeModel):
             trigger = callback["trigger"]
             outputs = callback.get("outputs", [])
             service_calls = callback.get("service_calls", [])
-            match trigger:
-                case str():
-                    trigger = self.internal_topic_input(trigger)
-                    add_effect(trigger, callback.get("outputs", []), callback.get("service_calls", []))
-                case {"type": "topic", "name": topic_name}:
-                    trigger = self.internal_topic_input(topic_name)
-                case {"type": "timer", "period": period}:
-                    ti = TimerInput(int(period))
-                    if ti in self.effects:
-                        raise RuntimeError(f"Multiple timers with period {period} for node {name}")
-                    add_effect(trigger, callback.get("outputs", []), callback.get("service_calls", []))
-                case {"type": "approximate_time_sync", "input_topics": input_topics, "slop": slop, "queue_size": queue}:
-                    for t in input_topics:
-                        add_effect(self.internal_topic_input(t), outputs, service_calls)
-                        # Additional status callback
-                        self.effects[self.internal_topic_input(t)].append(StatusPublish())
-                    self.approximate_time_sync_infos.append(
-                        TimeSyncInfo(tuple(input_topics), slop, queue)
-                    )
-                case {"type": trigger_type, **_rest}:
-                    raise NotImplementedError(f"Callback type {trigger_type} not implemented")
-                case _:
-                    raise RuntimeError(f"Invalid trigger for callback {callback}")
+
+            if isinstance(trigger, str):
+                trigger = self.internal_topic_input(trigger)
+                add_effect(trigger, callback.get("outputs", []),
+                           callback.get("service_calls", []))
+            elif trigger.get("type", None) == "topic" and "name" in trigger:
+                topic_name = trigger["name"]
+                trigger = self.internal_topic_input(topic_name)
+                add_effect(trigger, callback.get("outputs", []),
+                           callback.get("service_calls", []))
+            elif trigger.get("type", None) == "timer" and "period" in trigger:
+                period = trigger["period"]
+                ti = TimerInput(int(period))
+                if ti in self.effects:
+                    raise RuntimeError(
+                        f"Multiple timers with period {period} for node {name}")
+                add_effect(trigger, callback.get("outputs", []),
+                           callback.get("service_calls", []))
+            elif trigger.get("type",
+                             None) == "approximate_time_sync" and "input_topics" in trigger and "slop" in trigger and "queue_size" in trigger:
+                input_topics = trigger["input_topics"]
+                slop = trigger["slop"]
+                queue = trigger["queue_size"]
+                for t in input_topics:
+                    add_effect(self.internal_topic_input(
+                        t), outputs, service_calls)
+                    # Additional status callback
+                    self.effects[self.internal_topic_input(
+                        t)].append(StatusPublish())
+                self.approximate_time_sync_infos.append(
+                    TimeSyncInfo(tuple(input_topics), slop, queue)
+                )
+            elif "type" in trigger:
+                trigger_type = trigger["type"]
+                raise NotImplementedError(
+                    f"Callback type {trigger_type} not implemented")
+            else:
+                raise RuntimeError(f"Invalid trigger for callback {callback}")
 
         self.services: list[ServiceName] = []
         for service in node_config.get("services", []):

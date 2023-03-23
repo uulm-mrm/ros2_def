@@ -23,14 +23,16 @@ def generate_launch_description():
             parameters=[
                 {"mode": "service"},
             ],
-            arguments=['--ros-args', '--log-level', ['l:=', LaunchConfiguration('log_level')]]
+            arguments=['--ros-args', '--log-level',
+                       ['l:=', LaunchConfiguration('log_level')]]
         ),
-        *generate_remappings_from_config("orchestrator_dummy_nodes", "service_test_launch_config.json"),
+        *generate_remappings_from_config("orchestrator_dummy_nodes",
+                                         "service_test_launch_config.json"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
                     FindPackageShare('orchestrator_dummy_nodes'),
-                    'service_test_launch.py'
+                    'launch/service_test_launch.py'
                 ])
             ]),
             launch_arguments={"log_level": "warn"}.items()

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeAlias
+from typing import Any, Optional, Union
+from typing_extensions import TypeAlias
 from orchestrator.orchestrator_lib.node_model import Cause, TopicInput, TimerInput
 from rclpy.time import Time
 
@@ -27,10 +28,11 @@ class _BaseAction:
 class RxAction(_BaseAction):
     cause: TopicInput
     topic: str  # TODO: this is in cause
-    data: Any | None = None
-     # If this belongs to approximate time sync group, the resulting callback might
-     # not be executed every time.
+    data: Optional[Any] = None
+    # If this belongs to approximate time sync group, the resulting callback might
+    # not be executed every time.
     is_approximate_time_synced: bool = False
+
 
 @dataclass
 class TimerCallbackAction(_BaseAction):
@@ -60,10 +62,12 @@ class OrchestratorStatusAction():
     pass
 
 
-Action: TypeAlias = TimerCallbackAction | RxAction | OrchestratorBufferAction | OrchestratorStatusAction | DataProviderInputAction
+Action: TypeAlias = Union[
+    TimerCallbackAction, RxAction, OrchestratorBufferAction, OrchestratorStatusAction, DataProviderInputAction]
 
-CallbackAction: TypeAlias = TimerCallbackAction | RxAction
-OrchestratorAction: TypeAlias = OrchestratorBufferAction | OrchestratorStatusAction | DataProviderInputAction
+CallbackAction: TypeAlias = Union[TimerCallbackAction, RxAction]
+OrchestratorAction: TypeAlias = Union[OrchestratorBufferAction,
+                                      OrchestratorStatusAction, DataProviderInputAction]
 
 
 class EdgeType(Enum):

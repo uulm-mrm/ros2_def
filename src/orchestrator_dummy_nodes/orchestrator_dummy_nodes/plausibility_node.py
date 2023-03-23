@@ -8,9 +8,12 @@ class PlausibilityNode(Node):
     def __init__(self):
         super().__init__("plausibility")  # type: ignore
         self.track_pub = self.create_publisher(String, "tracks_out", 10)
-        self.gridmap_tracks_pub = self.create_publisher(String, "tracks_out_gridmap", 10)
-        self.gridmap_sub = self.create_subscription(String, "gridmap", self.gridmap_callback, 10)
-        self.tracks_sub = self.create_subscription(String, "tracks_in", self.tracks_callback, 10)
+        self.gridmap_tracks_pub = self.create_publisher(
+            String, "tracks_out_gridmap", 10)
+        self.gridmap_sub = self.create_subscription(
+            String, "gridmap", self.gridmap_callback, 10)
+        self.tracks_sub = self.create_subscription(
+            String, "tracks_in", self.tracks_callback, 10)
 
     def gridmap_callback(self, msg: String):
         output = String()
