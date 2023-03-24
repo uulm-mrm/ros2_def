@@ -675,8 +675,9 @@ class Orchestrator:
             # Note: We *could* already accept the input if the parents of all those buffer nodes are not
             # currently running. This might enable running more nodes from different timesteps in parallel.
             # This is not currently implemented, and the benefit might not be substantial.
-            for _graph_node_id, data in self.__buffer_nodes_with_data():
-                if data.cause.input_topic == self.next_input.topic:
+            for _graph_node_id, data in self.__callback_nodes_with_data():
+                data: CallbackAction = data
+                if isinstance(data.cause, TopicInput) and data.cause.input_topic == self.next_input.topic:
                     return False
             return True
 
