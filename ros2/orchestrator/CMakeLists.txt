@@ -12,4 +12,3 @@ install(DIRECTORY
 aduulm_install_ros2_python_code("orchestrator")
 
 aduulm_create_ros2_package()
-setup_git_hooks(py_FORMATTERS "autopep8")
