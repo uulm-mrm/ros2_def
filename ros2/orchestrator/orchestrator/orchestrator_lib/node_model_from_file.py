@@ -101,7 +101,7 @@ class ConfigFileNodeModel(NodeModel):
                 if ti in self.effects:
                     raise RuntimeError(
                         f"Multiple timers with period {period} for node {name}")
-                add_effect(trigger, callback.get("outputs", []),
+                add_effect(ti, callback.get("outputs", []),  # trigger dict
                            callback.get("service_calls", []))
             elif trigger.get("type",
                              None) == "approximate_time_sync" and "input_topics" in trigger and "slop" in trigger and "queue_size" in trigger:
