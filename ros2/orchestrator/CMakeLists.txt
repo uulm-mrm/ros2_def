@@ -6,7 +6,7 @@ aduulm_init_ros2_package()
 
 install(DIRECTORY
   schemas
-  config
+  configs
   DESTINATION share/${PROJECT_NAME}
 )
 
