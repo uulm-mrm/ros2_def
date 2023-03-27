@@ -1,0 +1,15 @@
+{
+  "name": "Ego-Motion Service",
+  "callbacks": [
+    {
+      "trigger": {
+        "type": "topic",
+        "name": "imu"
+      },
+      "outputs": []
+    }
+  ],
+  "services": [
+    "ego_motion"
+  ]
+}

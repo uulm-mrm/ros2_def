@@ -1,0 +1,11 @@
+{
+  "name": "tracking_mec",
+  "callbacks": [
+    {
+      "trigger": "detections0_1",
+      "outputs": [
+        "tracks"
+      ]
+    }
+  ]
+}

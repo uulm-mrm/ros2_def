@@ -1,0 +1,23 @@
+{
+  "name": "Trajectory Planning Node",
+  "callbacks": [
+    {
+      "trigger": "cars",
+      "outputs": []
+    },
+    {
+      "trigger": "vehicle_state",
+      "outputs": []
+    },
+    {
+      "trigger": {
+        "type": "timer",
+        "period": 1
+      },
+      "outputs": [
+        "trajectory",
+        "control_vars"
+      ]
+    }
+  ]
+}
