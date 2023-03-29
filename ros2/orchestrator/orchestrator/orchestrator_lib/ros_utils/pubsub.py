@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Optional
 
 import rclpy
 from rclpy import Future
@@ -34,7 +34,7 @@ def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node) -> Type:
 def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node) -> Type:
     topic_name = node.resolve_topic_name(topic_name)
 
-    def try_get_type() -> Type | None:
+    def try_get_type() -> Optional[Type]:
         for info in node.get_subscriptions_info_by_topic(topic_name):
             if info.node_name == node_name:
                 return type_from_string(info.topic_type)
@@ -43,9 +43,11 @@ def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, no
     topic_type = try_get_type()
 
     if topic_type:
-        logger.info(f"  Node \"{node_name}\" is already subscribed to \"{topic_name}\"")
+        logger.info(
+            f"  Node \"{node_name}\" is already subscribed to \"{topic_name}\"")
     else:
-        logger.info(f"  Waiting for node \"{node_name}\" to subscribe to \"{topic_name}\"")
+        logger.info(
+            f"  Waiting for node \"{node_name}\" to subscribe to \"{topic_name}\"")
 
     while not topic_type:
         if node.executor is not None:
@@ -67,9 +69,11 @@ def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, no
         return False
 
     if node_has_pub():
-        logger.info(f"  Node \"{node_name}\" already has a publisher for \"{topic_name}\"")
+        logger.info(
+            f"  Node \"{node_name}\" already has a publisher for \"{topic_name}\"")
     else:
-        logger.info(f"  Waiting for node \"{node_name}\" to create a publisher for \"{topic_name}\"")
+        logger.info(
+            f"  Waiting for node \"{node_name}\" to create a publisher for \"{topic_name}\"")
 
     while not node_has_pub():
         if node.executor is not None:

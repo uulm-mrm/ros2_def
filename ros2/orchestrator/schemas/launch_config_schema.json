@@ -29,7 +29,8 @@
                                 }
                             ],
                             "items": false,
-                            "minItems": 2
+                            "minItems": 2,
+                            "maxItems": 2
                         },
                         "remappings": {
                             "title": "List of remappings",

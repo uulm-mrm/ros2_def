@@ -1,0 +1,12 @@
+{
+  "name": "SIL Simulator",
+  "callbacks": [
+    {
+      "trigger": {
+        "type": "topic",
+        "name": "control_vars"
+      },
+      "outputs": []
+    }
+  ]
+}

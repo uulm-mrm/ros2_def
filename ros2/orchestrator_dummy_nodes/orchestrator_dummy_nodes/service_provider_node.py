@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
 
@@ -9,9 +11,11 @@ class ServiceProviderNode(Node):
 
     def __init__(self) -> None:
         super().__init__('ServiceProviderNode')  # type: ignore
-        self.input_subscription = self.create_subscription(SampleMessage, "input", self.sub_callback, 10)
+        self.input_subscription = self.create_subscription(
+            SampleMessage, "input", self.sub_callback, 10)
         self.status_publisher = self.create_publisher(Status, "status", 10)
-        self.srv = self.create_service(SampleService, 'service', self.add_two_ints_callback)
+        self.srv = self.create_service(
+            SampleService, 'service', self.add_two_ints_callback)
         self.last_caller = ""
 
     def add_two_ints_callback(self, request: SampleService.Request, response):

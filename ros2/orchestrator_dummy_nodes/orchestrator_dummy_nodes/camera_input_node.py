@@ -13,11 +13,14 @@ class CameraInputNode(Node):
         super().__init__('CameraInputNode')  # type: ignore
 
         self.declare_parameter("processing_time", 0.05)
-        self.processing_time = self.get_parameter("processing_time").get_parameter_value().double_value
+        self.processing_time = self.get_parameter(
+            "processing_time").get_parameter_value().double_value
 
         self.status_publisher = self.create_publisher(Status, "status", 10)
-        self.camera_info_sub = message_filters.Subscriber(self, SampleMessage, "camera_info")
-        self.image_sub = message_filters.Subscriber(self, SampleMessage, "image")
+        self.camera_info_sub = message_filters.Subscriber(
+            self, SampleMessage, "camera_info")
+        self.image_sub = message_filters.Subscriber(
+            self, SampleMessage, "image")
         self.time_sync = message_filters.ApproximateTimeSynchronizer(
             [self.camera_info_sub, self.image_sub],
             4,
@@ -26,7 +29,8 @@ class CameraInputNode(Node):
         self.camera_info_sub.registerCallback(self.send_status_callback)
         self.image_sub.registerCallback(self.send_status_callback)
 
-        self.output_publisher = self.create_publisher(SampleMessage, "output", 10)
+        self.output_publisher = self.create_publisher(
+            SampleMessage, "output", 10)
 
     def input_callback(self, camera_info_msg: SampleMessage, image_msg: SampleMessage):
         time.sleep(self.processing_time)

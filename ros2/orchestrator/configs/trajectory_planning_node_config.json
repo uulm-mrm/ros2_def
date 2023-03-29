@@ -1,0 +1,51 @@
+{
+  "name": "Trajectory Planning Node",
+  "callbacks": [
+    {
+      "trigger": "trajectory",
+      "outputs": []
+    },
+    {
+      "trigger": "/vehicle_hal/vehicle_state",
+      "outputs": []
+    },
+    {
+      "trigger": "/imu/adma/imu",
+      "outputs": []
+    },
+    {
+      "trigger": "/camera/front_left_stereo/ir_pc_det_list",
+      "outputs": []
+    },
+    {
+      "trigger": "/trajectory_target_speed",
+      "outputs": []
+    },
+    {
+      "trigger": "/sil/cars",
+      "outputs": []
+    },
+    {
+      "trigger": "/maneuvers",
+      "outputs": []
+    },
+    {
+      "trigger": {
+        "type": "timer",
+        "period": 18000000
+      },
+      "outputs": [
+        "/vehicle_hal/control_vars"
+      ]
+    },
+    {
+      "trigger": {
+        "type": "timer",
+        "period": 40000000
+      },
+      "outputs": [
+        "/trajectory_map_id"
+      ]
+    }
+  ]
+}
