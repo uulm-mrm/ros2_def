@@ -2,7 +2,73 @@
   "name": "tracking_mec",
   "callbacks": [
     {
-      "trigger": "detections0_1",
+      "trigger": "/amqp/detections0_1",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections0_2",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections1_1",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections1_2",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections2_1",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections2_2",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections3_1",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections4_1",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections4_2",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections5_1",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections6_1",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/amqp/detections6_2",
       "outputs": [
         "tracks"
       ]

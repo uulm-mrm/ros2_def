@@ -1,18 +1,18 @@
 {
   "nodes": {
-    "ego_motion_sevice_node": {
+    "sil_vhcl1800_ego_motion_sevice": {
       "config_file": [
         "orchestrator",
         "ego_motion_node_config.json"
       ]
     },
-    "trajectory_planning_node": {
+    "sil_vhcl1800_trajectory_planning_node": {
       "config_file": [
         "orchestrator",
         "trajectory_planning_node_config.json"
       ]
     },
-    "sil_simulator": {
+    "sil_sil_simulator_node": {
       "config_file": [
         "orchestrator",
         "sil_node_config.json"
@@ -22,6 +22,12 @@
       "config_file": [
         "orchestrator",
         "tracking_mec_node_config.json"
+      ]
+    },
+    "sil_vhcl1800_tracking_vhcl1800": {
+      "config_file": [
+        "orchestrator",
+        "tracking_ul1800_node_config.json"
       ]
     }
   }

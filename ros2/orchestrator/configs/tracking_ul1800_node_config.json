@@ -1,0 +1,29 @@
+{
+  "name": "tracking_ul1800",
+  "callbacks": [
+    {
+      "trigger": "/sil_vhcl1800/radar/ars408_fr/ars408_objects",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/sil_vhcl1800/radar/ars408_fc/ars408_objects",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/sil_vhcl1800/radar/ars408_fl/ars408_objects",
+      "outputs": [
+        "tracks"
+      ]
+    },
+    {
+      "trigger": "/sil_vhcl1800/lidar/velodyne_fc/velodyne_objects",
+      "outputs": [
+        "tracks"
+      ]
+    }
+  ]
+}
