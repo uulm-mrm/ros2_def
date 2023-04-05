@@ -10,6 +10,6 @@
     }
   ],
   "services": [
-    "ego_motion"
+    "ego_motion_service"
   ]
 }

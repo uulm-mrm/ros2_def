@@ -4,7 +4,10 @@
       "config_file": [
         "orchestrator",
         "ego_motion_node_config.json"
-      ]
+      ],
+      "remappings": {
+        "ego_motion_service": "/sil_vhcl1800/ego_motion_service"
+      }
     },
     "sil_vhcl1800_trajectory_planning_node": {
       "config_file": [
@@ -28,7 +31,10 @@
       "config_file": [
         "orchestrator",
         "tracking_ul1800_node_config.json"
-      ]
+      ],
+      "remappings": {
+        "ego_motion_service": "/sil_vhcl1800/ego_motion_service"
+      }
     }
   }
 }
