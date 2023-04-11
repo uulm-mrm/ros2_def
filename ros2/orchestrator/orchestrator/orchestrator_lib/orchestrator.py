@@ -54,12 +54,26 @@ class FutureTimestep:
     future: Future
 
 
+def _verify_node_models(node_models):
+    for model in node_models:
+        timer_outputs = []
+        for input in [i for i in model.get_possible_inputs() if isinstance(i, TimerInput)]:
+            for effect in [e for e in model.effects_for_input(input) if isinstance(e, TopicPublish)]:
+                if effect.output_topic in timer_outputs:
+                    raise RuntimeError(f"Multiple timers at node {model.get_name()} output on the same "
+                                       f"topic \"{effect.output_topic}\". "
+                                       "This is not supported, since the timers will fire at the same time "
+                                       "eventually, and the receive-order of the outputs would be "
+                                       "non-deterministic.")
+
+
 class Orchestrator:
     def __init__(self, ros_node: RosNode, node_config: List[NodeModel], logger: Optional[RcutilsLogger] = None) -> None:
         self.ros_node = ros_node
         self.l = logger or ros_node.get_logger()
 
         self.node_models: List[NodeModel] = node_config
+        _verify_node_models(self.node_models)
 
         # Subscription for each topic (topic_name -> sub)
         self.interception_subs: Dict[TopicName, Subscription] = {}
@@ -139,7 +153,7 @@ class Orchestrator:
                                     effect.output_topic, self.l, self.ros_node),
                                 effect.output_topic,
                                 lambda msg,
-                                topic_name=effect.output_topic: self.__interception_subscription_callback(
+                                       topic_name=effect.output_topic: self.__interception_subscription_callback(
                                     topic_name, msg),
                                 10)
                             self.interception_subs[effect.output_topic] = sub
@@ -193,72 +207,72 @@ class Orchestrator:
 
         for node_model in self.node_models:
             node_name = node_model.get_name()
-            fastest_timer_cause = None
+            self.l.info(f"  Initializing sim time at node {node_name}")
             for input_cause in node_model.get_possible_inputs():
-                if isinstance(input_cause, TimerInput):
-                    if fastest_timer_cause is None or input_cause.period < fastest_timer_cause.period:
-                        fastest_timer_cause = input_cause
+                if not isinstance(input_cause, TimerInput):
+                    continue
 
-            if fastest_timer_cause is None:
-                # Node has no timers
-                continue
+                def add_buffer(topic: TopicName, parent: GraphNodeId):
+                    buffer_node_id = _next_id()
+                    self.graph.add_node(
+                        buffer_node_id, data=OrchestratorBufferAction(TopicInput(topic)))
+                    self.graph.add_edge(buffer_node_id, parent,
+                                        edge_type=EdgeType.CAUSALITY)
 
-            def add_buffer(topic: TopicName, parent: GraphNodeId):
-                buffer_node_id = _next_id()
-                self.graph.add_node(
-                    buffer_node_id, data=OrchestratorBufferAction(TopicInput(topic)))
-                self.graph.add_edge(buffer_node_id, parent,
-                                    edge_type=EdgeType.CAUSALITY)
+                def add_status(parent: GraphNodeId):
+                    status_node_id = _next_id()
+                    self.graph.add_node(
+                        status_node_id, data=OrchestratorStatusAction())
+                    self.graph.add_edge(status_node_id, parent,
+                                        edge_type=EdgeType.CAUSALITY)
 
-            def add_status(parent: GraphNodeId):
-                status_node_id = _next_id()
-                self.graph.add_node(
-                    status_node_id, data=OrchestratorStatusAction())
-                self.graph.add_edge(status_node_id, parent,
-                                    edge_type=EdgeType.CAUSALITY)
+                if initial_time.nanoseconds < input_cause.period:
+                    # Initial time before first timer invocation
+                    self.l.info(f"   Expecting no callback for timer with period {input_cause.period}")
+                    self.l.warn(
+                        "No callback for the initial time-input, which means we can not be sure the node received the initial time")
+                    pass
+                elif input_cause.period <= initial_time.nanoseconds < 2 * input_cause.period \
+                        or (initial_time.nanoseconds % input_cause.period) != 0:
+                    # Initial time between first and second timer invocation
+                    # Or: Initial time long after first timer invocation, but not directly at a timer invocation
+                    # Both results in one execution of a missed timer invocation.
+                    self.l.info(f"   Expecting 1 callback for timer with period {input_cause.period}")
 
-            if initial_time.nanoseconds < fastest_timer_cause.period:
-                self.l.info(
-                    f"  Initializing sim time at node {node_name}, expecting no callback")
-                self.l.warn(
-                    "Node has timers, but no callback for the initial time-input, which means we can not be sure it received the initial time")
-                pass
-            elif fastest_timer_cause.period <= initial_time.nanoseconds < 2 * fastest_timer_cause.period \
-                    or (initial_time.nanoseconds % fastest_timer_cause.period) != 0:
-                self.l.info(
-                    f"  Initializing sim time at node {node_name}, expecting 1 callback")
+                    causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time,
+                                                         input_cause, input_cause.period)
+                    causing_action_id = _next_id()
+                    self.graph.add_node(causing_action_id, data=causing_action)
 
-                causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time,
-                                                     fastest_timer_cause, fastest_timer_cause.period)
-                causing_action_id = _next_id()
-                self.graph.add_node(causing_action_id, data=causing_action)
+                    for effect in node_model.effects_for_input(input_cause):
+                        if isinstance(effect, TopicPublish):
+                            add_buffer(effect.output_topic, causing_action_id)
+                        elif isinstance(effect, StatusPublish):
+                            add_status(causing_action_id)
+                        elif isinstance(effect, ServiceCall):
+                            pass
 
-                for effect in node_model.effects_for_input(fastest_timer_cause):
-                    if isinstance(effect, TopicPublish):
-                        add_buffer(effect.output_topic, causing_action_id)
-                    elif isinstance(effect, StatusPublish):
-                        add_status(causing_action_id)
-                    elif isinstance(effect, ServiceCall):
-                        pass
+                else:
+                    # After first invocation (else 1 or 2 would be the case)
+                    # Multiple of period (invocation this timestep) (else 2 would be the case)
+                    # -> One missed invocation, one current invocation
+                    self.l.info(
+                        f"   Expecting 2 callbacks for timer with period {input_cause.period}")
 
-            else:
-                self.l.info(
-                    f"  Initializing sim time at node {node_name}, expecting 2 callbacks")
+                    causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time,
+                                                         input_cause, input_cause.period)
+                    causing_action_id = _next_id()
+                    self.graph.add_node(causing_action_id, data=causing_action)
 
-                causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time,
-                                                     fastest_timer_cause, fastest_timer_cause.period)
-                causing_action_id = _next_id()
-                self.graph.add_node(causing_action_id, data=causing_action)
-
-                for effect in node_model.effects_for_input(fastest_timer_cause):
-                    if isinstance(effect, TopicPublish):
-                        add_buffer(effect.output_topic, causing_action_id)
-                        add_buffer(effect.output_topic, causing_action_id)
-                    elif isinstance(effect, StatusPublish):
-                        add_status(causing_action_id)
-                        add_status(causing_action_id)
-                    elif isinstance(effect, ServiceCall):
-                        pass
+                    for effect in node_model.effects_for_input(input_cause):
+                        if isinstance(effect, TopicPublish):
+                            add_buffer(effect.output_topic, causing_action_id)
+                            add_buffer(effect.output_topic, causing_action_id)
+                        elif isinstance(effect, StatusPublish):
+                            add_status(causing_action_id)
+                            add_status(causing_action_id)
+                        elif isinstance(effect, ServiceCall):
+                            pass
 
         self.l.info(" Created all callback actions, proceeding as usual.")
 
@@ -417,11 +431,12 @@ class Orchestrator:
             raise RuntimeError(
                 "No unused input available. Check if next_input exists before calling __request_next_input.")
 
-    def __callback_nodes_with_data(self) -> Generator[Tuple[GraphNodeId, CallbackAction], None, None]:
+    def __callback_nodes_with_data(self) -> \
+            Generator[Tuple[GraphNodeId, Union[TimerCallbackAction, RxAction]], None, None]:
         for id, data in self.graph.nodes(data=True):
             action: Action = data["data"]  # type: ignore
             if isinstance(action, TimerCallbackAction) or isinstance(action, RxAction):
-                yield (id, action)
+                yield id, action
 
     def __buffer_nodes_with_data(self) -> Generator[Tuple[GraphNodeId, OrchestratorBufferAction], None, None]:
         for id, data in self.graph.nodes(data=True):
@@ -430,7 +445,7 @@ class Orchestrator:
                 yield (id, action)
 
     def __buffer_childs_of_parent(self, parent: GraphNodeId) -> Generator[
-            Tuple[GraphNodeId, OrchestratorBufferAction], None, None]:
+        Tuple[GraphNodeId, OrchestratorBufferAction], None, None]:
         for id, data in self.__buffer_nodes_with_data():
             if self.graph.has_edge(id, parent):
                 yield id, data
@@ -449,9 +464,22 @@ class Orchestrator:
         self.l.debug(f"  Adding graph node for action {action}")
         self.graph.add_node(cause_node_id, data=action)
 
+        # Omit sibling connections (same node) if both actions are timer callbacks at the same time.
+        # They are triggered by the same clock input, so we can not enforce an order between them.
+        # The execution order is assumed to be deterministic within the node, and we forbid outputs on the same topic,
+        # which could get reordered.
+        def is_timer_at_same_time(this_action, other_action: Union[TimerCallbackAction, RxAction]):
+            if not isinstance(this_action, TimerCallbackAction):
+                return False
+            if not isinstance(other_action, TimerCallbackAction):
+                return False
+            return this_action.timestamp == other_action.timestamp
+
         # Sibling connections: Complete all actions at this node before the to-be-added action
         for node, other_action in self.__callback_nodes_with_data():
-            if other_action.node == action.node and node != cause_node_id:
+            if other_action.node == action.node \
+                    and node != cause_node_id \
+                    and not is_timer_at_same_time(action, other_action):
                 self.graph.add_edge(cause_node_id, node,
                                     edge_type=EdgeType.SAME_NODE)
 

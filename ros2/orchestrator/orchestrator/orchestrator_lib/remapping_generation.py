@@ -58,9 +58,10 @@ def generate_remappings_from_config(package_name: str, launch_config_file: str) 
                 SetRemap(src=remap_src, dst=remap_dst)
             )
         if _contains_timer_events(model):
+            remap_dst = intercepted_name(node_name, "clock")
+            print(f"Remapping for node \"{node_name}\": \"clock\" to \"{remap_dst}\"")
             remap_actions.append(
-                SetRemap(src=f"{node_name}:clock", dst=intercepted_name(node_name, "clock")))
-
+                SetRemap(src=f"{node_name}:clock", dst=remap_dst))
     return remap_actions
 
 

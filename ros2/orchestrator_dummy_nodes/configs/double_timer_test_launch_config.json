@@ -1,0 +1,10 @@
+{
+  "nodes": {
+    "timer": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "double_timer_node_config.json"
+      ]
+    }
+  }
+}

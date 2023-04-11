@@ -41,6 +41,7 @@ setup(
             'graph_analysis = orchestrator_dummy_nodes.graph_analysis:main',
             'timed_sensor_publisher = orchestrator_dummy_nodes.timed_sensor_publisher:main',
             'simple_timer_publisher = orchestrator_dummy_nodes.simple_timer_publisher:main',
+            'double_timer_publisher = orchestrator_dummy_nodes.double_timer_publisher:main',
             'tracking_subscriber = orchestrator_dummy_nodes.tracking_subscriber:main',
             'detector = orchestrator_dummy_nodes.detector:main',
             'test = orchestrator_dummy_nodes.test:main',

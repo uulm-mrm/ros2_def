@@ -26,12 +26,12 @@ class BagPlayer(Node):
         super().__init__("orchestrator")  # type: ignore
         self.get_logger().info(f"Orchestrator Node Starting!")
 
-        self.t = Time(seconds=0, nanoseconds=0)
+        self.t = Time(seconds=1000000, nanoseconds=0)
 
         self.declare_parameter('mode', '')
         mode = self.get_parameter('mode').get_parameter_value().string_value
 
-        self.mode: Literal["tracking", "service", "time_sync"]
+        self.mode: Literal["tracking", "service", "time_sync", "double_timer"]
         if mode == "tracking":
             self.mode = "tracking"
             launch_config = load_launch_config(
@@ -62,6 +62,13 @@ class BagPlayer(Node):
             launch_config = load_launch_config(
                 "orchestrator_dummy_nodes",
                 "time_sync_test_launch_config.json",
+                load_launch_config_schema()
+            )
+        elif mode == "double_timer":
+            self.mode = "double_timer"
+            launch_config = load_launch_config(
+                "orchestrator_dummy_nodes",
+                "double_timer_test_launch_config.json",
                 load_launch_config_schema()
             )
         else:
@@ -159,6 +166,13 @@ class BagPlayer(Node):
         spin_for(self, datetime.timedelta(seconds=0.3))
         self.t += Duration(seconds=0, nanoseconds=100_000_000)
 
+    def timestep_double_timer(self):
+        f = self.orchestrator.wait_until_time_publish_allowed(self.t)
+        rclpy.spin_until_future_complete(self, f)
+        self.publish_time()
+        spin_for(self, datetime.timedelta(seconds=1.0))
+        self.t += Duration(seconds=0, nanoseconds=50000000)
+
     def timestep(self):
         if self.mode == "tracking":
             self.timestep_tracking()
@@ -166,6 +180,8 @@ class BagPlayer(Node):
             self.timestep_service()
         elif self.mode == "time_sync":
             self.timestep_time_sync()
+        elif self.mode == "double_timer":
+            self.timestep_double_timer()
 
 
 def main():

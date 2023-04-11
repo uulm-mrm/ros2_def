@@ -1,0 +1,25 @@
+{
+  "name": "double_timer",
+  "callbacks": [
+    {
+      "name": "Timer B callback",
+      "trigger": {
+        "type": "timer",
+        "period": 300000000
+      },
+      "outputs": [
+        "output_b"
+      ]
+    },
+    {
+      "name": "Timer A callback",
+      "trigger": {
+        "type": "timer",
+        "period": 100000000
+      },
+      "outputs": [
+        "output_a"
+      ]
+    }
+  ]
+}
