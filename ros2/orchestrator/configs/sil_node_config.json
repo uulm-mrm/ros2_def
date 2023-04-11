@@ -4,7 +4,7 @@
     {
       "trigger": {
         "type": "topic",
-        "name": "control_vars"
+        "name": "/sil_vhcl1800/control_vars"
       },
       "outputs": []
     }

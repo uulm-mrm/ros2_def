@@ -1,6 +1,6 @@
 {
   "nodes": {
-    "sil_vhcl1800_ego_motion_sevice": {
+    "sil_vhcl1800_ego_motion_service": {
       "config_file": [
         "orchestrator",
         "ego_motion_node_config.json"
@@ -13,7 +13,10 @@
       "config_file": [
         "orchestrator",
         "trajectory_planning_node_config.json"
-      ]
+      ],
+      "remappings": {
+        "/vehicle_hal/control_vars": "/sil_vhcl1800/control_vars"
+      }
     },
     "sil_sil_simulator_node": {
       "config_file": [
