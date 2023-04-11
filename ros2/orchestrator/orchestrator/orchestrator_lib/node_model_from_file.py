@@ -13,6 +13,8 @@ class ConfigFileNodeModel(NodeModel):
         # Mappings from internal to external name
         mappings: dict[str, str] = {}
 
+        inputs = set()
+
         # Initialize mappings by identity for all known inputs and outputs from
         # node config.
         for callback in node_config["callbacks"]:
@@ -20,21 +22,24 @@ class ConfigFileNodeModel(NodeModel):
 
             if isinstance(trigger, str):
                 mappings[trigger] = trigger
+                inputs.add(trigger)
             elif "type" in trigger and trigger["type"] == "topic":
                 trigger = cast(str, trigger["name"])
                 mappings[trigger] = trigger
+                inputs.add(trigger)
             elif "type" in trigger and trigger["type"] == "timer":
                 mappings["clock"] = "clock"
 
             elif "type" in trigger and trigger["type"] == "approximate_time_sync":
                 for topic in trigger["input_topics"]:
                     mappings[topic] = topic
+                    inputs.add(topic)
             else:
                 raise NotImplementedError(
                     f"Callback type {trigger['type']} not implemented")
 
             for output in callback["outputs"]:
-                if output in mappings:
+                if output in inputs:
                     raise RuntimeError(
                         f"Topic {output} of node {name} defined as both input and output!")
                 mappings[output] = output
