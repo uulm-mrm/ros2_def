@@ -20,7 +20,7 @@ def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node) -> Type:
 
     msgtype = find_type()
     if msgtype is None:
-        logger.info(f"  Waiting for topic \"{name}\"")
+        logger.info(f"  Waiting for topic \"{name}\" to exist")
     while msgtype is None:
         if node.executor is not None:
             node.executor.spin_until_future_complete(Future(), 0.1)
@@ -60,11 +60,12 @@ def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, no
 
 
 def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node):
-    topic_name = node.resolve_topic_name(topic_name)
+    topic_name = node.resolve_topic_name(topic_name, only_expand=True)
 
     def node_has_pub():
-        for info in node.get_publishers_info_by_topic(topic_name):
-            if info.node_name == node_name:
+        by_node = node.get_publisher_names_and_types_by_node(node_name, node.get_namespace())
+        for topic, types in by_node:
+            if topic == topic_name:
                 return True
         return False
 
@@ -77,6 +78,6 @@ def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, no
 
     while not node_has_pub():
         if node.executor is not None:
-            node.executor.spin_until_future_complete(Future(), 0.1)
+            node.executor.spin_until_future_complete(Future(), 1.0)
         else:
-            rclpy.spin_until_future_complete(node, Future(), timeout_sec=0.1)
+            rclpy.spin_until_future_complete(node, Future(), timeout_sec=1.0)
