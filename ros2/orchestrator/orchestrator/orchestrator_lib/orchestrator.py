@@ -102,7 +102,7 @@ class Orchestrator:
 
             # Subscribe to the input topic
             if canonical_name not in self.interception_subs:
-                self.l.info(f"  Subscribing to {canonical_name}")
+                self.l.info(f"  Subscribing to \"{canonical_name}\"")
 
                 subscription = self.ros_node.create_subscription(
                     TopicType, canonical_name,
@@ -129,10 +129,11 @@ class Orchestrator:
                     intercept_topic("clock", node_model)
 
                 for effect in node_model.effects_for_input(input_cause):
+                    self.l.info(f" This causes the effect {effect}")
                     if isinstance(effect, TopicPublish):
                         if effect.output_topic not in self.interception_subs:
                             self.l.info(
-                                f" Subscribing to output topic: {effect.output_topic}")
+                                f"  Subscribing to output topic: {effect.output_topic}")
                             sub = self.ros_node.create_subscription(
                                 wait_for_topic(
                                     effect.output_topic, self.l, self.ros_node),
@@ -156,6 +157,7 @@ class Orchestrator:
                     self.time_sync_models[node_model.get_name()] = {}
                 self.time_sync_models[node_model.get_name()][tsi] = ApproximateTimeSynchronizerTracker(
                     list(tsi.input_topics), tsi.queue_size, tsi.slop)
+        self.l.info("ROS setup for orchestrator done!")
 
     def wait_until_publish_allowed(self, topic: TopicName) -> Future:
         """

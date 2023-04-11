@@ -38,15 +38,10 @@ def generate_remappings_from_config(package_name: str, launch_config_file: str) 
 
     remap_actions = []
 
-    print("remapping generation, launch config:",
-          launch_config, "models:", node_models)
-
     for node_name, node in launch_config["nodes"].items():
         remappings: Dict[str, str] = node.get("remappings", {})
         model = _find_node_model(node_name, node_models)
-        print("node", node_name)
         for input in model.get_possible_inputs():
-            print("input", input)
             if isinstance(input, TopicInput):
                 # Add identity remapping for input topics if no explicit remapping exists.
                 # This ensures that interception remapping is generated below.
@@ -58,6 +53,7 @@ def generate_remappings_from_config(package_name: str, launch_config_file: str) 
 
             remap_src = f"{node_name}:{internal_name}"
             remap_dst = intercepted_name(node_name, ros_name)
+            print(f"Remapping for node \"{node_name}\": \"{internal_name}\" to \"{remap_dst}\"")
             remap_actions.append(
                 SetRemap(src=remap_src, dst=remap_dst)
             )
