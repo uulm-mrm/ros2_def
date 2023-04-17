@@ -192,11 +192,20 @@ class Orchestrator:
            f"Data source offers input on topic \"{topic}\" for current time {self.simulator_time}")
 
         future = Future()
+
+        if topic not in self.interception_subs.keys():
+            self.l.warning("  We are not subscribed to that input, allow publish without further action")
+            future.set_result(None)
+            return future
+
         self.next_input = FutureInput(topic, future)
 
+        # TODO: This should maybe be "ready", not "empty"?
         if self.__graph_is_empty():
             self.l.info("  Graph is empty, immediately requesting data...")
             self.__request_next_input()
+        else:
+            self.l.info("  Graph is not empty, not requesting...")
 
         return future
 
@@ -565,24 +574,27 @@ class Orchestrator:
             elif isinstance(effect, ServiceCall):
                 pass
 
-    def __find_service_provider_node(self, service: str) -> NodeModel:
+    def __find_service_provider_node(self, service: str) -> Optional[NodeModel]:
         for node_model in self.node_models:
             if service in node_model.get_provided_services():
                 return node_model
-        raise RuntimeError(
-            f"Could not find node providing service \"{service}\"")
+        self.l.warn(f"No service provider for \"{service}\" known")
+        return None
 
     def __service_group(self, service: str) -> Set[GraphNodeId]:
         """Find all actions which relate to a service"""
         l: Set[GraphNodeId] = set()
 
         service_call = ServiceCall(service_name=service)
-        service_provider_node = self.__find_service_provider_node(
-            service).get_name()
+        service_provider_node_model = self.__find_service_provider_node(service)
+        if service_provider_node_model:
+            service_provider_node = service_provider_node_model.get_name()
+        else:
+            service_provider_node = None
 
         for graph_node_id, data in self.__callback_nodes_with_data():
             # Add actions at node provider
-            if data.node == service_provider_node:
+            if service_provider_node is not None and data.node == service_provider_node:
                 l.add(graph_node_id)
                 continue
 
