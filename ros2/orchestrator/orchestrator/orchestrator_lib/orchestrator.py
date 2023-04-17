@@ -22,6 +22,7 @@ from rclpy.publisher import Publisher
 from rclpy.impl.rcutils_logger import RcutilsLogger
 from rclpy.time import Time
 from rclpy.clock import ClockType
+from rclpy.executors import Executor
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -68,8 +69,10 @@ def _verify_node_models(node_models):
 
 
 class Orchestrator:
-    def __init__(self, ros_node: RosNode, node_config: List[NodeModel], logger: Optional[RcutilsLogger] = None) -> None:
+    def __init__(self, ros_node: RosNode, executor: Executor, node_config: List[NodeModel],
+                 logger: Optional[RcutilsLogger] = None) -> None:
         self.ros_node = ros_node
+        self.executor = executor
         self.l = logger or ros_node.get_logger()
 
         self.node_models: List[NodeModel] = node_config
@@ -184,8 +187,6 @@ class Orchestrator:
         if self.simulator_time is None:
             raise RuntimeError(
                 "Data source has to provide time before first data")
-
-        topic = remove_prefix(topic, "/")
 
         lc(self.l,
            f"Data source offers input on topic \"{topic}\" for current time {self.simulator_time}")
@@ -304,8 +305,7 @@ class Orchestrator:
     def wait_until_pending_actions_complete(self):
         f = Future()
         while not self.__graph_is_empty():
-            rclpy.spin_until_future_complete(
-                self.ros_node, f, timeout_sec=0.01)
+            self.executor.spin_until_future_complete(f, timeout_sec=0.01)
 
     def __add_pending_timers_until(self, t: Time):
         """

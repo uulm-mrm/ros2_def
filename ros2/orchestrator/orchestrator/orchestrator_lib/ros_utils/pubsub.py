@@ -1,14 +1,14 @@
 from typing import Type, Optional
 
-import rclpy
 from rclpy import Future
+from rclpy.executors import Executor
 from rclpy.node import Node
 from rclpy.impl.rcutils_logger import RcutilsLogger
 
 from orchestrator.orchestrator_lib.name_utils import TopicName, type_from_string
 
 
-def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node) -> Type:
+def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node, executor: Executor) -> Type:
     name = node.resolve_topic_name(name)
 
     def find_type():
@@ -22,16 +22,13 @@ def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node) -> Type:
     if msgtype is None:
         logger.info(f"  Waiting for topic \"{name}\" to exist")
     while msgtype is None:
-        if node.executor is not None:
-            node.executor.spin_until_future_complete(Future(), 0.1)
-        else:
-            rclpy.spin_until_future_complete(node, Future(), timeout_sec=0.1)
+        executor.spin_until_future_complete(Future(), 0.1)
         msgtype = find_type()
 
     return msgtype
 
 
-def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node) -> Type:
+def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor) -> Type:
     topic_name = node.resolve_topic_name(topic_name)
 
     def try_get_type() -> Optional[Type]:
@@ -50,16 +47,13 @@ def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, no
             f"  Waiting for node \"{node_name}\" to subscribe to \"{topic_name}\"")
 
     while not topic_type:
-        if node.executor is not None:
-            node.executor.spin_until_future_complete(Future(), 0.1)
-        else:
-            rclpy.spin_until_future_complete(node, Future(), timeout_sec=0.1)
+        executor.spin_until_future_complete(Future(), 0.1)
         topic_type = try_get_type()
 
     return topic_type
 
 
-def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node):
+def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor):
     topic_name = node.resolve_topic_name(topic_name, only_expand=True)
 
     def node_has_pub():
@@ -77,7 +71,4 @@ def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, no
             f"  Waiting for node \"{node_name}\" to create a publisher for \"{topic_name}\"")
 
     while not node_has_pub():
-        if node.executor is not None:
-            node.executor.spin_until_future_complete(Future(), 1.0)
-        else:
-            rclpy.spin_until_future_complete(node, Future(), timeout_sec=1.0)
+        executor.spin_until_future_complete(Future(), 1.0)
