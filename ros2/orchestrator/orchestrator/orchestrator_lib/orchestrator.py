@@ -111,8 +111,7 @@ class Orchestrator:
                        f" from node \"{node.get_name()}\" as \"{intercepted_topic_name}\"")
 
             # Wait until subscriber exists, get type
-            TopicType = wait_for_node_sub(
-                intercepted_topic_name, node.get_name(), self.l, self.ros_node)
+            TopicType = wait_for_node_sub(intercepted_topic_name, node.get_name(), self.l, self.ros_node, self.executor)
 
             # Subscribe to the input topic
             if canonical_name not in self.interception_subs:
@@ -149,8 +148,7 @@ class Orchestrator:
                             self.l.info(
                                 f"  Subscribing to output topic: {effect.output_topic}")
                             sub = self.ros_node.create_subscription(
-                                wait_for_topic(
-                                    effect.output_topic, self.l, self.ros_node),
+                                wait_for_topic(effect.output_topic, self.l, self.ros_node, self.executor),
                                 effect.output_topic,
                                 lambda msg,
                                        topic_name=effect.output_topic: self.__interception_subscription_callback(
@@ -158,10 +156,9 @@ class Orchestrator:
                                 10)
                             self.interception_subs[effect.output_topic] = sub
                             wait_for_node_pub(
-                                effect.output_topic, node_model.get_name(), self.l, self.ros_node)
+                                effect.output_topic, node_model.get_name(), self.l, self.ros_node, self.executor)
                     elif isinstance(effect, StatusPublish):
-                        wait_for_node_pub(
-                            "status", node_model.get_name(), self.l, self.ros_node)
+                        wait_for_node_pub("status", node_model.get_name(), self.l, self.ros_node, self.executor)
                         pass
                     elif isinstance(effect, ServiceCall):
                         pass
@@ -346,15 +343,18 @@ class Orchestrator:
         expected_timer_actions: List[TimerCallbackAction] = []
 
         for timer in timers:
+            self.l.debug(f" Considering timer {timer}")
             nr_fires = last_time // timer.cause.period
             last_fire = nr_fires * timer.cause.period
             next_fire = Time(nanoseconds=last_fire + timer.cause.period)
-
+            self.l.debug(
+                f"  Timer has fired {nr_fires} times, the last invocation was at {last_fire}, next will be at {next_fire}")
             dt: int = t.nanoseconds - last_time
             if dt > timer.cause.period:
                 raise RuntimeError(f"Requested timestep too large! Stepping time from {last_time} to {t} ({dt}) "
                                    "would require firing the timer multiple times within the same timestep. This is probably unintended!")
             if next_fire <= t:
+                self.l.info(f" Timer of node \"{timer.node}\" with period {timer.cause.period} will fire!")
                 action = TimerCallbackAction(
                     ActionState.WAITING, timer.node, t, timer.cause, timer.cause.period)
                 expected_timer_actions.append(action)
@@ -507,17 +507,16 @@ class Orchestrator:
                     other_action: Action = node_data["data"]  # type: ignore
                     if isinstance(other_action,
                                   OrchestratorBufferAction) and other_action.cause.input_topic == effect.output_topic:
-                        self.l.debug(
-                            f"   Adding edge to node {node}, because it ")
-                        self.graph.add_edge(
-                            cause_node_id, node, edge_type=EdgeType.SAME_TOPIC)
+                        self.l.debug(f"   Adding edge to node {node} ({node_data}), "
+                                     "because the new action publishes on that topic.")
+                        self.graph.add_edge(cause_node_id, node, edge_type=EdgeType.SAME_TOPIC)
 
         # Collect services relating to this action
         services = set(node_model.get_provided_services())
         for effect in effects:
             if isinstance(effect, ServiceCall):
                 services.add(effect.service_name)
-        self.l.debug(f"   This action interacts with services: {services}")
+        self.l.debug(f"   This action ({action}) interacts with services: {services}")
 
         # Add connection to service group
         for service in services:
@@ -665,8 +664,7 @@ class Orchestrator:
             self.l.info(
                 "  Next input can not be requested yet, no input data has been offered.")
         elif not self.__ready_for_next_input():
-            self.l.info(
-                "  Next input is available, but we are not ready for it yet.")
+            self.l.info(f"  Next input is available ({self.next_input}), but we are not ready for it yet.")
         else:
             self.l.info("  We are now ready for the next input, requesting...")
             self.__request_next_input()
@@ -682,6 +680,10 @@ class Orchestrator:
         For time-inputs, this is the case if there are no actions left which are waiting to
         receive an earlier clock input.
         """
+
+        debug_msg = [f"{id}: {data['data']}" for id, data in self.graph.nodes(data=True)]
+        self.l.debug(f"Not ready for next input because graph not empty: {debug_msg}")
+        return self.graph.size() == 0
 
         if self.next_input is None:
             raise RuntimeError("There is no next input!")
@@ -730,9 +732,12 @@ class Orchestrator:
                     return node_id
             elif isinstance(d, OrchestratorBufferAction) or isinstance(d, OrchestratorStatusAction):
                 pass
+            else:
+                raise RuntimeError(f"Unknown action type: {d}")
 
         raise ActionNotFoundError(
-            f"There is no currently running action which should have published a message on topic \"{published_topic_name}\"")
+            f"There is no currently running action which should have published a message on topic \"{published_topic_name}\"! "
+            f"Current graph nodes: {self.graph.nodes(data=True)}")
 
     def __find_running_action_status(self, node_name: NodeName) -> GraphNodeId:
         for node_id, node_data in self.graph.nodes(data=True):
@@ -917,23 +922,42 @@ class Orchestrator:
     def __status_callback(self, msg: Status):
         lc(self.l, f"Received status message from {msg.node_name}")
 
-        status_node_id = self.__find_running_action_status(msg.node_name)
+        cause_action_id = None
+        causing_action = None
+        try:
+            status_node_id = self.__find_running_action_status(msg.node_name)
+        except ActionNotFoundError:
+            if len(msg.omitted_outputs) == 0:
+                # It would perhaps be possible to uniquely match a causing_action, by node name.
+                # But this status message would not make sense: If the callback always produced a status output, we
+                # would have found it above, and if it was a substitute for some other output, it would list some
+                # omitted_outputs...
+                raise RuntimeError("Status message was not expected, and it has no omitted outputs.")
+        else:
+            cause_action_id = self.__parent_node(status_node_id)
+            causing_action = self.graph.nodes[cause_action_id]["data"]
+            self.graph.remove_node(status_node_id)
 
-        cause_action_id = self.__parent_node(status_node_id)
+        for omitted_output_topic_name in msg.omitted_outputs:
+            self.l.info(f" callback omits topic output at {omitted_output_topic_name}")
+            cause_action_id = self.__find_running_action(omitted_output_topic_name)
+            causing_action = cast(Union[CallbackAction, DataProviderInputAction],
+                                  self.graph.nodes[cause_action_id]["data"])
+            assert causing_action.node == msg.node_name
+            for buffer_id, buffer_data in list(self.__buffer_childs_of_parent(cause_action_id)):
+                if buffer_data.cause.input_topic == omitted_output_topic_name:
+                    self.l.debug(f"  deleting buffer node {buffer_id} recursively")
+                    self.__remove_node_recursive(buffer_id)
+
         assert cause_action_id is not None
-        causing_action = self.graph.nodes[cause_action_id]["data"]
+        assert causing_action is not None
 
-        self.graph.remove_node(status_node_id)
-
-        in_degree = self.__in_degree_by_type(
-            cause_action_id, EdgeType.CAUSALITY)
-        self.l.debug(
-            f"cause action is node {cause_action_id}: {causing_action} with in-degree {in_degree}")
+        in_degree = self.__in_degree_by_type(cause_action_id, EdgeType.CAUSALITY)
+        self.l.debug(f"cause action is node {cause_action_id}: {causing_action} with in-degree {in_degree}")
 
         # Complete the action which sent this message
         if in_degree == 0:
-            self.l.info(
-                f"  This completes the {type(causing_action).__name__} callback! Removing...")
+            self.l.info(f"  This completes the {type(causing_action).__name__} callback! Removing...")
             self.graph.remove_node(cause_action_id)
 
         self.__process()

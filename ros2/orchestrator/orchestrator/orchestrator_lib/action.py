@@ -33,6 +33,11 @@ class RxAction(_BaseAction):
     # not be executed every time.
     is_approximate_time_synced: bool = False
 
+    def __str__(self):
+        return f"RxAction(state={self.state}, node={self.node}, timestamp={self.timestamp}, cause={self.cause}, " \
+               f"topic={self.topic}, data={'present' if self.data is not None else None}, " \
+               f"approx_time_sync={self.is_approximate_time_synced})"
+
 
 @dataclass
 class TimerCallbackAction(_BaseAction):
