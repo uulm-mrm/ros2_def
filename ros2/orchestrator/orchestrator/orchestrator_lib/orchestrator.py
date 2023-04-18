@@ -946,13 +946,18 @@ class Orchestrator:
                 # omitted_outputs...
                 raise RuntimeError("Status message was not expected, and it has no omitted outputs.")
         else:
+            self.l.info(" Status message was expected, removing node.")
             cause_action_id = self.__parent_node(status_node_id)
             causing_action = self.graph.nodes[cause_action_id]["data"]
             self.graph.remove_node(status_node_id)
 
         for omitted_output_topic_name in msg.omitted_outputs:
             self.l.info(f" callback omits topic output at {omitted_output_topic_name}")
-            cause_action_id = self.__find_running_action(omitted_output_topic_name)
+            try:
+                cause_action_id = self.__find_running_action(omitted_output_topic_name)
+            except ActionNotFoundError:
+                self.l.warn("  Topic output was not expected, ignoring...")
+                continue
             causing_action = cast(Union[CallbackAction, DataProviderInputAction],
                                   self.graph.nodes[cause_action_id]["data"])
             assert causing_action.node == msg.node_name
