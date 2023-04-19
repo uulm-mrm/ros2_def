@@ -6,6 +6,7 @@
         "ego_motion_node_config.json"
       ],
       "remappings": {
+        "imu": "/sil_vhcl1800/imu",
         "ego_motion_service": "/sil_vhcl1800/ego_motion_service"
       }
     },
