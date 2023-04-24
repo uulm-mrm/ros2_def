@@ -3,6 +3,8 @@ from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set
 from typing_extensions import TypeAlias
 from typing_inspect import get_parameters
 
+from std_srvs.srv import Trigger
+
 from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, ServiceCall, StatusPublish, TimeSyncInfo, \
     TimerInput, TopicInput, TopicPublish
 from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, intercepted_name, remove_prefix
@@ -103,6 +105,13 @@ class Orchestrator:
         If a topic is not found, or a subscriber/publisher does not exist,
         this will wait for it and spin the node while waiting.
         """
+
+        def debug_service_cb(request, response):
+            response.success = True
+            response.message = f"Nodes: {self.graph.nodes(data=True)}"
+            return response
+
+        self.ros_node.create_service(Trigger, "~/get_debug", debug_service_cb)
 
         self.status_subscription = self.ros_node.create_subscription(
             Status, "status", self.__status_callback, 10)
@@ -693,10 +702,6 @@ class Orchestrator:
         receive an earlier clock input.
         """
 
-        debug_msg = [f"{id}: {data['data']}" for id, data in self.graph.nodes(data=True)]
-        self.l.debug(f"Not ready for next input because graph not empty: {debug_msg}")
-        return self.graph.size() == 0
-
         if self.next_input is None:
             raise RuntimeError("There is no next input!")
         elif isinstance(self.next_input, FutureTimestep):
@@ -765,7 +770,8 @@ class Orchestrator:
             else:
                 pass
         raise ActionNotFoundError(
-            f"There is no currently running action for node {node_name} which should have published a status message")
+            f"There is no currently running action for node {node_name} which should have published a status message.\n"
+            f"Graph: {self.graph.nodes(data=True)}")
 
     def plot_graph(self):
 
