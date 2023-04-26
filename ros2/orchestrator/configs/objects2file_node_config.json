@@ -1,0 +1,9 @@
+{
+  "name": "objects2file",
+  "callbacks": [
+    {
+      "trigger": "obj_topic",
+      "outputs": []
+    }
+  ]
+}

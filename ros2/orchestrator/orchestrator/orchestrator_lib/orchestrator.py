@@ -670,7 +670,7 @@ class Orchestrator:
         return l
 
     def __remove_node_recursive(self, graph_node: GraphNodeId):
-        for child in self.__causality_childs_of(graph_node):
+        for child in list(self.__causality_childs_of(graph_node)):
             self.__remove_node_recursive(child)
         self.graph.remove_node(graph_node)
 
