@@ -1,0 +1,11 @@
+{
+  "name": "configurable_forwarding_name",
+  "callbacks": [
+    {
+      "trigger": "input",
+      "outputs": [
+        "output"
+      ]
+    }
+  ]
+}

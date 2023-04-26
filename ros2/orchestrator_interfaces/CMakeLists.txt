@@ -11,6 +11,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Status.msg"
   "msg/SampleMessage.msg"
   "srv/SampleService.srv"
+  "srv/SetConfigurationService.srv"
   DEPENDENCIES std_msgs
 )
 

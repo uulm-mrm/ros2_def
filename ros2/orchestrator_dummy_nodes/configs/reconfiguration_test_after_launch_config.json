@@ -1,0 +1,22 @@
+{
+  "nodes": {
+    "A": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "configurable_forwarding_node_config.json"
+      ],
+      "remappings": {
+        "output": "T2"
+      }
+    },
+    "B": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "configurable_forwarding_node_config.json"
+      ],
+      "remappings": {
+        "input": "T2"
+      }
+    }
+  }
+}

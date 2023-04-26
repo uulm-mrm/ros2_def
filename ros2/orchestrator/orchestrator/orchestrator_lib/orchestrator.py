@@ -80,12 +80,7 @@ class Orchestrator:
         self.node_models: List[NodeModel] = node_config
         _verify_node_models(self.node_models)
 
-        # Subscription for each topic (topic_name -> sub)
-        self.interception_subs: Dict[TopicName, Subscription] = {}
-        # Publisher for each node (node_name -> topic_name -> pub)
-        self.interception_pubs: Dict[NodeName, Dict[TopicName, Publisher]] = {}
-        self.time_sync_models: Dict[NodeName, Dict[TimeSyncInfo,
-                                                   ApproximateTimeSynchronizerTracker]] = {}
+        self.__create_subscription_lists()
 
         # Offered input by the data source, which can be requested by completing the contained future
         self.next_input: Union[FutureInput, FutureTimestep, None] = None
@@ -98,6 +93,31 @@ class Orchestrator:
 
         self.graph: nx.DiGraph = nx.DiGraph()
 
+        def debug_service_cb(request, response):
+            response.success = True
+            response.message = f"Nodes: {self.graph.nodes(data=True)}"
+            return response
+
+        self.debug_service = self.ros_node.create_service(Trigger, "~/get_debug", debug_service_cb)
+
+        self.status_subscription = self.ros_node.create_subscription(
+            Status, "status", self.__status_callback, 10)
+
+    def __create_subscription_lists(self):
+        """
+        Initialize attributes for config-specific stuff: subscriptions, publishers, models of time-sync nodes.
+        Properly destroys existing subscriptions.
+        """
+        # Subscription for each topic (topic_name -> sub)
+        if hasattr(self, "interception_subs"):
+            for sub in self.interception_subs.values():
+                self.ros_node.destroy_subscription(sub)
+        self.interception_subs: Dict[TopicName, Subscription] = {}
+
+        # Publisher for each node (node_name -> topic_name -> pub)
+        self.interception_pubs: Dict[NodeName, Dict[TopicName, Publisher]] = {}
+        self.time_sync_models: Dict[NodeName, Dict[TimeSyncInfo, ApproximateTimeSynchronizerTracker]] = {}
+
     def initialize_ros_communication(self):
         """
         Subscribe to all required ros topics as per launch-config.
@@ -105,16 +125,6 @@ class Orchestrator:
         If a topic is not found, or a subscriber/publisher does not exist,
         this will wait for it and spin the node while waiting.
         """
-
-        def debug_service_cb(request, response):
-            response.success = True
-            response.message = f"Nodes: {self.graph.nodes(data=True)}"
-            return response
-
-        self.ros_node.create_service(Trigger, "~/get_debug", debug_service_cb)
-
-        self.status_subscription = self.ros_node.create_subscription(
-            Status, "status", self.__status_callback, 10)
 
         def intercept_topic(canonical_name: TopicName, node: NodeModel):
             intercepted_topic_name = intercepted_name(
@@ -136,7 +146,7 @@ class Orchestrator:
                     10)
                 self.interception_subs[canonical_name] = subscription
             else:
-                self.l.info("  Subscription already exists")
+                self.l.info(f"  Subscription for {canonical_name} already exists")
 
             # Create separate publisher for each node
             self.l.info(f"  Creating publisher for {intercepted_topic_name}")
@@ -324,6 +334,50 @@ class Orchestrator:
         f = Future()
         while not self.__graph_is_empty():
             self.executor.spin_until_future_complete(f, timeout_sec=0.01)
+
+    def wait_until_reconfiguration_allowed(self):
+        """
+        Reconfiguration must only occur after this has returned and before aditional inputs are provided,
+        to guarantee that it won't interfere with regular processing.
+        """
+        lc(self.l, "Waiting until reconfiguration is allowed...")
+        self.wait_until_pending_actions_complete()
+
+    def reconfigure(self, new_node_config: List[NodeModel]):
+        """
+        Reconfiguration workflow:
+        1. Stop providing data (messages/time)
+        2. Wait until reconfiguration is allowed: orchestrator.wait_until_reconfiguration_allowed()
+        3. Apply reconfiguration (stop nodes, start nodes, change communication topology)
+        4. Load new node configs: orchestrator.reconfigure()
+        5. Continue providing data
+        """
+        lc(self.l, "Reconfiguring!")
+
+        assert (self.__graph_is_empty())
+        assert (self.next_input is None)
+
+        _verify_node_models(new_node_config)
+
+        # Assert no changed timer frequencies.
+        # This is currently not supported because it would require complicated timer-init.
+        # To support that, more research into missed-callback behavior for newly created timers is necessary
+        old_node_names = [n.get_name() for n in self.node_models]
+        for node_model in new_node_config:
+            if node_model.get_name() in old_node_names:
+                # This node existed before
+                old_node_model = self.__node_model_by_name(node_model.get_name())
+                # For all new timers, assert it existed before
+                # (deleted timers are OK)
+                for timer_input in [i for i in node_model.get_possible_inputs() if isinstance(i, TimerInput)]:
+                    assert (timer_input in old_node_model.get_possible_inputs())
+
+        self.l.info("  Exchanging node models")
+        self.node_models = new_node_config
+
+        self.l.info("  Re-initializing ros communication...")
+        self.__create_subscription_lists()
+        self.initialize_ros_communication()
 
     def __add_pending_timers_until(self, t: Time):
         """

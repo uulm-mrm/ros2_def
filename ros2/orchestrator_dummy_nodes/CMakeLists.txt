@@ -30,6 +30,12 @@ install(PROGRAMS
         DESTINATION lib/${PROJECT_NAME}
         RENAME double_timer_publisher
 )
+install(PROGRAMS
+        orchestrator_dummy_nodes/configurable_forwarding_node.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME configurable_forwarding_node
+        )
+
 
 aduulm_install_ros2_python_code("orchestrator_dummy_nodes")
 
