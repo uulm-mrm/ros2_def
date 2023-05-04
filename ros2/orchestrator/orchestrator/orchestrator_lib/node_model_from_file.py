@@ -26,6 +26,9 @@ class ConfigFileNodeModel(NodeModel):
                                    f"Expected: {expected_deserialized}. Diff: {diff}")
         self.state_recording.append(h)
 
+    def changes_dataprovider_state(self):
+        return self.changes_dp_state_config
+
     def dump_state_sequence(self):
         with open('state_sequence_' + self.get_name() + '.json', 'w') as f:
             json.dump(self.state_recording, f)
@@ -37,6 +40,7 @@ class ConfigFileNodeModel(NodeModel):
         if self.state_sequence is not None:
             self.state_sequence.reverse()
         self.state_recording = []
+        self.changes_dp_state_config = node_config.get("changes_dataprovider_state", False)
 
         # Mappings from internal to external name
         mappings: dict[str, str] = {}

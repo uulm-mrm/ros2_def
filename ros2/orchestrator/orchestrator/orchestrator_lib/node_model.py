@@ -62,6 +62,9 @@ class NodeModel(ABC):
     def dump_state_sequence(self):
         ...
 
+    def changes_dataprovider_state(self):
+        return False
+
     def get_name(self) -> str:
         return self.name
 

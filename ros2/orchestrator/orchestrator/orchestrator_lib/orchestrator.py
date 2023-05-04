@@ -85,6 +85,9 @@ class Orchestrator:
         # Offered input by the data source, which can be requested by completing the contained future
         self.next_input: Union[FutureInput, FutureTimestep, None] = None
 
+        # Handle to notify data provider that all callbacks which modify the data providers state are complete
+        self.dataprovider_state_update_future: Optional[Future] = None
+
         # The current time of the data source. This should be set once all actions for this time have been added,
         #  altough they might not be done yet.
         #  When setting this, the data source is allowed to publish the time on /clock, and the corresponding next_input
@@ -196,6 +199,24 @@ class Orchestrator:
                 self.time_sync_models[node_model.get_name()][tsi] = ApproximateTimeSynchronizerTracker(
                     list(tsi.input_topics), tsi.queue_size, tsi.slop)
         self.l.info("ROS setup for orchestrator done!")
+
+    def wait_until_dataprovider_state_update_allowed(self):
+        """
+        Data provider should spin until this future completes before
+        modifying its state outside of any callbacks, such as calculating the next timestep in the simulator.
+        """
+        future = Future()
+        assert self.dataprovider_state_update_future is None
+        self.dataprovider_state_update_future = future
+        return future
+
+    def __has_nodes_that_change_provider_state(self) -> bool:
+        """Returns true if the graph contains actions which will modify the data providers state"""
+        for _node_id, data in self.__callback_nodes_with_data():
+            model = self.__node_model_by_name(data.node)
+            if model.changes_dataprovider_state():
+                return True
+        return False
 
     def wait_until_publish_allowed(self, topic: TopicName) -> Future:
         """
@@ -752,6 +773,12 @@ class Orchestrator:
             self.l.info("  We are now ready for the next input, requesting...")
             self.__request_next_input()
 
+        if self.dataprovider_state_update_future is not None:
+            if not self.__has_nodes_that_change_provider_state():
+                self.l.info("  No actions which change provider state anymore, allowing data provider state update.")
+                self.dataprovider_state_update_future.set_result(())
+                self.dataprovider_state_update_future = None
+
     def __ready_for_next_input(self) -> bool:
         """
         Check if we are ready for the next input.
@@ -763,6 +790,9 @@ class Orchestrator:
         For time-inputs, this is the case if there are no actions left which are waiting to
         receive an earlier clock input.
         """
+
+        # TODO: Revert this, and possibly fix the condition below...
+        return self.__graph_is_empty()
 
         if self.next_input is None:
             raise RuntimeError("There is no next input!")

@@ -6,7 +6,8 @@
         "type": "topic",
         "name": "/sil_vhcl1800/control_vars"
       },
-      "outputs": []
+      "outputs": [],
+      "changes_dataprovider_state": true
     }
   ]
 }
