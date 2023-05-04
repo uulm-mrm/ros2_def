@@ -46,8 +46,9 @@ def load_models(launch_config, node_config_schema) -> List[NodeModel]:
     for name, node in launch_config["nodes"].items():
         remappings: Dict[str, str] = node.get("remappings", {})
         package, filename = node["config_file"]
+        state_sequence = node.get("state_sequence", None)
         config = load_node_config(package, filename, node_config_schema)
-        model = ConfigFileNodeModel(config, name, remappings)
+        model = ConfigFileNodeModel(config, name, remappings, state_sequence)
         models.append(model)
 
     return models

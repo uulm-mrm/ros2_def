@@ -103,6 +103,11 @@ class Orchestrator:
         self.status_subscription = self.ros_node.create_subscription(
             Status, "status", self.__status_callback, 10)
 
+    def dump_state_sequence(self):
+        """Dump recorded state sequence json files for all nodes"""
+        for node in self.node_models:
+            node.dump_state_sequence()
+
     def __create_subscription_lists(self):
         """
         Initialize attributes for config-specific stuff: subscriptions, publishers, models of time-sync nodes.
@@ -713,6 +718,7 @@ class Orchestrator:
                                 self.l.debug(f"Removing effect {child_data}")
                                 self.__remove_node_recursive(child)
                     data.state = ActionState.RUNNING
+                    self.__node_model_by_name(data.node).state_sequence_push(data.data)
                     self.interception_pubs[data.node][data.topic].publish(
                         data.data)
                 elif isinstance(data, RxAction):
@@ -720,6 +726,7 @@ class Orchestrator:
                     self.l.info(
                         f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
                     data.state = ActionState.RUNNING
+                    self.__node_model_by_name(data.node).state_sequence_push(data.data)
                     self.interception_pubs[data.node][data.topic].publish(
                         data.data)
                 elif isinstance(data, TimerCallbackAction):
@@ -729,6 +736,7 @@ class Orchestrator:
                     data.state = ActionState.RUNNING
                     time_msg = rosgraph_msgs.msg.Clock()
                     time_msg.clock = data.timestamp.to_msg()
+                    self.__node_model_by_name(data.node).state_sequence_push(time_msg)
                     self.interception_pubs[data.node]["clock"].publish(
                         time_msg)
                 repeat = True

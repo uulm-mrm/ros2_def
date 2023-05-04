@@ -40,7 +40,8 @@
                                 }
                             },
                             "type": "object"
-                        }
+                        },
+                        "state_sequence": {"type": "array"}
                     },
                     "required": [
                         "config_file"

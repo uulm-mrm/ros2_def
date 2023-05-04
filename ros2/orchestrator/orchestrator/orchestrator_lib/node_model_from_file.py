@@ -1,14 +1,42 @@
 from __future__ import annotations
 
-from typing import cast, final, Dict, List
+import base64
+import json
+from typing import cast, final, Dict, Optional
 from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, \
-    SimpleRemapRules, StatusPublish, TimeSyncInfo, TopicInput, TopicPublish, TimerInput
+    StatusPublish, TimeSyncInfo, TimerInput
+from deepdiff import DeepDiff
+from rclpy.serialization import serialize_message, deserialize_message
 
 
 @final
 class ConfigFileNodeModel(NodeModel):
 
-    def __init__(self, node_config: dict, name, remappings: Dict[str, str]) -> None:
+    def state_sequence_push(self, message):
+        message_bytes = serialize_message(message)
+        h = base64.b64encode(message_bytes).decode()
+
+        if self.state_sequence is not None:
+            expected = self.state_sequence.pop()
+            expected_decoded = base64.b64decode(expected)
+            expected_deserialized = deserialize_message(expected_decoded, type(message))
+            if message != expected_deserialized:
+                diff = DeepDiff(expected_deserialized, message)
+                raise RuntimeError(f"State sequence diverged at node \"{self.get_name()}\" for object {message}. "
+                                   f"Expected: {expected_deserialized}. Diff: {diff}")
+        self.state_recording.append(h)
+
+    def dump_state_sequence(self):
+        with open('state_sequence_' + self.get_name() + '.json', 'w') as f:
+            json.dump(self.state_recording, f)
+
+    def __init__(self, node_config: dict, name, remappings: Dict[str, str],
+                 state_sequence: Optional[list] = None) -> None:
+
+        self.state_sequence = state_sequence
+        if self.state_sequence is not None:
+            self.state_sequence.reverse()
+        self.state_recording = []
 
         # Mappings from internal to external name
         mappings: dict[str, str] = {}

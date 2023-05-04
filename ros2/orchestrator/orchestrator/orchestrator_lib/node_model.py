@@ -54,6 +54,14 @@ class NodeModel(ABC):
         self.remappings: SimpleRemapRules = remappings
         super().__init__()
 
+    @abstractmethod
+    def state_sequence_push(self, x):
+        ...
+
+    @abstractmethod
+    def dump_state_sequence(self):
+        ...
+
     def get_name(self) -> str:
         return self.name
 
