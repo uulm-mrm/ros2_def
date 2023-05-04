@@ -205,16 +205,23 @@ class Orchestrator:
         Data provider should spin until this future completes before
         modifying its state outside of any callbacks, such as calculating the next timestep in the simulator.
         """
+        lc(self.l, "Data provider wants to update internal state")
         future = Future()
         assert self.dataprovider_state_update_future is None
         self.dataprovider_state_update_future = future
+        if not self.__has_nodes_that_change_provider_state():
+            self.l.info("  There are no actions which modify provider state. Immediately allowing.")
+            self.dataprovider_state_update_future.set_result(None)
+            self.dataprovider_state_update_future = None
+        else:
+            self.l.info("  Waiting until actions modifying provider state are done.")
         return future
 
     def __has_nodes_that_change_provider_state(self) -> bool:
         """Returns true if the graph contains actions which will modify the data providers state"""
         for _node_id, data in self.__callback_nodes_with_data():
             model = self.__node_model_by_name(data.node)
-            if model.changes_dataprovider_state():
+            if model.input_modifies_dataprovider_state(data.cause):
                 return True
         return False
 
@@ -778,6 +785,8 @@ class Orchestrator:
                 self.l.info("  No actions which change provider state anymore, allowing data provider state update.")
                 self.dataprovider_state_update_future.set_result(())
                 self.dataprovider_state_update_future = None
+            else:
+                self.l.info("  Actions are still running which could change data provider state...")
 
     def __ready_for_next_input(self) -> bool:
         """
@@ -790,9 +799,6 @@ class Orchestrator:
         For time-inputs, this is the case if there are no actions left which are waiting to
         receive an earlier clock input.
         """
-
-        # TODO: Revert this, and possibly fix the condition below...
-        return self.__graph_is_empty()
 
         if self.next_input is None:
             raise RuntimeError("There is no next input!")

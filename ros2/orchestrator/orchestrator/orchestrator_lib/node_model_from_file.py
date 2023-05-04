@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
-from typing import cast, final, Dict, Optional
+from typing import cast, final, Dict, Optional, Tuple
 from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, \
     StatusPublish, TimeSyncInfo, TimerInput
 from deepdiff import DeepDiff
@@ -26,9 +26,6 @@ class ConfigFileNodeModel(NodeModel):
                                    f"Expected: {expected_deserialized}. Diff: {diff}")
         self.state_recording.append(h)
 
-    def changes_dataprovider_state(self):
-        return self.changes_dp_state_config
-
     def dump_state_sequence(self):
         with open('state_sequence_' + self.get_name() + '.json', 'w') as f:
             json.dump(self.state_recording, f)
@@ -40,7 +37,6 @@ class ConfigFileNodeModel(NodeModel):
         if self.state_sequence is not None:
             self.state_sequence.reverse()
         self.state_recording = []
-        self.changes_dp_state_config = node_config.get("changes_dataprovider_state", False)
 
         # Mappings from internal to external name
         mappings: dict[str, str] = {}
@@ -98,9 +94,10 @@ class ConfigFileNodeModel(NodeModel):
                                 for internal, external in mappings.items()])
 
         # Mapping from external topic input to external topic outputs
-        self.effects: dict[Cause, list[Effect]] = {}
+        # Second tuple element specifies if action modifies data provider state.
+        self.effects: dict[Cause, Tuple[list[Effect], bool]] = {}
 
-        def add_effect(trigger: Cause, outputs, service_calls):
+        def add_effect(trigger: Cause, outputs, service_calls, changes_dp_state):
             output_effects: list[Effect] = []
             for output in outputs:
                 output_effects.append(self.internal_topic_pub(output))
@@ -114,24 +111,22 @@ class ConfigFileNodeModel(NodeModel):
                 output_effects.append(ServiceCall(
                     self.topic_name_from_internal(service_call)))
 
-            self.effects[trigger] = output_effects
+            self.effects[trigger] = (output_effects, changes_dp_state)
 
         self.approximate_time_sync_infos: list[TimeSyncInfo] = []
 
         for callback in node_config["callbacks"]:
             trigger = callback["trigger"]
-            outputs = callback.get("outputs", [])
-            service_calls = callback.get("service_calls", [])
 
             if isinstance(trigger, str):
                 trigger = self.internal_topic_input(trigger)
                 add_effect(trigger, callback.get("outputs", []),
-                           callback.get("service_calls", []))
+                           callback.get("service_calls", []), callback.get("changes_dataprovider_state", False))
             elif trigger.get("type", None) == "topic" and "name" in trigger:
                 topic_name = trigger["name"]
                 trigger = self.internal_topic_input(topic_name)
                 add_effect(trigger, callback.get("outputs", []),
-                           callback.get("service_calls", []))
+                           callback.get("service_calls", []), callback.get("changes_dataprovider_state", False))
             elif trigger.get("type", None) == "timer" and "period" in trigger:
                 period = trigger["period"]
                 ti = TimerInput(int(period))
@@ -139,18 +134,18 @@ class ConfigFileNodeModel(NodeModel):
                     raise RuntimeError(
                         f"Multiple timers with period {period} for node {name}")
                 add_effect(ti, callback.get("outputs", []),  # trigger dict
-                           callback.get("service_calls", []))
+                           callback.get("service_calls", []), callback.get("changes_dataprovider_state", False))
             elif trigger.get("type",
                              None) == "approximate_time_sync" and "input_topics" in trigger and "slop" in trigger and "queue_size" in trigger:
                 input_topics = trigger["input_topics"]
                 slop = trigger["slop"]
                 queue = trigger["queue_size"]
                 for t in input_topics:
-                    add_effect(self.internal_topic_input(
-                        t), outputs, service_calls)
+                    add_effect(self.internal_topic_input(t), callback.get("outputs", []),
+                               callback.get("service_calls", []), callback.get("changes_dataprovider_state", False))
                     # Additional status callback
                     self.effects[self.internal_topic_input(
-                        t)].append(StatusPublish())
+                        t)][0].append(StatusPublish())
                 self.approximate_time_sync_infos.append(
                     TimeSyncInfo(tuple(input_topics), slop, queue)
                 )
@@ -169,7 +164,10 @@ class ConfigFileNodeModel(NodeModel):
         return list(self.effects.keys())
 
     def effects_for_input(self, input: Cause) -> list[Effect]:
-        return self.effects[input]
+        return self.effects[input][0]
+
+    def input_modifies_dataprovider_state(self, input: Cause) -> bool:
+        return self.effects[input][1]
 
     def get_provided_services(self) -> list[ServiceName]:
         return self.services

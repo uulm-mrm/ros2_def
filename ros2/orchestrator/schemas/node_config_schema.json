@@ -126,6 +126,9 @@
                         "type": "string",
                         "title": "Service name"
                     }
+                },
+                "changes_dataprovider_state": {
+                    "type": "boolean"
                 }
             },
             "required": [

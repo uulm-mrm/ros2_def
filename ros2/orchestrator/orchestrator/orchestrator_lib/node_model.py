@@ -62,9 +62,6 @@ class NodeModel(ABC):
     def dump_state_sequence(self):
         ...
 
-    def changes_dataprovider_state(self):
-        return False
-
     def get_name(self) -> str:
         return self.name
 
@@ -103,6 +100,10 @@ class NodeModel(ABC):
 
     @abstractmethod
     def effects_for_input(self, input: Cause) -> List[Effect]:
+        ...
+
+    @abstractmethod
+    def input_modifies_dataprovider_state(self, input: Cause) -> bool:
         ...
 
     @abstractmethod
