@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -23,6 +25,7 @@ class TrackingSubscriber(Node):
         self.status_publisher.publish(status_msg)
 
     def lidar_callback(self, msg: String):
+        self.get_logger().debug(f"Got lidar input on topic {self.lidar_subscription.topic_name}")
         if self.cached_camera is None:
             self.get_logger().warn("Received lidar data without camera!")
         camera = self.cached_camera
@@ -39,12 +42,14 @@ class TrackingSubscriber(Node):
         self.tracks_publisher.publish(tracks)
 
     def camera_callback(self, msg: String):
+        self.get_logger().debug(f"Got camera input on topic {self.camera_subscription.topic_name}")
         if self.cached_camera is not None:
             self.get_logger().warn("Overwriting saved camera detection!")
         self.cached_camera = msg
         self.publish_status()
 
     def radar_callback(self, msg: String):
+        self.get_logger().debug(f"Got radar input on topic {self.radar_subscription.topic_name}")
         if self.cached_radar is not None:
             self.get_logger().warn("Overwriting saved radar detection!")
         self.cached_radar = msg

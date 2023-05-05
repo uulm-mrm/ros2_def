@@ -255,7 +255,7 @@ def main():
             orchestrator.timestep()
     except KeyboardInterrupt:
         pass
-
+    orchestrator.orchestrator.dump_state_sequence()
     orchestrator.destroy_node()
     rclpy.try_shutdown()
 

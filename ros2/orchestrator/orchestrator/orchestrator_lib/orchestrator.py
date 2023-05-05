@@ -850,9 +850,10 @@ class Orchestrator:
             else:
                 raise RuntimeError(f"Unknown action type: {d}")
 
+        node_list = '\n'.join([str(n) for n in self.graph.nodes(data=True)])
         raise ActionNotFoundError(
             f"There is no currently running action which should have published a message on topic \"{published_topic_name}\"! "
-            f"Current graph nodes: {self.graph.nodes(data=True)}")
+            f"Current graph nodes: \n{node_list}")
 
     def __find_running_action_status(self, node_name: NodeName) -> GraphNodeId:
         for node_id, node_data in self.graph.nodes(data=True):

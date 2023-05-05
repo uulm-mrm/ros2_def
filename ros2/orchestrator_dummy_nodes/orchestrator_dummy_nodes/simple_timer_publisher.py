@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
 
@@ -22,7 +24,7 @@ class SimpleTimerPublisher(Node):
                                f"Time since last: {self.timer.time_since_last_call()}, "
                                f"Time until next: {self.timer.time_until_next_call()}")
         msg = SampleMessage()
-        msg.stamp = self.get_clock().now().to_msg()
+        msg.header.stamp = self.get_clock().now().to_msg()
         self.publisher.publish(msg)
 
 

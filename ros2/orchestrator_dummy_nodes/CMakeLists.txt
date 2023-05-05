@@ -34,7 +34,27 @@ install(PROGRAMS
         orchestrator_dummy_nodes/configurable_forwarding_node.py
         DESTINATION lib/${PROJECT_NAME}
         RENAME configurable_forwarding_node
-        )
+)
+install(PROGRAMS
+        orchestrator_dummy_nodes/detector.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME detector
+)
+install(PROGRAMS
+        orchestrator_dummy_nodes/tracking_subscriber.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME tracking_subscriber
+)
+install(PROGRAMS
+        orchestrator_dummy_nodes/plausibility_node.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME plausibility_node
+)
+install(PROGRAMS
+        orchestrator_dummy_nodes/simple_timer_publisher.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME simple_timer_publisher
+)
 
 
 aduulm_install_ros2_python_code("orchestrator_dummy_nodes")

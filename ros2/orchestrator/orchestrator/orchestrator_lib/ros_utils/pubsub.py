@@ -14,7 +14,8 @@ def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node, executor:
     def find_type():
         for topic_name, msgtypes in node.get_topic_names_and_types():
             if topic_name == name:
-                assert len(msgtypes) == 1
+                if len(msgtypes) != 1:
+                    raise RuntimeError(f"Message type for topic {topic_name} is not unique: {msgtypes}")
                 return type_from_string(msgtypes[0])
         return None
 

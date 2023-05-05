@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import time
 import rclpy
 from rclpy.node import Node
@@ -21,7 +23,7 @@ class Detector(Node):
         time.sleep(self.processing_time)
         output = String()
         output.data = self.get_name() + ": Detection from input: " + msg.debug_data
-        self.get_logger().debug("Got input, publishing output")
+        self.get_logger().debug(f"Got input on topic {self.input_subscription.topic_name}, publishing output on topic {self.output_publisher.topic_name}")
         self.output_publisher.publish(output)
 
 
