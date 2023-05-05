@@ -1,0 +1,28 @@
+{
+  "nodes": {
+    "sil_sil_simulator_node": {
+      "config_file": [
+        "orchestrator",
+        "sil_node_config.json"
+      ]
+    },
+    "tracking_mec": {
+      "config_file": [
+        "orchestrator",
+        "tracking_mec_node_config.json"
+      ],
+      "remappings": {
+        "tracks": "/tracks"
+      }
+    },
+    "ttb2file": {
+      "config_file": [
+        "orchestrator",
+        "objects2file_node_config.json"
+      ],
+      "remappings": {
+        "obj_topic": "/tracks"
+      }
+    }
+  }
+}
