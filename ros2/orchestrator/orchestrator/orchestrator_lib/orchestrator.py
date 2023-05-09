@@ -273,12 +273,11 @@ class Orchestrator:
 
         self.next_input = FutureInput(topic, future)
 
-        # TODO: This should maybe be "ready", not "empty"?
-        if self.__graph_is_empty():
+        if self.__ready_for_next_input():
             self.l.info("  Graph is empty, immediately requesting data...")
             self.__request_next_input()
         else:
-            self.l.info("  Graph is not empty, not requesting...")
+            self.l.info("  Not ready, not requesting...")
 
         return future
 
@@ -373,12 +372,11 @@ class Orchestrator:
         f = Future()
         self.next_input = FutureTimestep(t, f)
 
-        if self.__graph_is_empty():
-            self.l.info("  Graph is empty, immediately requesting time...")
+        if self.__ready_for_next_input():
+            self.l.info("  Immediately requesting time...")
             self.__request_next_input()
         else:
-            self.l.info(
-                "  Graph is not empty, requesting time at later state.")
+            self.l.info("  Not ready, requesting time at later state.")
 
         return f
 
