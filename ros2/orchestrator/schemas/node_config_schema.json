@@ -129,6 +129,9 @@
                 },
                 "changes_dataprovider_state": {
                     "type": "boolean"
+                },
+                "may_cause_reconfiguration": {
+                    "type": "boolean"
                 }
             },
             "required": [

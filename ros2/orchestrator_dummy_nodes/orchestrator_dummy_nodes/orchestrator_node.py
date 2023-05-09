@@ -15,7 +15,6 @@ from orchestrator.orchestrator_lib.model_loader import *
 from orchestrator.orchestrator_lib.ros_utils.spin import spin_for
 
 from orchestrator_interfaces.msg import SampleMessage
-from orchestrator_interfaces.srv import SetConfigurationService
 from rosgraph_msgs.msg import Clock
 
 
@@ -77,8 +76,6 @@ class BagPlayer(Node):
         elif mode == "reconfiguration":
             self.mode = "reconfiguration"
             self.input_publisher = self.create_publisher(SampleMessage, "input", 10)
-            self.configure_a_client = self.create_client(SetConfigurationService, "A/set_output_topic")
-            self.configure_b_client = self.create_client(SetConfigurationService, "B/set_input_topic")
             launch_config = load_launch_config(
                 "orchestrator_dummy_nodes",
                 "reconfiguration_test_before_launch_config.json",
@@ -191,33 +188,7 @@ class BagPlayer(Node):
         f = self.orchestrator.wait_until_time_publish_allowed(self.t)
         rclpy.get_global_executor().spin_until_future_complete(f)
         self.publish_time()
-
-        if self.t == Time(seconds=5):
-            self.orchestrator.wait_until_reconfiguration_allowed()
-            self.get_logger().info("Reconfiguring A...")
-            req = SetConfigurationService.Request()
-            req.config_value = "T2"
-            resp_f = self.configure_a_client.call_async(req)
-            rclpy.get_global_executor().spin_until_future_complete(resp_f)
-            assert resp_f.result().success
-            self.get_logger().info("Reconfiguring B...")
-
-            req_b = SetConfigurationService.Request()
-            req_b.config_value = intercepted_name("B", "T2")
-            resp_f_b = self.configure_b_client.call_async(req_b)
-            rclpy.get_global_executor().spin_until_future_complete(resp_f_b, timeout_sec=1.0)
-            assert resp_f_b.result().success
-
-            self.get_logger().info("Announcing reconfiguration to orchestrator")
-            self.orchestrator.reconfigure(
-                load_models(
-                    load_launch_config(
-                        "orchestrator_dummy_nodes",
-                        "reconfiguration_test_after_launch_config.json",
-                        load_launch_config_schema()), load_node_config_schema()
-                )
-            )
-        elif self.t == Time(seconds=10):
+        if self.t == Time(seconds=10):
             exit(0)
         else:
             f = self.orchestrator.wait_until_publish_allowed("input")

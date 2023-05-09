@@ -14,17 +14,18 @@ class SimpleTimerPublisher(Node):
 
         self.publisher = self.create_publisher(SampleMessage, "output", 10)  # type: ignore
 
-        self.timer_period_s: float = self.get_parameter('timer_period_s').get_parameter_value().double_value  # type: ignore
+        self.timer_period_s: float = self.get_parameter('timer_period_s') \
+            .get_parameter_value().double_value  # type: ignore
         self.get_logger().info(f"Timer period: {self.timer_period_s}s")
-
+        self.i = 0
         self.timer = self.create_timer(self.timer_period_s, self.timer_callback)
 
     def timer_callback(self):
-        self.get_logger().info(f"Timer callback at time {self.get_clock().now()}, "
-                               f"Time since last: {self.timer.time_since_last_call()}, "
-                               f"Time until next: {self.timer.time_until_next_call()}")
+        self.get_logger().info(f"Publishing measurement {self.i}")
         msg = SampleMessage()
         msg.header.stamp = self.get_clock().now().to_msg()
+        msg.debug_data = f"Measurement {self.i}"
+        self.i += 1
         self.publisher.publish(msg)
 
 

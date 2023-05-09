@@ -55,7 +55,11 @@ install(PROGRAMS
         DESTINATION lib/${PROJECT_NAME}
         RENAME simple_timer_publisher
 )
-
+install(PROGRAMS
+        orchestrator_dummy_nodes/reconfigurator.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME reconfigurator
+)
 
 aduulm_install_ros2_python_code("orchestrator_dummy_nodes")
 

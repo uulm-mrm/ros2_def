@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set
 from typing_extensions import TypeAlias
-from typing_inspect import get_parameters
 
 from std_srvs.srv import Trigger
 
+from orchestrator.orchestrator_lib.model_loader import load_models, load_launch_config, load_launch_config_schema, \
+    load_node_config_schema
 from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, ServiceCall, StatusPublish, TimeSyncInfo, \
     TimerInput, TopicInput, TopicPublish
 from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, intercepted_name, remove_prefix
@@ -15,6 +16,7 @@ from orchestrator.orchestrator_lib.ros_utils.message_filter import ApproximateTi
 from orchestrator.orchestrator_lib.ros_utils.pubsub import wait_for_node_pub, wait_for_node_sub, wait_for_topic
 
 from orchestrator_interfaces.msg import Status
+from orchestrator_interfaces.srv import ReconfigurationAnnouncement, ReconfigurationRequest
 
 import rclpy
 from rclpy import Future
@@ -105,6 +107,25 @@ class Orchestrator:
 
         self.status_subscription = self.ros_node.create_subscription(
             Status, "status", self.__status_callback, 10)
+        # Server to announce reconfig at
+        self.reconfig_announce_service = self.ros_node.create_service(
+            ReconfigurationAnnouncement,
+            "announce_reconfig",
+            self.__reconfiguration_announcement_callback)
+        # Client to request reconfiguration once ready
+        self.reconfig_client = self.ros_node.create_client(
+            ReconfigurationRequest,
+            "request_reconfig"
+        )
+
+        self.pending_reconfiguration = False
+
+    def __reconfiguration_announcement_callback(self, _request: ReconfigurationAnnouncement.Request,
+                                                response: ReconfigurationAnnouncement.Response):
+        lc(self.l, "Reconfigurator announced reconfiguration. Finishing processing...")
+        assert self.pending_reconfiguration is False
+        self.pending_reconfiguration = True
+        return response
 
     def dump_state_sequence(self):
         """Dump recorded state sequence json files for all nodes"""
@@ -298,8 +319,7 @@ class Orchestrator:
                     # Both results in one execution of a missed timer invocation.
                     self.l.info(f"   Expecting 1 callback for timer with period {input_cause.period}")
 
-                    causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time,
-                                                         input_cause, input_cause.period)
+                    causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time, input_cause)
                     causing_action_id = _next_id()
                     self.graph.add_node(causing_action_id, data=causing_action)
 
@@ -318,8 +338,7 @@ class Orchestrator:
                     self.l.info(
                         f"   Expecting 2 callbacks for timer with period {input_cause.period}")
 
-                    causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time,
-                                                         input_cause, input_cause.period)
+                    causing_action = TimerCallbackAction(ActionState.WAITING, node_name, initial_time, input_cause)
                     causing_action_id = _next_id()
                     self.graph.add_node(causing_action_id, data=causing_action)
 
@@ -388,7 +407,6 @@ class Orchestrator:
         lc(self.l, "Reconfiguring!")
 
         assert (self.__graph_is_empty())
-        assert (self.next_input is None)
 
         _verify_node_models(new_node_config)
 
@@ -411,6 +429,7 @@ class Orchestrator:
         self.l.info("  Re-initializing ros communication...")
         self.__create_subscription_lists()
         self.initialize_ros_communication()
+        self.__process()
 
     def __add_pending_timers_until(self, t: Time):
         """
@@ -457,11 +476,11 @@ class Orchestrator:
             dt: int = t.nanoseconds - last_time
             if dt > timer.cause.period:
                 raise RuntimeError(f"Requested timestep too large! Stepping time from {last_time} to {t} ({dt}) "
-                                   "would require firing the timer multiple times within the same timestep. This is probably unintended!")
+                                   "would require firing the timer multiple times within the same timestep. "
+                                   "This is probably unintended!")
             if next_fire <= t:
                 self.l.info(f" Timer of node \"{timer.node}\" with period {timer.cause.period} will fire!")
-                action = TimerCallbackAction(
-                    ActionState.WAITING, timer.node, t, timer.cause, timer.cause.period)
+                action = TimerCallbackAction(ActionState.WAITING, timer.node, t, timer.cause)
                 expected_timer_actions.append(action)
 
         self.l.info(
@@ -496,7 +515,7 @@ class Orchestrator:
                     RxAction(ActionState.WAITING,
                              node.get_name(),
                              t,
-                             TopicInput(input.input_topic), input.input_topic, is_approximate_time_synced=time_sync))
+                             TopicInput(input.input_topic), is_approximate_time_synced=time_sync))
 
         self.l.info(
             f"  This input causes {len(expected_rx_actions)} rx actions")
@@ -512,14 +531,14 @@ class Orchestrator:
         Requires the data provider to already be waiting to publish (called wait_until_publish_allowed before).
         """
 
+        assert not self.pending_reconfiguration
+
         if isinstance(self.next_input, FutureInput):
             next = self.next_input
             self.next_input = None
-            self.l.info(
-                f"Requesting data on topic {next.topic} for current time {self.simulator_time}")
+            self.l.info(f"Requesting data on topic {next.topic} for current time {self.simulator_time}")
             assert self.simulator_time is not None
-            input_node_id = self.__add_topic_input(
-                self.simulator_time, next.topic)
+            input_node_id = self.__add_topic_input(self.simulator_time, next.topic)
             input_node_data: DataProviderInputAction = self.graph.nodes[input_node_id]["data"]
             self.l.debug(" Setting input action state running")
             input_node_data.state = ActionState.RUNNING
@@ -658,8 +677,7 @@ class Orchestrator:
                                 ActionState.WAITING,
                                 node.get_name(),
                                 action.timestamp,
-                                resulting_input,
-                                resulting_input.input_topic, is_approximate_time_synced=time_sync
+                                resulting_input, is_approximate_time_synced=time_sync
                             ), buffer_node_id)
             elif isinstance(effect, StatusPublish):
                 status_node_id = _next_id()
@@ -708,8 +726,7 @@ class Orchestrator:
         self.graph.remove_node(graph_node)
 
     def __process(self):
-        lc(self.l,
-           f"Processing Graph with {self.graph.number_of_nodes()} nodes")
+        lc(self.l, f"Processing Graph with {self.graph.number_of_nodes()} nodes")
         repeat: bool = True
         while repeat:
             repeat = False
@@ -772,8 +789,7 @@ class Orchestrator:
             "  Done processing! Checking if next input can be requested...")
 
         if self.next_input is None:
-            self.l.info(
-                "  Next input can not be requested yet, no input data has been offered.")
+            self.l.info("  Next input can not be requested yet, no input data has been offered.")
         elif not self.__ready_for_next_input():
             self.l.info(f"  Next input is available ({self.next_input}), but we are not ready for it yet.")
         else:
@@ -787,6 +803,26 @@ class Orchestrator:
                 self.dataprovider_state_update_future = None
             else:
                 self.l.info("  Actions are still running which could change data provider state...")
+
+        if self.pending_reconfiguration and self.__graph_is_empty():
+            self.l.info("  Pending reconfiguration, graph is now empty! Requesting reconfig!")
+            request = ReconfigurationRequest.Request()
+            assert self.reconfig_client.service_is_ready()
+            self.l.debug(f"  Calling service {self.reconfig_client.srv_name}")
+            result = self.reconfig_client.call_async(request)
+            result.add_done_callback(self.__reconfiguration_done_callback)
+            self.l.debug("  Sent request")
+
+    def __reconfiguration_done_callback(self, future: Future):
+        assert future.done()
+        response: ReconfigurationRequest.Response = future.result()
+        package_name = response.new_launch_config_package
+        file_name = response.new_launch_config_filename
+        lc(self.l, f"Received reconfiguration done callback! New config: {package_name} {file_name}")
+        self.pending_reconfiguration = False
+        self.reconfigure(load_models(
+            load_launch_config(package_name, file_name, load_launch_config_schema()), load_node_config_schema()
+        ))
 
     def __ready_for_next_input(self) -> bool:
         """
@@ -802,7 +838,19 @@ class Orchestrator:
 
         if self.next_input is None:
             raise RuntimeError("There is no next input!")
-        elif isinstance(self.next_input, FutureTimestep):
+
+        # Reconfiguration has already been requested, see below
+        if self.pending_reconfiguration:
+            return False
+
+        # If there is some action which may cause reconfiguration, we can't accept the next input yet, since the entire
+        # node graph may change for that input...
+        for _graph_node_id, node_data in self.__callback_nodes_with_data():
+            model = self.__node_model_by_name(node_data.node)
+            if model.input_may_cause_reconfiguration(node_data.cause):
+                return False
+
+        if isinstance(self.next_input, FutureTimestep):
             # We are ready for time input as soon as there are no actions left waiting for another (earlier)
             # clock input.
             for _graph_node_id, node_data in self.graph.nodes(data=True):
@@ -813,8 +861,7 @@ class Orchestrator:
                     continue
                 if data.timestamp == self.next_input.time:
                     continue
-                self.l.debug(
-                    "Not ready for next clock input since some actions are waiting for another clock input")
+                self.l.debug("Not ready for next clock input since some actions are waiting for another clock input")
                 return False
             return True
         elif isinstance(self.next_input, FutureInput):

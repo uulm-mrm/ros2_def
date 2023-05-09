@@ -27,33 +27,38 @@ class _BaseAction:
 @dataclass
 class RxAction(_BaseAction):
     cause: TopicInput
-    topic: str  # TODO: this is in cause
     data: Optional[Any] = None
     # If this belongs to approximate time sync group, the resulting callback might
     # not be executed every time.
     is_approximate_time_synced: bool = False
 
+    @property
+    def topic(self):
+        return self.cause.input_topic
+
     def __str__(self):
         return f"RxAction(state={self.state}, node={self.node}, timestamp={self.timestamp}, cause={self.cause}, " \
-               f"topic={self.topic}, data={'present' if self.data is not None else None}, " \
+               f"data={'present' if self.data is not None else None}, " \
                f"approx_time_sync={self.is_approximate_time_synced})"
 
 
 @dataclass
 class TimerCallbackAction(_BaseAction):
     cause: TimerInput
-    # TODO: this actually is in the cause field...
-    period: int  # The period identifies the callback amongst possibly multiple timers with different period in a single node
+
+    @property
+    def period(self):
+        return self.cause.period
 
 
 @dataclass
-class DataProviderInputAction():
+class DataProviderInputAction:
     state: ActionState
     published_topic: str
 
 
 @dataclass
-class OrchestratorBufferAction():
+class OrchestratorBufferAction:
     """
     Dummy action to enable waiting for an output without actually triggering any other actions.
     Used during timer-initialization, for initial timer callbacks.
@@ -63,7 +68,7 @@ class OrchestratorBufferAction():
 
 
 @dataclass
-class OrchestratorStatusAction():
+class OrchestratorStatusAction:
     pass
 
 

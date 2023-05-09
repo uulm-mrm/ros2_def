@@ -107,6 +107,10 @@ class NodeModel(ABC):
         ...
 
     @abstractmethod
+    def input_may_cause_reconfiguration(self, input: Cause) -> bool:
+        ...
+
+    @abstractmethod
     def get_provided_services(self) -> List[ServiceName]:
         ...
 

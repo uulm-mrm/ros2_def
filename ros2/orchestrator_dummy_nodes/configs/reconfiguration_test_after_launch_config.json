@@ -17,6 +17,12 @@
       "remappings": {
         "input": "T2"
       }
+    },
+    "reconfigurator": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "reconfigurator_node_config.json"
+      ]
     }
   }
 }

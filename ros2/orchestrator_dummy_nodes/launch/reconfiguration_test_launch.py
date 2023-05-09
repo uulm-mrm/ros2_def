@@ -27,6 +27,14 @@ def generate_launch_description():
         SetParameter(name="use_sim_time", value=True),
         Node(
             package='orchestrator_dummy_nodes',
+            executable='reconfigurator',
+            name='reconfigurator',
+            exec_name='reconfigurator',
+            on_exit=Shutdown(),
+            arguments=['--ros-args', '--log-level', 'info']
+        ),
+        Node(
+            package='orchestrator_dummy_nodes',
             executable='configurable_forwarding_node',
             name='A',
             exec_name='A',
