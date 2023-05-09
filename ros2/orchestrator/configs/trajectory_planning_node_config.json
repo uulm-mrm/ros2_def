@@ -36,6 +36,9 @@
       },
       "outputs": [
         "/vehicle_hal/control_vars"
+      ],
+      "service_calls": [
+        "/ego_motion/ego_motion_service"
       ]
     },
     {
@@ -45,6 +48,9 @@
       },
       "outputs": [
         "/trajectory_map_id"
+      ],
+      "service_calls": [
+        "/ego_motion/ego_motion_service"
       ]
     }
   ]
