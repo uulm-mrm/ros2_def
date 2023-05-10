@@ -45,6 +45,15 @@
         "obj_topic": "/tracks"
       }
     },
+    "gt2file": {
+      "config_file": [
+        "orchestrator",
+        "objects2file_node_config.json"
+      ],
+      "remappings": {
+        "obj_topic": "/sil/cars"
+      }
+    },
     "sil_vhcl1800_tracking_vhcl1800": {
       "config_file": [
         "orchestrator",
