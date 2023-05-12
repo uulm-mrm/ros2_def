@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import random
 import rclpy
 from rclpy.node import Node
@@ -34,7 +36,7 @@ class TimedSensorPublisher(Node):
         timer = self.publish_timers.pop(0)
         timer.destroy()
         msg = SampleMessage()
-        msg.stamp = self.get_clock().now().to_msg()
+        msg.header.stamp = self.get_clock().now().to_msg()
         msg.debug_data = 'Hello World:'
         self.publisher.publish(msg)
 

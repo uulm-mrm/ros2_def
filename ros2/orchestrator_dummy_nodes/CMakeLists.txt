@@ -60,6 +60,11 @@ install(PROGRAMS
         DESTINATION lib/${PROJECT_NAME}
         RENAME reconfigurator
 )
+install(PROGRAMS
+        orchestrator_dummy_nodes/timed_sensor_publisher.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME timed_sensor_publisher
+)
 
 aduulm_install_ros2_python_code("orchestrator_dummy_nodes")
 
