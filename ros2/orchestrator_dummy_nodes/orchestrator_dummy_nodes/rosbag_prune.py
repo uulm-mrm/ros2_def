@@ -1,17 +1,6 @@
 #!/usr/bin/env python3
 import random
-import time
-from orchestrator.orchestrator_lib.model_loader import load_launch_config, load_launch_config_schema, load_models, \
-    load_node_config_schema
-from orchestrator.orchestrator_lib.name_utils import type_from_string
-from orchestrator.orchestrator_lib.orchestrator import Orchestrator
 import rosbag2_py
-import rclpy
-import rclpy.node
-import rclpy.publisher
-import rclpy.serialization
-import rclpy.time
-from rosgraph_msgs.msg import Clock
 
 
 def create_reader(uri: str, storage_identifier: str) -> (rosbag2_py.SequentialReader, rosbag2_py.ConverterOptions):
@@ -28,6 +17,7 @@ def create_writer(uri: str, converter_options: rosbag2_py.ConverterOptions, stor
     storage_options = rosbag2_py.StorageOptions(uri, storage_id=storage_identifier)
     writer.open(storage_options, converter_options)
     return writer
+
 
 def main():
     bag_uri = "/home/gja38/aduulm_sandbox_sil/rosbag2_2023_05_12-13_11_59"
