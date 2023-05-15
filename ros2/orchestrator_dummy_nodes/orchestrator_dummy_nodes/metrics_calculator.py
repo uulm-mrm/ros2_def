@@ -3,6 +3,8 @@ from dataclasses import dataclass
 
 import aduulm_messages_python_api
 import numpy as np
+import shapely.geometry
+import shapely.affinity
 from stonesoup.measures import Euclidean
 from stonesoup.types.array import StateVector
 from stonesoup.types.state import State as SState
@@ -76,6 +78,15 @@ def main():
 class State:
     state_vec: np.array
     track_id: object
+    length: float
+    width: float
+    yaw: float
+
+    def outline(self) -> shapely.geometry.polygon.Polygon:
+        box = shapely.geometry.box(-self.width / 2, -self.length / 2, self.width / 2, self.length / 2)
+        rotated_box = shapely.affinity.rotate(box, self.yaw)
+        translated_box = shapely.affinity.translate(rotated_box, self.state_vec[0], self.state_vec[1])
+        return translated_box
 
 
 def convert_timestep_struct(json_timestep) -> (Any, List[State]):
@@ -94,8 +105,25 @@ def convert_timestep_struct(json_timestep) -> (Any, List[State]):
         )
         track_id = object["id"]
         state_vec = np.array([x.getAttr(Attr.X), x.getAttr(Attr.Y)])
-        objects.append(State(state_vec, track_id))
+        assert object["reference_point"] == 0
+        objects.append(State(state_vec, track_id, x.getAttr(Attr.LENGTH), x.getAttr(Attr.WIDTH), x.getAttr(Attr.YAW)))
+
     return time, objects
+
+
+def iou(s1: State, s2: State) -> float:
+    # See mm.distances.iou_matrix() for docs
+    o1 = s1.outline()
+    o2 = s2.outline()
+
+    i = o1.intersection(o2).area
+    u = o1.union(o2).area
+
+    iou_ = 1.0 - i / u
+    if iou_ > 0.8:
+        return float("nan")
+    else:
+        return iou_
 
 
 def calculate_mot_metrics():
@@ -116,13 +144,18 @@ def calculate_mot_metrics():
         if t in tracks_states:
             gt_states[t] = s
     acc = mm.MOTAccumulator()
+
+    def norm(a: State, b: State):
+        # return np.linalg.norm(a.state_vec - b.state_vec)
+        return iou(a, b)
+
     for timestep, tracks in tracks_states.items():
         gt = gt_states[timestep]
         acc.update([s.track_id for s in gt],  # GT objects
                    [s.track_id for s in tracks],  # Object hypotheses
                    [  # For each object
                        [  # Distance to each hypothesis
-                           np.linalg.norm(gt_s.state_vec - h_s.state_vec) for h_s in tracks
+                           norm(gt_s, h_s) for h_s in tracks
                        ] for gt_s in gt
                    ],
                    frameid=timestep
