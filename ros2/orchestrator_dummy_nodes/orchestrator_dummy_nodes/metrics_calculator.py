@@ -126,10 +126,10 @@ def iou(s1: State, s2: State) -> float:
         return iou_
 
 
-def calculate_mot_metrics():
-    with open('/tmp/ttb.json') as f:
+def accumulate(name):
+    with open('/home/gja38/aduulm_sandbox_sil/ttb_' + name + '.json') as f:
         tracks_file = json.load(f)
-    with open('/tmp/gt.json') as f:
+    with open('/home/gja38/aduulm_sandbox_sil/gt_' + name + '.json') as f:
         gt_file = json.load(f)
 
     gt_states: Dict[object, List[State]] = {}
@@ -160,11 +160,19 @@ def calculate_mot_metrics():
                    ],
                    frameid=timestep
                    )
+    return acc
+
+
+def calculate_mot_metrics(names):
+    accs = []
+    for name in names:
+        acc = accumulate(name)
+        accs.append(acc)
     mh = mm.metrics.create()
-    summary = mh.compute(acc, metrics=['num_frames', 'mota', 'motp'], name='acc')
+    summary = mh.compute_many(accs, metrics=['num_frames', 'mota', 'motp'], names=names)
     print(summary.to_string())
 
 
 if __name__ == '__main__':
     # main()
-    calculate_mot_metrics()
+    calculate_mot_metrics([*[f"nd_{i}" for i in range(3, 7)], *[f"o_{i}" for i in range(1, 3)]])
