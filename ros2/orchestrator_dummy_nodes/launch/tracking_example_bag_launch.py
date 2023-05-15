@@ -1,13 +1,17 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, TextSubstitution
 
 from launch_ros.actions import Node, SetParameter
+
+from orchestrator.orchestrator_lib.remapping_generation import generate_remappings_from_config
 
 
 def generate_launch_description():
     time_scale = 20
     logger = LaunchConfiguration("log_level")
+    config_package = "orchestrator_dummy_nodes"
+    config_file = "tracking_example_launch_config.json"
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -16,11 +20,31 @@ def generate_launch_description():
             description="Logging level",
         ),
         DeclareLaunchArgument(
-            "sim_time",
-            default_value="True",
+            "no_wait",
+            default_value=TextSubstitution(text="true"),
+            description="Skip time whenever possible"
+        ),
+        DeclareLaunchArgument(
+            "bag_uri",
+            default_value=TextSubstitution(text="/home/gja38/aduulm_sandbox_sil/rosbag2_2023_05_12-13_11_59_converted"),
+            description="Bag file path"
         ),
 
-        SetParameter(name="use_sim_time", value=LaunchConfiguration("sim_time")),
+        Node(
+            package="orchestrator_rosbag_player",
+            executable="rosbag_player",
+            parameters=[
+                {"bag_uri": LaunchConfiguration("bag_uri")},
+                {"rate": 1.0},
+                {"no_wait": LaunchConfiguration("no_wait")},
+                {"launch_config_package": config_package},
+                {"launch_config_file": config_file}],
+            arguments=['--ros-args', '--log-level', ['player.orchestrator:=', logger]],
+            on_exit=[Shutdown(reason="Player done.")]
+        ),
+
+        SetParameter(name="use_sim_time", value=True),
+        *generate_remappings_from_config(config_package, config_file),
 
         # RADAR
         Node(

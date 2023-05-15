@@ -10,6 +10,7 @@
     <depend>orchestrator</depend>
     <depend>aduulm_cmake_tools</depend>
     <depend>orchestrator_interfaces</depend>
+    <depend>orchestrator_rosbag_planner</depend>
 
     <test_depend>ament_copyright</test_depend>
     <test_depend>ament_flake8</test_depend>
