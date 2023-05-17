@@ -171,8 +171,9 @@ def calculate_mot_metrics(names):
     mh = mm.metrics.create()
     summary = mh.compute_many(accs, metrics=['num_frames', 'mota', 'motp'], names=names)
     print(summary.to_string())
+    summary.to_csv("metrics.csv")
 
 
 if __name__ == '__main__':
     # main()
-    calculate_mot_metrics([*[f"nd_{i}" for i in range(3, 7)], *[f"o_{i}" for i in range(1, 3)]])
+    calculate_mot_metrics([*[f"nd_{i}" for i in range(3, 9)], *[f"o_{i}" for i in range(1, 3)]])
