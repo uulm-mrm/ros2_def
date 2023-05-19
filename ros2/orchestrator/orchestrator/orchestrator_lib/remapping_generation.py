@@ -32,6 +32,7 @@ def generate_remappings_from_config(package_name: str, launch_config_file: str) 
     Generates interception remapping for each input topic.
     Additionally intercepts /clock if time-triggered callbacks exist.
     """
+    print(f"Using launch config {package_name} {launch_config_file}")
     launch_config = load_launch_config(
         package_name, launch_config_file, load_launch_config_schema())
     node_models = load_models(launch_config, load_node_config_schema())
