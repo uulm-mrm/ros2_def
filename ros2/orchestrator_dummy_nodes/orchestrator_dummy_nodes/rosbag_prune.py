@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import random
 import rosbag2_py
+from numpy.random import default_rng
 
 
 def create_reader(uri: str, storage_identifier: str) -> (rosbag2_py.SequentialReader, rosbag2_py.ConverterOptions):
@@ -22,6 +23,10 @@ def create_writer(uri: str, converter_options: rosbag2_py.ConverterOptions, stor
 def main():
     bag_uri = "/home/gja38/aduulm_sandbox_sil/rosbag2_2023_05_12-13_11_59"
     prune_probability = 0.1
+    timestamp_stddev_ns = 600000
+    timestamp_max_offset_ns = 2000000
+    assert (timestamp_max_offset_ns >= 0)
+    rng = default_rng(20230523)
 
     metadata: rosbag2_py.BagMetadata = rosbag2_py.Info().read_metadata(bag_uri, "")
     reader, converter_options = create_reader(bag_uri, metadata.storage_identifier)
@@ -32,8 +37,17 @@ def main():
 
     while reader.has_next():
         topic_name, serialized_data, time_stamp_ns = reader.read_next()
-        if random.random() > prune_probability:
-            writer.write(topic_name, serialized_data, time_stamp_ns)
+        if random.random() <= prune_probability:
+            continue
+
+        if time_stamp_ns != 0:
+            time_offset = max(-timestamp_max_offset_ns,
+                              min(timestamp_max_offset_ns,
+                                  int(rng.normal(scale=timestamp_stddev_ns))))
+        else:
+            time_offset = 0
+
+        writer.write(topic_name, serialized_data, time_stamp_ns + time_offset)
 
 
 if __name__ == '__main__':
