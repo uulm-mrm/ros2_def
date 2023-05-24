@@ -909,7 +909,7 @@ class Orchestrator:
                 assert parent is not None
                 parent_data = cast(
                     CallbackAction, self.graph.nodes[parent]["data"])
-                if parent_data.node == node_name:
+                if parent_data.node == node_name and parent_data.state == ActionState.RUNNING:
                     return node_id
             else:
                 pass
@@ -1098,6 +1098,7 @@ class Orchestrator:
         else:
             self.l.info(" Status message was expected, removing node.")
             cause_action_id = self.__parent_node(status_node_id)
+            assert self.graph.nodes[cause_action_id]["data"].state == ActionState.RUNNING
             causing_action = self.graph.nodes[cause_action_id]["data"]
             self.graph.remove_node(status_node_id)
 
