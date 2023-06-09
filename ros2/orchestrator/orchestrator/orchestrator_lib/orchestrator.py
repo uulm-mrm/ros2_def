@@ -96,7 +96,7 @@ class Orchestrator:
         #  shall be requested.
         self.simulator_time: Optional[Time] = None
 
-        self.graph: nx.DiGraph = nx.DiGraph()
+        self.graph: nx.MultiDiGraph = nx.MultiDiGraph()
 
         def debug_service_cb(request, response):
             response.success = True
@@ -575,12 +575,17 @@ class Orchestrator:
             if self.graph.has_edge(id, parent):
                 yield id, data
 
+    def __edges_between(self, u: GraphNodeId, v: GraphNodeId) -> Generator[Tuple[Any, Dict], None, None]:
+        for e_u, e_v, e_k, e_d in self.graph.edges(nbunch=[u, v], data=True, keys=True):
+            if e_u == u and e_v == v:
+                yield e_k, e_d
+
     def __causality_childs_of(self, buffer_id: GraphNodeId) -> Generator[GraphNodeId, None, None]:
         for node in self.graph.predecessors(buffer_id):
-            edge_type: EdgeType = self.graph.edges[node,
-                                                   buffer_id]["edge_type"]
-            if edge_type == EdgeType.CAUSALITY:
-                yield node
+            for _, edge_data in self.__edges_between(node, buffer_id):
+                edge_type: EdgeType = edge_data["edge_type"]
+                if edge_type == EdgeType.CAUSALITY:
+                    yield node
 
     def __add_action_and_effects(self, action: CallbackAction, parent: Optional[int] = None):
 
@@ -952,7 +957,7 @@ class Orchestrator:
             EdgeType.SERVICE_GROUP: "tab:red"
         }
         edge_colors = {}
-        for u, v, edge_data in self.graph.edges(data=True):  # type: ignore
+        for u, v, k, edge_data in self.graph.edges(data=True, keys=True):  # type: ignore
             edge_type = edge_data["edge_type"]  # type: ignore
             edge_colors[(u, v)] = color_map[edge_type]
 
