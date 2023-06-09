@@ -25,12 +25,13 @@ def main():
     prune_probability = 0.1
     timestamp_stddev_ns = 600000
     timestamp_max_offset_ns = 2000000
+    zero_time = 1000000000000000000
     assert (timestamp_max_offset_ns >= 0)
     rng = default_rng(20230523)
 
     metadata: rosbag2_py.BagMetadata = rosbag2_py.Info().read_metadata(bag_uri, "")
     reader, converter_options = create_reader(bag_uri, metadata.storage_identifier)
-    writer = create_writer(bag_uri + "_converted", converter_options, metadata.storage_identifier)
+    writer = create_writer(bag_uri + "_drop_reorder", converter_options, metadata.storage_identifier)
 
     for topic_metadata in reader.get_all_topics_and_types():
         writer.create_topic(topic_metadata)
@@ -40,12 +41,12 @@ def main():
         if random.random() <= prune_probability:
             continue
 
-        if time_stamp_ns != 0:
-            time_offset = max(-timestamp_max_offset_ns,
-                              min(timestamp_max_offset_ns,
-                                  int(rng.normal(scale=timestamp_stddev_ns))))
-        else:
-            time_offset = 0
+        if time_stamp_ns == 0:
+            time_stamp_ns = zero_time
+
+        time_offset = max(-timestamp_max_offset_ns,
+                          min(timestamp_max_offset_ns,
+                              int(rng.normal(scale=timestamp_stddev_ns))))
 
         writer.write(topic_name, serialized_data, time_stamp_ns + time_offset)
 
