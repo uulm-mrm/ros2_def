@@ -1,0 +1,52 @@
+{
+  "nodes": {
+    "sil_vhcl1800_ego_motion_service": {
+      "config_file": [
+        "orchestrator",
+        "ego_motion_node_config.json"
+      ],
+      "remappings": {
+        "imu": "/sil_vhcl1800/imu",
+        "ego_motion_service": "/sil_vhcl1800/ego_motion_service"
+      }
+    },
+    "sil_vhcl1800_trajectory_planning_node": {
+      "config_file": [
+        "orchestrator",
+        "trajectory_planning_node_config.json"
+      ],
+      "remappings": {
+        "/vehicle_hal/control_vars": "/sil_vhcl1800/control_vars",
+        "/vehicle_hal/vehicle_state": "/sil_vhcl1800/vehicle_state",
+        "/ego_motion/ego_motion_service": "/sil_vhcl1800/ego_motion_service"
+      }
+    },
+    "tracking_mec": {
+      "config_file": [
+        "orchestrator",
+        "tracking_mec_node_config.json"
+      ],
+      "remappings": {
+        "tracks": "/tracks"
+      }
+    },
+    "ttb2file": {
+      "config_file": [
+        "orchestrator",
+        "objects2file_node_config.json"
+      ],
+      "remappings": {
+        "obj_topic": "/tracks"
+      }
+    },
+    "gt2file": {
+      "config_file": [
+        "orchestrator",
+        "objects2file_node_config.json"
+      ],
+      "remappings": {
+        "obj_topic": "/sil/cars"
+      }
+    }
+  }
+}
