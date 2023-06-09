@@ -1082,7 +1082,7 @@ class Orchestrator:
         raise KeyError(f"No model for node \"{name}\"")
 
     def __status_callback(self, msg: Status):
-        lc(self.l, f"Received status message from {msg.node_name}")
+        lc(self.l, f"Received status message from {msg.node_name} with debug id {msg.debug_id}")
 
         cause_action_id = None
         causing_action = None
