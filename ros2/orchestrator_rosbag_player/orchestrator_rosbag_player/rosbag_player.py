@@ -43,8 +43,9 @@ def publish_time(orchestrator: Orchestrator, publisher: rclpy.publisher.Publishe
 def advance_time(no_wait: bool, time_factor, bag_start_time, playback_start_time, node: rclpy.node.Node,
                  publisher: rclpy.publisher.Publisher, orchestrator: Orchestrator,
                  dt, last: rclpy.time.Time,
-                 until: rclpy.time.Time):
+                 until: rclpy.time.Time, logger):
     """Advance time by publishing in specified interval up to and including the "until" timestamp."""
+    logger.info(f"Publishing time with dt of {dt}")
     time = last + dt
     while time < until:
         if not no_wait:
@@ -55,11 +56,14 @@ def advance_time(no_wait: bool, time_factor, bag_start_time, playback_start_time
         publish_time(orchestrator, publisher, time, node.get_logger())
         time += dt
 
+    logger.info(f"Done!")
     if not no_wait:
         bag_progress: rclpy.time.Duration = time - bag_start_time
         publish_timestamp: rclpy.time.Time = playback_start_time + rclpy.time.Duration(
             nanoseconds=time_factor * bag_progress.nanoseconds)
+        logger.info(f"Waiting until time {publish_timestamp}")
         spin_until(node, publish_timestamp)
+    logger.info(f"Publishing final time at {time}")
     publish_time(orchestrator, publisher, time, node.get_logger())
 
 
@@ -114,14 +118,16 @@ def main():
         else:
             stripped_topic_name = topic_name
 
-        if bag_start_time is None:
+        if bag_start_time is None or last_time == rclpy.time.Time(seconds=0):
             bag_start_time = time_stamp
 
-        if last_time is None:
+        if last_time is None or last_time == rclpy.time.Time(seconds=0):
             last_time = time_stamp
 
+        node.get_logger().info(f"Last time was {last_time}, advancing until {time_stamp}")
+
         advance_time(no_wait, time_factor, bag_start_time, playback_start_time, node, clock_publisher, orchestrator,
-                     rclpy.time.Duration(seconds=0.005), last_time, time_stamp)
+                     rclpy.time.Duration(seconds=0.005), last_time, time_stamp, node.get_logger())
         last_time = time_stamp
 
         node.get_logger().info(f"Proposing message publish on {topic_name}")

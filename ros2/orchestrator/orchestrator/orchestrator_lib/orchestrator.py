@@ -267,14 +267,14 @@ class Orchestrator:
         future = Future()
 
         if topic not in self.interception_subs.keys():
-            self.l.warning("  We are not subscribed to that input, allow publish without further action")
+            self.l.warning(f"  We are not subscribed to input \"{topic}\", allow publish without further action")
             future.set_result(None)
             return future
 
         self.next_input = FutureInput(topic, future)
 
         if self.__ready_for_next_input():
-            self.l.info("  Graph is empty, immediately requesting data...")
+            self.l.info("  Orchestrator is ready, immediately requesting data...")
             self.__request_next_input()
         else:
             self.l.info("  Not ready, not requesting...")
@@ -583,7 +583,7 @@ class Orchestrator:
 
         # Parent: Node ID of the action causing this topic-publish. Should only be None for inputs
         cause_node_id = _next_id()
-        self.l.debug(f"  Adding graph node for action {action}")
+        self.l.debug(f"  Adding graph node for action {action} ({cause_node_id})")
         self.graph.add_node(cause_node_id, data=action)
 
         # Omit sibling connections (same node) if both actions are timer callbacks at the same time.
@@ -599,11 +599,14 @@ class Orchestrator:
 
         # Sibling connections: Complete all actions at this node before the to-be-added action
         for node, other_action in self.__callback_nodes_with_data():
+            self.l.debug(f"   Testing if {other_action} ({node}) is a sibling...")
             if other_action.node == action.node \
                     and node != cause_node_id \
                     and not is_timer_at_same_time(action, other_action):
-                self.graph.add_edge(cause_node_id, node,
-                                    edge_type=EdgeType.SAME_NODE)
+                self.l.debug(f"   Adding same-node edge from {cause_node_id} to {node}")
+                self.graph.add_edge(cause_node_id, node, edge_type=EdgeType.SAME_NODE)
+            else:
+                self.l.debug("   no!")
 
         if parent is not None:
             self.l.debug(f"   Adding edge to parent: {parent}")
@@ -615,6 +618,8 @@ class Orchestrator:
         node_model = self.__node_model_by_name(action.node)
         assert cause in node_model.get_possible_inputs()
         effects = node_model.effects_for_input(cause)
+
+        self.l.debug(f"   This action has effects: {effects}")
 
         assert len(effects) > 0
 
@@ -679,6 +684,7 @@ class Orchestrator:
                             ), buffer_node_id)
             elif isinstance(effect, StatusPublish):
                 status_node_id = _next_id()
+                self.l.debug(f"   Adding OrchestratorStatusAction with id {status_node_id}")
                 self.graph.add_node(
                     status_node_id, data=OrchestratorStatusAction())
                 self.graph.add_edge(
@@ -895,7 +901,8 @@ class Orchestrator:
             else:
                 raise RuntimeError(f"Unknown action type: {d}")
 
-        node_list = '\n'.join([str(n) for n in self.graph.nodes(data=True)])
+        node_list = '\n'.join(
+            ["(" + str(nid) + ", " + str(nd["data"]) + ")" for nid, nd in self.graph.nodes(data=True)])
         raise ActionNotFoundError(
             f"There is no currently running action which should have published a message on topic \"{published_topic_name}\"! "
             f"Current graph nodes: \n{node_list}")
