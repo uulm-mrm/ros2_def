@@ -65,6 +65,11 @@ install(PROGRAMS
         DESTINATION lib/${PROJECT_NAME}
         RENAME timed_sensor_publisher
 )
+install(PROGRAMS
+        orchestrator_dummy_nodes/tracking_mock.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME tracking_mock
+)
 
 aduulm_install_ros2_python_code("orchestrator_dummy_nodes")
 
