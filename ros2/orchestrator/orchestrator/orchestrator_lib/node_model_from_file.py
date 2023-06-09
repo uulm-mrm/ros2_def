@@ -4,6 +4,7 @@ import base64
 import json
 from dataclasses import dataclass
 from typing import cast, final, Dict, Optional, Tuple
+from orchestrator.orchestrator_lib.name_utils import normalize_topic_name
 from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, \
     StatusPublish, TimeSyncInfo, TimerInput
 from deepdiff import DeepDiff
@@ -57,17 +58,19 @@ class ConfigFileNodeModel(NodeModel):
             trigger = callback["trigger"]
 
             if isinstance(trigger, str):
+                trigger = normalize_topic_name(trigger)
                 mappings[trigger] = trigger
                 inputs.add(trigger)
             elif "type" in trigger and trigger["type"] == "topic":
-                trigger = cast(str, trigger["name"])
+                trigger = normalize_topic_name(cast(str, trigger["name"]))
                 mappings[trigger] = trigger
                 inputs.add(trigger)
             elif "type" in trigger and trigger["type"] == "timer":
-                mappings["clock"] = "clock"
+                mappings[normalize_topic_name("clock")] = normalize_topic_name("clock")
 
             elif "type" in trigger and trigger["type"] == "approximate_time_sync":
                 for topic in trigger["input_topics"]:
+                    topic = normalize_topic_name(topic)
                     mappings[topic] = topic
                     inputs.add(topic)
             else:
@@ -75,19 +78,24 @@ class ConfigFileNodeModel(NodeModel):
                     f"Callback type {trigger['type']} not implemented")
 
             for output in callback["outputs"]:
+                output = normalize_topic_name(output)
                 if output in inputs:
                     raise RuntimeError(
                         f"Topic {output} of node {name} defined as both input and output!")
                 mappings[output] = output
 
             for service in callback.get("service_calls", []):
+                service = normalize_topic_name(service)
                 mappings[service] = service
 
         for service in node_config.get("services", []):
+            service = normalize_topic_name(service)
             mappings[service] = service
 
         # Apply remappings from launch config
         for internal_name, external_name in remappings.items():
+            internal_name = normalize_topic_name(internal_name)
+            external_name = normalize_topic_name(external_name)
             if internal_name not in mappings:
                 raise RuntimeError(
                     f"Remapping for \"{internal_name}\" to \"{external_name}\" given, but \"{internal_name}\" is not known at node {name}")
@@ -107,6 +115,7 @@ class ConfigFileNodeModel(NodeModel):
         def add_effect(trigger: Cause, outputs, service_calls, changes_dp_state: bool, may_reconfigure: bool):
             output_effects: list[Effect] = []
             for output in outputs:
+                output = normalize_topic_name(output)
                 output_effects.append(self.internal_topic_pub(output))
 
             if len(output_effects) == 0:
@@ -115,6 +124,7 @@ class ConfigFileNodeModel(NodeModel):
                 output_effects.append(StatusPublish())
 
             for service_call in service_calls:
+                service_call = normalize_topic_name(service_call)
                 output_effects.append(ServiceCall(
                     self.topic_name_from_internal(service_call)))
 
@@ -126,6 +136,7 @@ class ConfigFileNodeModel(NodeModel):
             trigger = callback["trigger"]
 
             if isinstance(trigger, str):
+                trigger = normalize_topic_name(trigger)
                 trigger = self.internal_topic_input(trigger)
                 add_effect(trigger,
                            callback.get("outputs", []),
@@ -133,7 +144,7 @@ class ConfigFileNodeModel(NodeModel):
                            callback.get("changes_dataprovider_state", False),
                            callback.get("may_cause_reconfiguration", False))
             elif trigger.get("type", None) == "topic" and "name" in trigger:
-                topic_name = trigger["name"]
+                topic_name = normalize_topic_name(trigger["name"])
                 trigger = self.internal_topic_input(topic_name)
                 add_effect(trigger,
                            callback.get("outputs", []),
@@ -157,6 +168,7 @@ class ConfigFileNodeModel(NodeModel):
                 slop = trigger["slop"]
                 queue = trigger["queue_size"]
                 for t in input_topics:
+                    t = normalize_topic_name(t)
                     add_effect(self.internal_topic_input(t),
                                callback.get("outputs", []),
                                callback.get("service_calls", []),
@@ -177,6 +189,7 @@ class ConfigFileNodeModel(NodeModel):
 
         self.services: list[ServiceName] = []
         for service in node_config.get("services", []):
+            service = normalize_topic_name(service)
             self.services.append(self.topic_name_from_internal(service))
 
     def get_possible_inputs(self) -> list[Cause]:

@@ -8,7 +8,7 @@ from orchestrator.orchestrator_lib.model_loader import load_models, load_launch_
     load_node_config_schema
 from orchestrator.orchestrator_lib.node_model import Cause, NodeModel, ServiceCall, StatusPublish, TimeSyncInfo, \
     TimerInput, TopicInput, TopicPublish
-from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, intercepted_name, remove_prefix
+from orchestrator.orchestrator_lib.name_utils import NodeName, TopicName, intercepted_name, normalize_topic_name
 from orchestrator.orchestrator_lib.action import ActionNotFoundError, ActionState, DataProviderInputAction, EdgeType, \
     RxAction, TimerCallbackAction, Action, OrchestratorBufferAction, OrchestratorStatusAction, CallbackAction
 from orchestrator.orchestrator_lib.ros_utils.logger import lc
@@ -158,6 +158,7 @@ class Orchestrator:
         def intercept_topic(canonical_name: TopicName, node: NodeModel):
             intercepted_topic_name = intercepted_name(
                 node.get_name(), canonical_name)
+            canonical_name = normalize_topic_name(canonical_name)
             lc(self.l, f"Intercepted input \"{canonical_name}\" "
                        f" from node \"{node.get_name()}\" as \"{intercepted_topic_name}\"")
 
@@ -190,7 +191,7 @@ class Orchestrator:
                 if isinstance(input_cause, TopicInput):
                     intercept_topic(input_cause.input_topic, node_model)
                 elif isinstance(input_cause, TimerInput):
-                    intercept_topic("clock", node_model)
+                    intercept_topic(normalize_topic_name("clock"), node_model)
 
                 for effect in node_model.effects_for_input(input_cause):
                     self.l.info(f" This causes the effect {effect}")
@@ -252,6 +253,8 @@ class Orchestrator:
         The caller should spin the executor of the RosNode while waiting, otherwise the future
         may never be done (and processing might not continue).
         """
+
+        topic = normalize_topic_name(topic)
 
         if self.next_input is not None:
             raise RuntimeError(
@@ -773,7 +776,7 @@ class Orchestrator:
                 elif isinstance(data, RxAction):
                     assert data.data is not None
                     self.l.info(
-                        f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node}. Publishing data...")
+                        f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node} ({graph_node_id}). Publishing data...")
                     data.state = ActionState.RUNNING
                     self.__node_model_by_name(data.node).state_sequence_push(data.data)
                     self.interception_pubs[data.node][data.topic].publish(
@@ -786,8 +789,7 @@ class Orchestrator:
                     time_msg = rosgraph_msgs.msg.Clock()
                     time_msg.clock = data.timestamp.to_msg()
                     self.__node_model_by_name(data.node).state_sequence_push(time_msg)
-                    self.interception_pubs[data.node]["clock"].publish(
-                        time_msg)
+                    self.interception_pubs[data.node][normalize_topic_name("clock")].publish(time_msg)
                 repeat = True
         self.l.info(
             "  Done processing! Checking if next input can be requested...")
@@ -985,7 +987,7 @@ class Orchestrator:
     def __interception_subscription_callback(self, topic_name: TopicName, msg: Any):
         lc(self.l, f"Received message on intercepted topic {topic_name}")
 
-        if topic_name == "clock":
+        if topic_name == normalize_topic_name("clock"):
 
             clock_msg = cast(rosgraph_msgs.msg.Clock, msg)
             time_input = Time.from_msg(
@@ -1103,7 +1105,7 @@ class Orchestrator:
                 # omitted_outputs...
                 raise RuntimeError("Status message was not expected, and it has no omitted outputs.")
         else:
-            self.l.info(" Status message was expected, removing node.")
+            self.l.info(f" Status message was expected, removing status node {status_node_id}.")
             cause_action_id = self.__parent_node(status_node_id)
             assert self.graph.nodes[cause_action_id]["data"].state == ActionState.RUNNING
             causing_action = self.graph.nodes[cause_action_id]["data"]

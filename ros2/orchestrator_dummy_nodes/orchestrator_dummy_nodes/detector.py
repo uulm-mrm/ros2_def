@@ -13,10 +13,12 @@ class Detector(Node):
     def __init__(self):
         super().__init__('Detector')  # type: ignore
 
+        self.get_logger().info("Detector starting")
         self.declare_parameter("processing_time", 0.05)
         self.processing_time = self.get_parameter("processing_time").get_parameter_value().double_value
 
         self.input_subscription = self.create_subscription(SampleMessage, "input", self.input_callback, 10)
+        self.get_logger().info(f"Subscribed to {self.input_subscription.topic_name}")
         self.output_publisher = self.create_publisher(String, "output", 10)
 
     def input_callback(self, msg: SampleMessage):

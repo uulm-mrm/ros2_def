@@ -9,6 +9,12 @@ TopicName: TypeAlias = str
 NodeName: TypeAlias = str
 
 
+def normalize_topic_name(name: str) -> str:
+    if name[0] != "/":
+        return "/" + name
+    return name
+
+
 def remove_prefix(text, prefix):
     if text.startswith(prefix):
         return text[len(prefix):]
