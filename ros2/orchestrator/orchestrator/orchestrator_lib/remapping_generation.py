@@ -3,7 +3,7 @@ import sys
 from typing import List, Dict
 
 from orchestrator.orchestrator_lib.node_model import TopicInput, TimerInput
-from orchestrator.orchestrator_lib.name_utils import intercepted_name
+from orchestrator.orchestrator_lib.name_utils import intercepted_name, normalize_topic_name
 from .model_loader import *
 
 from launch_ros.actions import SetRemap
@@ -46,9 +46,11 @@ def generate_remappings_from_config(package_name: str, launch_config_file: str) 
             if isinstance(input, TopicInput):
                 # Add identity remapping for input topics if no explicit remapping exists.
                 # This ensures that interception remapping is generated below.
+                # TODO: This results in some useless remappings, from non-internal names...
                 remappings.setdefault(input.input_topic, input.input_topic)
 
         for internal_name, ros_name in remappings.items():
+            ros_name = normalize_topic_name(ros_name)
             if TopicInput(ros_name) not in model.get_possible_inputs():
                 continue
 
