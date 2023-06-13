@@ -47,9 +47,11 @@ def convertTimestep(json_timestep) -> List[SState]:
 
 
 def main():
-    with open('/tmp/ttb.json') as f:
+    path = "/home/gja38/aduulm_sandbox_sil/data_for_eval"
+    name = "_reconfig_nd_5.json"
+    with open(path + "/ttb" + name) as f:
         tracks_file = json.load(f)
-    with open('/tmp/gt.json') as f:
+    with open(path + "/gt" + name) as f:
         gt_file = json.load(f)
 
     gt_states: List[SState] = []
@@ -63,11 +65,16 @@ def main():
 
     gt_states = [gts for gts in gt_states if len([s for s in tracks_states if s.timestamp == gts.timestamp]) > 0]
 
-    ospa_generator = OSPAMetric(c=1.0, p=1, measure=Euclidean())
+    ospa_generator = OSPAMetric(c=2.0, p=1, measure=Euclidean())
     metric_result = ospa_generator.compute_over_time(tracks_states, gt_states)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    ax.plot([i.timestamp for i in metric_result.value], [i.value for i in metric_result.value])
+    timestamps = [i.timestamp for i in metric_result.value]
+
+    values = [i.value for i in metric_result.value]
+    data = np.column_stack(([t.timestamp() - 1e9 for t in timestamps], values))
+    np.savetxt(name + ".csv", data, delimiter=",")
+    ax.plot(timestamps, values)
     ax.set_ylabel("OSPA distance")
     # ax.tick_params(labelbottom=False)
     _ = ax.set_xlabel("Time")
