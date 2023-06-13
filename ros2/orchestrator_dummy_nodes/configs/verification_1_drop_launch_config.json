@@ -1,0 +1,13 @@
+{
+  "nodes": {
+    "detector": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "detector_node_config.json"
+      ],
+      "remappings": {
+        "input": "/t"
+      }
+    }
+  }
+}
