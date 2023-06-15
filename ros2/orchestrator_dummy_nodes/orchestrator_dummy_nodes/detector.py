@@ -36,7 +36,7 @@ class Detector(Node):
         age_ms = age.nanoseconds * 1e-6
 
         processing_time = self.processing_time
-        processing_time += random.uniform(-self.processing_time_range / 2, self.processing_time_range)
+        processing_time += random.uniform(-self.processing_time_range / 2, self.processing_time_range / 2)
 
         self.get_logger().info(f"Got input on topic {self.input_subscription.topic_name}: {msg.debug_data}, "
                                f"age {age_ms}ms, "

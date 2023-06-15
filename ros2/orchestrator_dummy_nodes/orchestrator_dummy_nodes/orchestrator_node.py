@@ -100,6 +100,16 @@ class BagPlayer(Node):
                 load_launch_config_schema())
             self.t = Time(seconds=0, nanoseconds=0)
             self.last_publish = None
+        elif mode == "verification_3_same_output":
+            self.mode = "verification_3_same_output"
+            self.publisher = self.create_publisher(SampleMessage, "M", 10)
+            self.i = 0
+            launch_config = load_launch_config(
+                "orchestrator_dummy_nodes",
+                "verification_3_same_output_launch_config.json",
+                load_launch_config_schema())
+            self.t = Time(seconds=0, nanoseconds=0)
+            self.last_publish = None
         else:
             self.get_logger().fatal(f"Unknown mode: {mode}")
             exit(1)
@@ -268,7 +278,7 @@ class BagPlayer(Node):
             self.timestep_reconfiguration()
         elif self.mode == "verification_1_drop":
             self.timestep_verification_1_drop()
-        elif self.mode == "verification_2_parallel_inputs":
+        elif self.mode == "verification_2_parallel_inputs" or self.mode == "verification_3_same_output":
             self.timestep_verification_2_parallel_inputs()
         else:
             raise RuntimeError()
