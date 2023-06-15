@@ -24,11 +24,12 @@ class Detector(Node):
 
         self.input_subscription = self.create_subscription(SampleMessage, "input", self.input_callback, queue_size)
         self.get_logger().info(f"Subscribed to {self.input_subscription.topic_name}")
-        self.output_publisher = self.create_publisher(String, "output", 10)
+        self.output_publisher = self.create_publisher(SampleMessage, "output", 10)
 
     def input_callback(self, msg: SampleMessage):
-        output = String()
-        output.data = self.get_name() + ": Detection from input: " + msg.debug_data
+        output = SampleMessage()
+        output.header = msg.header
+        output.debug_data = self.get_name() + ": Detection from input: " + msg.debug_data
         now = self.get_clock().now()
         pub = Time.from_msg(msg.header.stamp)
         age = now - pub

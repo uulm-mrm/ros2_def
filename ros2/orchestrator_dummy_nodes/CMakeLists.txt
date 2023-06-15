@@ -70,6 +70,11 @@ install(PROGRAMS
         DESTINATION lib/${PROJECT_NAME}
         RENAME tracking_mock
 )
+install(PROGRAMS
+        orchestrator_dummy_nodes/verification_t_subscriber.py
+        DESTINATION lib/${PROJECT_NAME}
+        RENAME verification_t_subscriber
+)
 
 aduulm_install_ros2_python_code("orchestrator_dummy_nodes")
 
