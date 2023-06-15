@@ -1,0 +1,13 @@
+{
+  "name": "verification_t_subscriber",
+  "callbacks": [
+    {
+      "trigger": "input1",
+      "outputs": []
+    },
+    {
+      "trigger": "input2",
+      "outputs": []
+    }
+  ]
+}

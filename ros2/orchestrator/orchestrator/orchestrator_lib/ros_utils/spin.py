@@ -3,7 +3,10 @@ from rclpy.executors import Executor
 
 
 def spin_for(executor: Executor, duration: datetime.timedelta):
-    start = datetime.datetime.now()
-    while datetime.datetime.now() - start < duration:
-        remaining = datetime.datetime.now() - start
+    spin_until(executor, datetime.datetime.now() + duration)
+
+
+def spin_until(executor: Executor, until: datetime.datetime):
+    while datetime.datetime.now() < until:
+        remaining = until - datetime.datetime.now()
         executor.spin_once(timeout_sec=remaining.total_seconds())

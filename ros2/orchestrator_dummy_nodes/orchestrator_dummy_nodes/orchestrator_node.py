@@ -12,7 +12,7 @@ from rclpy.time import Time, Duration
 from orchestrator.orchestrator_lib.name_utils import intercepted_name
 from orchestrator.orchestrator_lib.orchestrator import Orchestrator
 from orchestrator.orchestrator_lib.model_loader import *
-from orchestrator.orchestrator_lib.ros_utils.spin import spin_for
+from orchestrator.orchestrator_lib.ros_utils.spin import spin_for, spin_until
 
 from orchestrator_interfaces.msg import SampleMessage
 from rosgraph_msgs.msg import Clock
@@ -90,6 +90,16 @@ class BagPlayer(Node):
                 "verification_1_drop_launch_config.json",
                 load_launch_config_schema())
             self.t = Time(seconds=0, nanoseconds=0)
+        elif mode == "verification_2_parallel_inputs":
+            self.mode = "verification_2_parallel_inputs"
+            self.publisher = self.create_publisher(SampleMessage, "M", 10)
+            self.i = 0
+            launch_config = load_launch_config(
+                "orchestrator_dummy_nodes",
+                "verification_2_parallel_inputs_launch_config.json",
+                load_launch_config_schema())
+            self.t = Time(seconds=0, nanoseconds=0)
+            self.last_publish = None
         else:
             self.get_logger().fatal(f"Unknown mode: {mode}")
             exit(1)
@@ -227,6 +237,24 @@ class BagPlayer(Node):
         self.i += 1
         spin_for(rclpy.get_global_executor(), datetime.timedelta(seconds=0.2))
 
+    def timestep_verification_2_parallel_inputs(self):
+        f = self.orchestrator.wait_until_time_publish_allowed(self.t)
+        rclpy.get_global_executor().spin_until_future_complete(f)
+        self.publish_time()
+
+        msg = SampleMessage()
+        msg.debug_data = "input " + str(self.i)
+        msg.header.stamp = self.t.to_msg()
+        f = self.orchestrator.wait_until_publish_allowed(self.publisher.topic_name)
+        rclpy.get_global_executor().spin_until_future_complete(f)
+        if self.last_publish is not None:
+            spin_until(rclpy.get_global_executor(), self.last_publish + datetime.timedelta(seconds=1.0))
+        self.last_publish = datetime.datetime.now()
+        self.get_logger().info(f"Publishing message {self.i}")
+        self.publisher.publish(msg)
+        self.t += Duration(seconds=1, nanoseconds=0)
+        self.i += 1
+
     def timestep(self):
         if self.mode == "tracking":
             self.timestep_tracking()
@@ -240,6 +268,8 @@ class BagPlayer(Node):
             self.timestep_reconfiguration()
         elif self.mode == "verification_1_drop":
             self.timestep_verification_1_drop()
+        elif self.mode == "verification_2_parallel_inputs":
+            self.timestep_verification_2_parallel_inputs()
         else:
             raise RuntimeError()
 

@@ -1,0 +1,34 @@
+{
+  "nodes": {
+    "P1": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "detector_node_config.json"
+      ],
+      "remappings": {
+        "input": "M",
+        "output": "D1"
+      }
+    },
+    "P2": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "detector_node_config.json"
+      ],
+      "remappings": {
+        "input": "M",
+        "output": "D2"
+      }
+    },
+    "T": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "verification_t_subscriber_node_config.json"
+      ],
+      "remappings": {
+        "input1": "D1",
+        "input2": "D2"
+      }
+    }
+  }
+}
