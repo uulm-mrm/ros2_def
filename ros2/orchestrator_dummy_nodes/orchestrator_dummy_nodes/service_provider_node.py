@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 
 import rclpy
 from rclpy.node import Node
@@ -23,6 +24,8 @@ class ServiceProviderNode(Node):
         if self.last_caller == request.caller:
             self.get_logger().error("TWO REQUESTS FROM SAME CALLER IN A ROW")
         self.last_caller = request.caller
+        time.sleep(0.2)
+        self.get_logger().info(f"Responding")
         return response
 
     def publish_status(self):
@@ -31,6 +34,9 @@ class ServiceProviderNode(Node):
         self.status_publisher.publish(status_msg)
 
     def sub_callback(self, msg: SampleMessage):
+        self.get_logger().info(f"Received message: {msg.debug_data}")
+        time.sleep(0.2)
+        self.get_logger().info(f"Publishing status")
         self.publish_status()
 
 

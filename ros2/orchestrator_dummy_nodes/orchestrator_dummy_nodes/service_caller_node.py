@@ -31,12 +31,15 @@ class ServiceCallerNode(Node):
         self.status_publisher.publish(status_msg)
 
     def sub_callback(self, msg: SampleMessage):
+        self.get_logger().info(f"Received message: {msg.debug_data}")
         req = SampleService.Request()
         req.caller = self.get_name()
-        time.sleep(random.uniform(0, 0.02))
+        time.sleep(0.1)
         self.get_logger().info("Calling service")
         res = self.cli.call(req)
         self.get_logger().info(f"Got response: {res}")
+        time.sleep(0.1)
+        self.get_logger().info(f"Publishing status")
         self.publish_status()
 
 
