@@ -949,6 +949,8 @@ class Orchestrator:
                 annotations[node] = "rx status"
             elif isinstance(d, DataProviderInputAction):
                 annotations[node] = f"input {d.published_topic}"
+            else:
+                raise RuntimeError()
 
         color_map = {
             EdgeType.SAME_NODE: "tab:green",
@@ -1108,7 +1110,7 @@ class Orchestrator:
                 # But this status message would not make sense: If the callback always produced a status output, we
                 # would have found it above, and if it was a substitute for some other output, it would list some
                 # omitted_outputs...
-                raise RuntimeError("Status message was not expected, and it has no omitted outputs.")
+                raise RuntimeError(f"Status message from {msg.node_name} with debug_id {msg.debug_id} was not expected, and it has no omitted outputs.")
         else:
             self.l.info(f" Status message was expected, removing status node {status_node_id}.")
             cause_action_id = self.__parent_node(status_node_id)
