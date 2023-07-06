@@ -34,7 +34,7 @@ class ServiceCallerNode(Node):
         self.get_logger().info(f"Received message: {msg.debug_data}")
         req = SampleService.Request()
         req.caller = self.get_name()
-        time.sleep(0.1)
+        time.sleep(random.uniform(0.05, 0.15))
         self.get_logger().info("Calling service")
         res = self.cli.call(req)
         self.get_logger().info(f"Got response: {res}")
