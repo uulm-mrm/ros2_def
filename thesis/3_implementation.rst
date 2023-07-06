@@ -272,7 +272,7 @@ Both this induced serialization overhead, as well as the runtime of the orchestr
 In all the scenarios presented above, deterministic execution can be achieved by delaying the execution of specific callbacks in such a way, that the order of callback executions at each node is fixed.
 Multiple methods of controlling callback invocations have been considered, which also directly influence the general architecture of the framework:
 
-% Custom execution environment
+.. Custom execution environment
 \begin{figure}[h]
     \centering
     \begin{tikzpicture}[rounded corners, thick]
@@ -297,7 +297,7 @@ If a ROS node includes functionality that is tightly coupled to the ROS interfac
 This also introduces the possibility of diverging implementations between the ROS node and the code running for evaluation, which would reduce the significance of the results obtained from evaluation and testing.
 Additionally, this design represents a stark difference from the ROS design philosophy of independent and loosely coupled components.
 
-% Rclcpp-builtin functionality
+.. Rclcpp-builtin functionality
 \begin{figure}[ht]
     \centering
     \begin{tikzpicture}[rounded corners, thick]
@@ -333,7 +333,7 @@ Using custom \gls{rclpy} and \gls{rclcpp} versions additionally inconveniences l
 
 \FloatBarrier
 
-% External topic interception
+.. External topic interception
 \begin{figure}[t]
     \centering
     \begin{tikzpicture}[rounded corners, thick]
@@ -602,56 +602,56 @@ Some elements have been excluded from this graph for brevity:
 The callbacks at node $T$ do not have any output, which requires them to publish a status message.
 The reception of this status message is usually represented in the graph analogous to the buffer nodes.
 
-% \section{Interface/API/Behavior/Execution}\label{sec:impl:algorithm}
-% \todo{algorithm description for events}
+.. \section{Interface/API/Behavior/Execution}\label{sec:impl:algorithm}
+.. \todo{algorithm description for events}
 
-% Topic input:
-% \begin{itemize}
-%     \item Find (running) action which published this message
-%     \item Find buffer action (child of causing action)
-%     \item Buffer message for all children of buffer action, set them READY
-%     \item remove buffer action
-%     \item if running action has no more incoming edges: remove it
-%     \item process graph
-% \end{itemize}
+.. Topic input:
+.. \begin{itemize}
+..     \item Find (running) action which published this message
+..     \item Find buffer action (child of causing action)
+..     \item Buffer message for all children of buffer action, set them READY
+..     \item remove buffer action
+..     \item if running action has no more incoming edges: remove it
+..     \item process graph
+.. \end{itemize}
 
-% Clock input:
-% \begin{itemize}
-%     \item Set all timer actions with corresponding exec-time to READY
-% \end{itemize}
+.. Clock input:
+.. \begin{itemize}
+..     \item Set all timer actions with corresponding exec-time to READY
+.. \end{itemize}
 
-% Graph processing: Until convergence, for each action:
-% \begin{itemize}
-%     \item has outgoing edges? -> continue
-%     \item state not ready? -> continue
-%     \item set state to running, publish data/clock on intercepted topic
-%     \item if time-synced CB will not occur, delete corresponding nodes
-% \end{itemize}
-% Then:
-% \begin{itemize}
-%     \item request next input if ready
-%     \item allow dataprovider update if waiting and graph is ready
-%     \item request reconfig if waiting and graph is ready
-% \end{itemize}
+.. Graph processing: Until convergence, for each action:
+.. \begin{itemize}
+..     \item has outgoing edges? -> continue
+..     \item state not ready? -> continue
+..     \item set state to running, publish data/clock on intercepted topic
+..     \item if time-synced CB will not occur, delete corresponding nodes
+.. \end{itemize}
+.. Then:
+.. \begin{itemize}
+..     \item request next input if ready
+..     \item allow dataprovider update if waiting and graph is ready
+..     \item request reconfig if waiting and graph is ready
+.. \end{itemize}
 
-% Ready for next input if:
-% \begin{itemize}
-%     \item Not pending reconfiguration
-%     \item and: not pending decision on reconfiguration or not
-%     \item and: if input is clock: no actions are left waiting for earlier clock input
-%     \item and: if input is data: we are not still waiting on an input on the same topic
-% \end{itemize}
+.. Ready for next input if:
+.. \begin{itemize}
+..     \item Not pending reconfiguration
+..     \item and: not pending decision on reconfiguration or not
+..     \item and: if input is clock: no actions are left waiting for earlier clock input
+..     \item and: if input is data: we are not still waiting on an input on the same topic
+.. \end{itemize}
 
-% Request next input, time:
-% \begin{itemize}
-%     \item Add each timer action that will occur for this input, with resulting actions
-% \end{itemize}
+.. Request next input, time:
+.. \begin{itemize}
+..     \item Add each timer action that will occur for this input, with resulting actions
+.. \end{itemize}
 
-% Request next input, data:
-% \begin{itemize}
-%     \item Add input-action and corresponding buffer-action
-%     \item recursively add callback actions for all nodes subscribing to input
-% \end{itemize}
+.. Request next input, data:
+.. \begin{itemize}
+..     \item Add input-action and corresponding buffer-action
+..     \item recursively add callback actions for all nodes subscribing to input
+.. \end{itemize}
 
 \FloatBarrier
 \section{Node and System Description}\label{sec:impl:node_system_description}
