@@ -1,13 +1,21 @@
 .. _sec-impl:
 
+**************
 Implementation
-==============
+**************
+
+.. contents::
+   :local:
 
 This chapter will first introduce the problem of nondeterministic behavior in ROS using minimal examples in \cref{sec:impl:problem_description,sec:impl:nondet_sources}.
 Then, in \cref{sec:impl:design_goals}, the design goals and intended use cases for the implemented software are determined.
 Lastly, \crefrange{sec:impl:controlling_callbacks}{sec:impl:launch} describe the implementation in detail, covering the control of callback invocations, ordering of callbacks using dependency graphs, node and system configuration files, as well as details concerning dynamic reconfiguration.
 
-\section{Problem Description}\label{sec:impl:problem_description}
+.. _sec-impl-problem_description:
+
+Problem Description
+===================
+
 An important property of all testing and evaluation approaches outlined in \cref{sec:bg:software_testing} is determinism.
 A nondeterministic simulation for example may result in substantially different scenarios leading to changing evaluation metrics over multiple test runs.
 If the software under test itself is not deterministic, a regression test might fail even if no functional changes to the software have been made.
@@ -61,10 +69,17 @@ While the system may be expected to be resilient toward such arguably small devi
 If the system is fully deterministic with respect to callback execution, any change in performance can be unambiguously attributed to the changes made to algorithms and parameters, and performance evaluation is perfectly repeatable.
 Additionally, regression testing for non-functional changes would be possible by demanding exact equality of system output in response to simulated or recorded inputs.
 
-\section{Sources of Nondeterministic Callback Sequences}\label{sec:impl:nondet_sources}
+.. _sec-impl-nondet_sources:
+
+Sources of Nondeterministic Callback Sequences
+==============================================
+
 In this section, minimal examples of nodes and connecting topics will be presented, which introduce nondeterministic behavior even for deterministic nodes.
 
-\subsection{Lost or Reordered Messages}\label{sec:impl:nondet_sources:reordering}
+.. _sec-impl-nondet_sources-reordering:
+
+Lost or Reordered Messages
+--------------------------
 
 \begin{figure}[h]
     \centering
@@ -97,8 +112,10 @@ published.
 While ROS does not make any claims regarding message ordering, it is assumed that the reliable \gls{qos} setting eliminates message reordering.
 Nonetheless, message reordering, should it occur, is later also addressed by the same mechanism as possible queue overflow.
 
-\FloatBarrier
-\subsection{Inputs From Parallel Processing Chains}\label{sec:impl:nondet_sources:parallel}
+.. _sec:impl-nondet_sources-parallel:
+
+Inputs From Parallel Processing Chains
+--------------------------------------
 
 \begin{figure}
     \centering
@@ -165,8 +182,10 @@ Second, the data source $S$ publishes only a single message.
 In the previous example, deterministic behavior might be achieved if the middleware were to guarantee immediate and synchronous delivery of messages, and if the publish order within $S$ was deterministic.
 Although these assumptions are not made about the ROS middleware, and generally do not hold, this demonstrates that the problem persists even with stronger guarantees from the middleware.
 
-\FloatBarrier
-\subsection{Multiple Publishers on the Same Topic}\label{sec:impl:nondet_sources:multiple_publishers}
+.. _sec-impl-nondet_sources-multiple_publishers:
+
+Multiple Publishers on the Same Topic
+-------------------------------------
 
 \begin{figure}[h]
     \centering
@@ -205,8 +224,11 @@ Note that while $P1$ and $P2$ run concurrently in this example, this would still
 As with the scenario in \cref{sec:impl:nondet_sources:reordering}, subscriber queue overflow is an additional concern here.
 If the subscriber queue of $T$ is full already, a message from either publishing node may be dropped.
 
-\FloatBarrier
-\subsection{Parallel Service Calls}\label{sec:impl:nondet_sources:service_calls}
+.. _sec-impl-nondet_sources-service_calls:
+
+Parallel Service Calls
+----------------------
+
 \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -235,9 +257,11 @@ $SP$ provides a ROS service, which the nodes $N1$ and $N2$ call while executing 
 This causes three callbacks in total at the service provider node, the order of which is nondeterministic.
 In this case, this influences not only the future behavior of the service provider node but also the result of the callbacks at nodes $N1$ and $N2$, since each service response might depend on previous service calls and message inputs.
 
+.. _sec-impl-design_goals:
 
+Design Goals
+============
 
-\section{Design Goals}\label{sec:impl:design_goals}
 The goal of this thesis is to provide a framework for the repeatable execution of ROS systems, circumventing the nondeterminism caused by the communication middleware and varying callback execution duration.
 
 In particular, the framework shall ensure that the sequence of callbacks executed at each node is deterministic and repeatable, even with nondeterministic callback durations of the entire system, arbitrary transmission delay of messages, and without guarantees of message delivery order in specific topics and between topics.
@@ -266,9 +290,11 @@ Finally, the execution time impact of using the orchestrator shall be minimized.
 Ensuring a deterministic callback order will involve inhibiting callback execution for some time, and running callbacks serially that would otherwise run in parallel.
 Both this induced serialization overhead, as well as the runtime of the orchestrator itself, should be sufficiently small so as to not interfere with a rapid testing and development cycle.
 
+.. _sec-impl-controlling_callbacks:
 
-\clearpage
-\section{Controlling Callback Invocations}\label{sec:impl:controlling_callbacks}
+Controlling Callback Invocations
+================================
+
 In all the scenarios presented above, deterministic execution can be achieved by delaying the execution of specific callbacks in such a way, that the order of callback executions at each node is fixed.
 Multiple methods of controlling callback invocations have been considered, which also directly influence the general architecture of the framework:
 
@@ -417,7 +443,11 @@ which would be a simulator or ROS bag player.
 This allows both components to interact directly via function calls,
 which greatly simplifies the interface compared to, for example, ROS service calls.
 
-\subsection{Callback Outputs}\label{sec:impl:controlling_callbacks:outputs}
+.. _sec-impl-controlling_callbacks-outputs:
+
+Callback Outputs
+----------------
+
 ROS callbacks may modify internal node state, but may also produce outputs on other ROS topics.
 The orchestrator needs to know which outputs a callback may have, and also when a callback is done, in order to allow new events to occur at the node.
 The possible outputs are configured statically, as detailed in \cref{sec:impl:configuration}.
@@ -433,8 +463,11 @@ string[] omitted_outputs
     \label{listing:status_message_definition}
 \end{listing}
 
-\FloatBarrier
-\subsection{Timer Callbacks}\label{sec:impl:controlling_callbacks:timers}
+.. _sec-impl-controlling_callbacks-timers:
+
+Timer Callbacks
+---------------
+
 Intercepting topic inputs also allows controlling timer callback invocations, although some limitations apply.
 Both in simulation and during ROS bag replay, node time is usually already controlled by a topic input through the \texttt{/clock} topic.
 This allows the node to run as expected during slower than real-time simulation and playback.
@@ -458,7 +491,11 @@ This implies that both callbacks have exactly the same outputs, making it imposs
 A desirable property of a ROS node may be that the node itself only sets up timers when the node-local time has been initialized, which may be possible using ROS 2 ``lifecycle nodes'', which have the notion of an initialization phase at node startup.
 In this work, however, it was considered acceptable to discard the outputs of initial timer invocations in that case, since nodes can not usually be expected to perform such initialization.
 
-\subsection{Callbacks for Time-Synchronized Topics}\label{sec:time_synchronizer_callbacks}
+.. _sec-time_synchronizer_callbacks:
+
+Callbacks for Time-Synchronized Topics
+--------------------------------------
+
 The \texttt{message\_filters} package is not part of the ROS client library, but its popularity and interaction with message callback execution make it a relevant component to consider:
 This package provides convenient utilities for handling the use case in which messages on two or more subscriptions are expected to arrive (approximately) at the same time and need to be processed together.
 Specifically, it provides the \texttt{ApproximateTimeSynchronizer} class which wraps multiple subscribers and calls a single callback with all messages, as soon as messages have arrived on all topics within a sufficiently small time window.
@@ -476,7 +513,11 @@ The synchronizer may be parameterized in a way such that a message on B might be
 This could lead to a scenario where many messages are published on A, without receiving any confirmation, before publishing a message on B, which causes the combined callback.
 The message B might be combined nondeterministically with any message A, since for example, the latest message on A might not even be received by the node yet.
 
-\section{Ensuring Sequence Determinism Using Callback Graphs}\label{sec:impl:callback_graphs}
+.. _sec-impl-callback_graphs:
+
+Ensuring Sequence Determinism Using Callback Graphs
+===================================================
+
 Once the orchestrator has the ability to individually control callbacks at ROS nodes, it can ensure a deterministic order of callback execution at each node, leading to deterministic system execution.
 In order to avoid the sources of nondeterminism presented in \cref{sec:impl:nondet_sources}, the orchestrator constantly maintains a graph of all callbacks which are able to execute in the near future.
 By introducing ordering constraints between callbacks as edges in the graph, and only executing callbacks when those constraints are met, the possibly nondeterministic situations presented above are sufficiently serialized to guarantee a deterministic callback order.
@@ -653,8 +694,11 @@ The reception of this status message is usually represented in the graph analogo
 ..     \item recursively add callback actions for all nodes subscribing to input
 .. \end{itemize}
 
-\FloatBarrier
-\section{Node and System Description}\label{sec:impl:node_system_description}
+.. _sec-impl-node_system_description:
+
+Node and System Description
+===========================
+
 In order to build the callback graph, information about the node behavior and system configuration has to be available to the orchestrator.
 While some aspects of system configuration, such as connections between nodes could be inferred during runtime by using  available introspection functionality in ROS, this is not possible for node behavior.
 Also, since buffering of some topics is necessary, some connections between nodes need to be redirected via the orchestrator, changing the system configuration.
@@ -663,7 +707,11 @@ This type of system configuration is usually made before starting the nodes and 
 To enable the reuse of node configuration information, the configuration is split into node configuration and launch configuration.
 Both of those are implemented as static configuration files in JSON format and are described in detail in the following.
 
-\subsection{Node Configuration}\label{sec:impl:configuration}
+.. _sec-impl-configuration:
+
+Node Configuration
+------------------
+
 Each node requires a description of its behavior, in particular, which callbacks occur at the node and what the effects of those callbacks are.
 A node configuration consists of a list of callbacks and a list of provided services:
 
@@ -705,7 +753,9 @@ The trigger specifies a timer, an input topic, or multiple input topics in the c
 }
 \end{minted}
 
-\subsection{Launch Configuration}
+Launch Configuration
+--------------------
+
 The launch configuration describes the entire software stack under test.
 More specifically, it describes specific instances of nodes and connections between them.
 Each node is identified by a unique name, and the type of node is specified by reference to the corresponding node configuration file.
@@ -735,7 +785,11 @@ With the corresponding node configuration:
 }
 \end{minted}
 
-\section{Dynamic Reconfiguration}\label{sec:impl:reconfig}
+.. _sec-impl-reconfig:
+
+Dynamic Reconfiguration
+=======================
+
 Dynamically reconfiguring components during runtime (see \cref{sec:bg:reconfig}) presents a challenge to the orchestrator, as the software setup is usually specified in advance in the launch configuration file.
 
 To support this use case in combination with the orchestrator, the following assumptions are made with respect to the reconfiguration process:
@@ -794,7 +848,11 @@ In particular, creating or changing timers at an existing node, and starting new
 This is not inherently impossible and would be recommended as a useful extension for dynamic reconfiguration support.
 Implementation of this feature was omitted however due to the lack of an immediate requirement combined with the high implementation effort due to the implicit nature of triggering timer callbacks by clock inputs and the timer behavior when receiving the first clock input.
 
-\section{Launch System}\label{sec:impl:launch}
+.. _sec-impl-launch:
+
+Launch System
+=============
+
 The ROS 2 launch system is utilized to perform the initial topic interception via the orchestrator by remapping the corresponding topic names.
 The orchestrator provides the functionality to automatically generate the list of required remappings from the launch and node configuration files.
 These remappings map directly from the node-internal name to the intercepted topic name of the format \texttt{/intercepted/\{node\_name\}/sub/\{topic\_name\}}.
