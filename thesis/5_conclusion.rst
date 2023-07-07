@@ -3,8 +3,8 @@
 Conclusion
 ==========
 
-In this thesis, a method for repeatable execution of system tests for software stacks built using \gls{ros} was developed, implemented, and tested.
-The orchestrator achieves this without modifying lower levels of the ROS client library stack or middleware, by controlling callback invocations at the ROS topic level which are the source of observed nondeterminism in the execution of \gls{ros} software stacks.
+In this thesis, a method for repeatable execution of system tests for software stacks built using ROS was developed, implemented, and tested.
+The orchestrator achieves this without modifying lower levels of the ROS client library stack or middleware, by controlling callback invocations at the ROS topic level which are the source of observed nondeterminism in the execution of ROS software stacks.
 This is done while setting minimum requirements for the message-passing implementation, allowing in particular arbitrary transmission delay and reordering of messages.
 An ordering for callbacks at each node which also synchronizes service calls and concurrent access to output topics between multiple nodes is ensured using incrementally constructed callback graphs.
 The functionality of the implementation has been demonstrated using test cases for the distinct sources of nondeterminism in callback execution as well as with a real use case of running performance evaluation of a multi-object tracking module.
@@ -32,8 +32,8 @@ A possible solution for the specific problem encountered was proposed in \cref{s
 To further improve usability and ease the integration and maintenance of ROS nodes, automating some aspects of node and launch configuration files would be desirable.
 
 Using static inspection or dynamic observation of a node during runtime could, for example, provide an initial version of a node description, or could detect divergence between an existing description and the observed behavior.
-Such analysis is possible within \gls{ros}.
-For instance, a method for inferring causal links between node inputs and outputs was recently proposed by \citeauthor*{Bedard23} in \cite{Bedard23}.
+Such analysis is possible within ROS.
+For instance, a method for inferring causal links between node inputs and outputs was recently proposed by \citeauthor*{Bedard23} in [Bedard23]_.
 Launch configurations and existing ROS launch files currently duplicate a lot of information, with unexpected behavior if configurations such as topic remappings differ between both.
 Reducing this redundancy would not only simplify the creation of the configuration file but also significantly reduce the potential for error while maintaining and changing both files.
 

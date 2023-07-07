@@ -319,10 +319,10 @@ Additionally, this design represents a stark difference from the ROS design phil
 \end{figure}
 
 The second possible approach is to modify the ROS client library in order to control callback execution on a granular level.
-Callback execution in ROS nodes is performed by the executor, and while multiple implementations exist, the most commonly used standard executor in the \gls{rclcpp} has previously been described in \cite{Casini2019}.
-The executor is responsible for fetching messages from the \gls{dds} implementation and executing corresponding subscriber callbacks.
+Callback execution in ROS nodes is performed by the executor, and while multiple implementations exist, the most commonly used standard executor in the \gls{rclcpp} has previously been described in [Casini2019]_.
+The executor is responsible for fetching messages from the DDS implementation and executing corresponding subscriber callbacks.
 It also manages time, including external time overrides by the \texttt{/clock} topic, and timer execution.
-On this layer between the \gls{dds} implementation and the user application, it would be possible to insert functionality to inhibit callback execution and to inform the framework of callback completion, as shown in \cref{fig:impl:callbacks:rcl}.
+On this layer between the DDS implementation and the user application, it would be possible to insert functionality to inhibit callback execution and to inform the framework of callback completion, as shown in \cref{fig:impl:callbacks:rcl}.
 Instrumenting the ROS node below the application layer is especially desirable since it would not require modification to the node's source code.
 This approach does however present other difficulties:
 While there is a method to introspect the ROS client libraries via the ros\_tracing package,
@@ -455,7 +455,7 @@ This results in the execution of at most one ``missed'' timer callback, and, if 
 The latter case is immediately observed with a simulation timer starting at a large multiple of one second, and timers running at a fraction of one second.
 This is an especially challenging situation since both callback invocations correspond to the \emph{same} timer, compared to \emph{separate} timers above.
 This implies that both callbacks have exactly the same outputs, making it impossible for the orchestrator to differentiate the outputs of both callback executions.
-A desirable property of a ROS node may be that the node itself only sets up timers when the node-local time has been initialized, which may be possible using \gls{ros} 2 ``lifecycle nodes'', which have the notion of an initialization phase at node startup.
+A desirable property of a ROS node may be that the node itself only sets up timers when the node-local time has been initialized, which may be possible using ROS 2 ``lifecycle nodes'', which have the notion of an initialization phase at node startup.
 In this work, however, it was considered acceptable to discard the outputs of initial timer invocations in that case, since nodes can not usually be expected to perform such initialization.
 
 \subsection{Callbacks for Time-Synchronized Topics}\label{sec:time_synchronizer_callbacks}

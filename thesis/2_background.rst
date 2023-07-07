@@ -4,17 +4,17 @@
 Background
 **********
 
-This chapter introduces \gls{ros} and motivates the additional use case of dynamically reconfiguring ROS systems.
+This chapter introduces ROS and motivates the additional use case of dynamically reconfiguring ROS systems.
 Additionally, background on robotics software testing methodology is given, which will form the context and intended use of the method proposed in \cref{sec:impl}.
 
 ROS
 ===
 
-The \acrfull{ros} [Macenski2022]_ is a software framework used by robotics developers and the wider research community to implement reusable software components.
+The Robot Operating System (ROS) [Macenski2022]_ is a software framework used by robotics developers and the wider research community to implement reusable software components.
 It provides valuable abstractions and libraries in the areas of communication between components, system startup, configuration, and introspection.
 Since its first release in 2010, it has gained wide adoption in the robotics community, with thousands of packages released which provide common functionality in the form of ROS components that can be integrated into complete software stacks.
 In 2017, the first distribution of ROS 2 was released.
-This marked a complete redesign and introduced multiple new features explained in detail below, such as \gls{qos} and the reliance on the \gls{dds} standard for message transport.
+This marked a complete redesign and introduced multiple new features explained in detail below, such as \gls{qos} and the reliance on the Data Distribution Service (DDS) standard for message transport.
 This work is entirely using ROS 2, and while core concepts have changed little, important details relied upon here do not apply to ROS 1.
 
 This section serves as a brief introduction to the concepts of ROS nodes and topics, which are the basic primitives allowing communication between software modules, as well as the launch system.
@@ -28,7 +28,7 @@ An example may be an object detector node, which has a camera image as input, an
 Usually, although not always, each ROS node runs in a dedicated process.
 
 Every ROS Node is a participant in the ROS communication graph, which represents the connections between the inputs and outputs of multiple nodes.
-Multiple such communication graphs (or ``ROS node graphs'') are shown in this work, such as in \cref{fig:impl:problem_description:example_nodegraph}.
+Multiple such communication graphs (or "ROS node graphs") are shown in this work, such as in \cref{fig:impl:problem_description:example_nodegraph}.
 Communication between nodes is message-based and happens via topics, which are multi-producer, multi-consumer message channels.
 Nodes can send messages to topics using publishers, and receive messages from topics using subscribers.
 For each publisher and subscriber, nodes can configure a number of \gls{qos} settings, notably, they can request best-effort or reliable transport and can configure queue sizes.
@@ -38,13 +38,13 @@ Receiving messages from subscribers is realized by registering a callback functi
 \begin{figure}
     \centering
     \includegraphics[width=0.8 \textwidth]{img/ros_client_library_api_stack.png}
-    \caption[The ROS 2 client library API stack.]{The ROS 2 client library API stack, showing the ability to both support multiple underlying communication middlewares (\gls{dds} implementations) and client library bindings in multiple languages. Diagram by the contributors of the ROS 2 documentation on \href{https://docs.ros.org}{docs.ros.org}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.}
+    \caption[The ROS 2 client library API stack.]{The ROS 2 client library API stack, showing the ability to both support multiple underlying communication middlewares (DDS implementations) and client library bindings in multiple languages. Diagram by the contributors of the ROS 2 documentation on \href{https://docs.ros.org}{docs.ros.org}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.}
     \label{fig:rcl_api_stack}
 \end{figure}
 
-While ROS provides this functionality to the nodes by its \gls{api}, the underlying functionality of message delivery and node discovery relies on existing implementations of the \gls{dds} standard.
-\Cref{fig:rcl_api_stack} shows the \gls{api} stack, with the user code at the very top and the \gls{dds} implementation at the bottom.
-The diagram illustrates that ROS forms a common layer that enables the use of multiple \gls{dds} implementations within the middleware (visualized as the blue elements at the bottom of the diagram) and the use of different programming languages for application development (\emph{ros client library} bindings, directly below the user application in the diagram).
+While ROS provides this functionality to the nodes by its \gls{api}, the underlying functionality of message delivery and node discovery relies on existing implementations of the DDS standard.
+\Cref{fig:rcl_api_stack} shows the \gls{api} stack, with the user code at the very top and the DDS implementation at the bottom.
+The diagram illustrates that ROS forms a common layer that enables the use of multiple DDS implementations within the middleware (visualized as the blue elements at the bottom of the diagram) and the use of different programming languages for application development (\emph{ros client library} bindings, directly below the user application in the diagram).
 
 An important aspect of the ROS node communication model is that there is no implicit or explicit back-channel or feedback to the publisher of a message about its (intended) reception.
 This implies that there exists no concept of back pressure or congestion:
@@ -83,13 +83,13 @@ Dynamic Reconfiguration
 The combination of a specific set of active components, their specific connections, and parameters is referred to as the \emph{system configuration}.
 The above section describes how a static, or initial system configuration is specified by the launch file.
 
-Recently, however, research has gone into finding the optimal system configuration depending on the current operating environment, in order to minimize processing requirements while maintaining sufficient system performance \cite{Henning2023}.
+Recently, however, research has gone into finding the optimal system configuration depending on the current operating environment, in order to minimize processing requirements while maintaining sufficient system performance [Henning2023]_.
 
 Such a dynamic reconfiguration may be realized by a dedicated software component, which evaluates the current situation on the basis of available sensor data and environment information.
 This module may then decide to perform a system reconfiguration when appropriate, and as such may start and stop nodes, or change parameters for running nodes.
 
 To enable this use case, it is necessary to allow changing the system configuration during runtime.
-\Gls{ros} allows starting and stopping nodes at any time, and new publishers and subscribers can join existing topics.
+ROS allows starting and stopping nodes at any time, and new publishers and subscribers can join existing topics.
 Parameters within ROS nodes may also be changed during runtime, although the specific node implementation may choose to only read parameters once during startup.
 While this is generally possible within ROS, the interaction of dynamic reconfiguration with the work presented in this thesis requires special attention (\cref{sec:impl:reconfig}), due to the additional information about system behavior required by the proposed method.
 
@@ -101,7 +101,7 @@ While testing has long been considered an essential part of all software develop
 Research in autonomous driving aims to improve road safety, but this places the responsibility over the safety of occupants and especially other traffic participants on the software, which makes testing and verification of correct behavior essential.
 
 The type of testing relevant to this work can be classified as integration- or system testing.
-In the context of \gls{ros} software stacks, this amounts to testing one or multiple ROS nodes entirely, in contrast to more specific testing which would directly test an algorithm inside a node, without taking the ROS-specific code into consideration.
+In the context of ROS software stacks, this amounts to testing one or multiple ROS nodes entirely, in contrast to more specific testing which would directly test an algorithm inside a node, without taking the ROS-specific code into consideration.
 This work considers performance testing, meaning testing that determines how well the application or system completes the desired task.
 Additionally, the focus lies explicitly on post-processing testing instead of determining system metrics during runtime.
 In an autonomous driving context, this amounts to testing using a simulator or recorded data, and not online performance testing during test drives.
@@ -120,14 +120,14 @@ Software Performance Metrics in Autonomous Driving
 A variety of metrics have been proposed for quantitative evaluation and comparison of both the whole-system performance of autonomous driving software stacks, as well as individual software components within such a stack.
 
 One possibility for assessing the entire system performance of an autonomous driving stack is to measure criticality.
-Criticality is defined by \cite{Neurohr2021} in Definition 1 as ``the combined risk of the involved actors when the
-traffic situation is continued''.
-In \cite{Westhofen2023}, an overview and comparison are given of metrics that measure the criticality of a traffic scenario, many of which use models for driver behavior in order to predict dangerous situations by factors such as small distances or large relative speeds.
-Notably, the authors of \cite{Westhofen2023} explicitly assume a deterministic testing environment, in which repeating the same inputs yields the same outputs.
+Criticality is defined by [Neurohr2021]_ in Definition 1 as "the combined risk of the involved actors when the
+traffic situation is continued".
+In [Westhofen2023]_, an overview and comparison are given of metrics that measure the criticality of a traffic scenario, many of which use models for driver behavior in order to predict dangerous situations by factors such as small distances or large relative speeds.
+Notably, the authors of [Westhofen2023]_ explicitly assume a deterministic testing environment, in which repeating the same inputs yields the same outputs.
 Since those metrics evaluate the resulting traffic situation, they require running the entire software stack, even when the influence of only a single module on the result is to be determined.
 
 As an example for performance evaluation using application-specific metrics, multiple metrics for a multi-object tracking module are considered.
-Specifically, the \gls{motp} and \gls{mota} metrics as proposed in \cite{Bernardin2008} are used in this work.
+Specifically, the \gls{motp} and \gls{mota} metrics as proposed in [Bernardin2008]_ are used in this work.
 \Gls{motp} is defined as the average distance error $d$ over all matches $i$ in each timestep $t$ (with $c_t$ the number of matches between detections and ground-truth objects in timestep $t$)
 \begin{equation*}
     \text{MOTP} = \frac{\sum_i^t{d_t^i}}{\sum_t{c_t}}.
@@ -138,7 +138,7 @@ Specifically, the \gls{motp} and \gls{mota} metrics as proposed in \cite{Bernard
 \end{equation*}
 Both metrics are calculated over an entire sequence, instead of individual frames.
 
-An additional metric for multi-object tracking applications is the \gls{ospa} metric as defined in \cite{Schuhmacher2008}.
+An additional metric for multi-object tracking applications is the \gls{ospa} metric as defined in [Schuhmacher2008]_.
 This metric directly measures the distance between two sets of states with different cardinality, and can thus be calculated for each timestep instead of over an entire sequence.
 The \gls{ospa} metric of order $p$ is defined for two sets $X = \{ x_1, \dots, x_m \}$ and $Y = \{y_1, \dots, y_n\}$ and a distance measure $d^{(c)}(x,y)$ with cutoff at $c$ as
 \begin{equation*}
@@ -155,11 +155,11 @@ Evaluation and testing of robotics software is often not performed during runtim
 This enables fast iteration and comparison of approaches, methods, or versions thereof with the same inputs.
 Specific publically available datasets have evolved into de-facto standards, which allows comparison and benchmarking within the entire research community.
 These datasets are usually accompanied by ground-truth annotations, which are often required to calculate application-specific metrics.
-Some benchmarks focus on comparing system-level benchmarks and evaluating multiple modules, such as the NuPlan benchmark (\cite{caesar2022nuplan}) which aims to compare the resulting long-term driving behavior in a closed-loop simulation.
+Some benchmarks focus on comparing system-level benchmarks and evaluating multiple modules, such as the NuPlan benchmark ([caesar2022nuplan]_) which aims to compare the resulting long-term driving behavior in a closed-loop simulation.
 
-The nuScenes dataset (\cite{nuscenes2019}) for example contains camera images as well as lidar and radar measurements from an autonomous vehicle, as well as annotations for class and bounding box of visible objects, and is used extensively to evaluate object detectors in the autonomous-driving context.
+The nuScenes dataset ([nuscenes2019]_) for example contains camera images as well as lidar and radar measurements from an autonomous vehicle, as well as annotations for class and bounding box of visible objects, and is used extensively to evaluate object detectors in the autonomous-driving context.
 In those benchmark datasets, input data is commonly available in a format specific to that benchmark.
-For use within \gls{ros}, these formats are often converted to ROS bags, which provide a standard method for storing message data within \gls{ros} at a topic level.
+For use within ROS, these formats are often converted to ROS bags, which provide a standard method for storing message data within ROS at a topic level.
 For direct recording, the ROS bag recorder is available.
 It subscribes to specified topics, and stores every received message to disk in its serialized format, together with metadata required for replaying the messages.
 To replay a bag, the ROS bag player creates publishers for every topic recorded in the bag and publishes the messages in the same order as recorded.
@@ -177,11 +177,11 @@ A simulator allows for closed-loop execution of the software stack or module und
 This allows the evaluation of more modules, such as planning or control algorithms, which directly and immediately influence the robot's behavior.
 
 A large number of robotics simulators have been developed, each with specific use cases and goals, even in the context of autonomous vehicles alone:
-General robotics simulators such as Gazebo (\cite{gazebo}) feature a general physics engine capable of simulating arbitrary robots with involved locomotion techniques and a large variety of sensors.
-Application-specific simulators such as CARLA (\cite{carla}) utilize existing rendering engines to simulate typical sensors such as cameras and LIDAR in high fidelity, and use specific models for simulation of relevant objects such as vehicles and other traffic participants.
+General robotics simulators such as Gazebo ([gazebo]_) feature a general physics engine capable of simulating arbitrary robots with involved locomotion techniques and a large variety of sensors.
+Application-specific simulators such as CARLA ([carla]_) utilize existing rendering engines to simulate typical sensors such as cameras and LIDAR in high fidelity, and use specific models for simulation of relevant objects such as vehicles and other traffic participants.
 Higher-level simulation tools do not simulate individual sensor measurements, but the output of detectors, greatly reducing the computational effort at the cost of not being able to use and test specific detection modules.
 
-The simulator used for evaluation in this work is the DeepSIL framework introduced in \cite{Strohbeck2021}.
+The simulator used for evaluation in this work is the DeepSIL framework introduced in [Strohbeck2021]_.
 While the specific deep-learning-based trajectory prediction features are not used here, it provides a representative baseline for a simulator in use for autonomous-driving development, in order to evaluate the integration effort of the proposed framework.
 In the configuration used for evaluation, DeepSIL generates detections from virtual sensors and detection algorithms and simulates vehicles either by using a driver model or using control inputs generated by external planning and control modules.
-The simulated detections, simulated vehicle state estimation as well as ground truth object states are published to the software under test via \gls{ros} topics.
+The simulated detections, simulated vehicle state estimation as well as ground truth object states are published to the software under test via ROS topics.
