@@ -1,0 +1,17 @@
+\input{pre}
+
+\begin{tikzpicture}[rounded corners, thick]
+    %\draw[step=1cm,gray,very thin] (0,-1) grid (11,5);
+    \draw [uulm_blue] (0,0) rectangle (3,3);
+    \draw (0,2.8) node [align=left, anchor=north west] {ROS Node 1\\\\\small App\\\small rcl+orchestrator\\\small DDS};
+    \draw [uulm_blue] (4,0) rectangle (7,3);
+    \draw (4,2.8) node [align=left, anchor=north west] {ROS Node 2\\\\\small App\\\small rcl+orchestrator\\\small DDS};
+    \draw [uulm_blue] (8,0) rectangle (11,3);
+    \draw (8,2.8) node [align=left, anchor=north west] {ROS Node 3\\\\\small App\\\small rcl+orchestrator\\\small DDS};
+    \draw (0.5,-0.7) -- (8.5,-0.7);
+    \draw [-Latex] (0.5,-0.7) -- (0.5,0);
+    \draw [-Latex] (4.5,-0.7) -- (4.5,0);
+    \draw [-Latex] (8.5,-0.7) -- (8.5,0);
+\end{tikzpicture}
+
+\input{post}

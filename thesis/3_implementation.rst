@@ -9,7 +9,7 @@ Implementation
 
 This chapter will first introduce the problem of nondeterministic behavior in ROS using minimal examples in :ref:`sec-impl-problem_description`, :ref:`sec-impl-nondet_sources`.
 Then, in :ref:`sec-impl-design_goals`, the design goals and intended use cases for the implemented software are determined.
-Lastly, \crefrange{sec:impl:controlling_callbacks}{sec-impl-launch} describe the implementation in detail, covering the control of callback invocations, ordering of callbacks using dependency graphs, node and system configuration files, as well as details concerning dynamic reconfiguration.
+Lastly, :ref:`sec-impl-controlling_callbacks` to :ref:`sec-impl-launch` describe the implementation in detail, covering the control of callback invocations, ordering of callbacks using dependency graphs, node and system configuration files, as well as details concerning dynamic reconfiguration.
 
 .. _sec-impl-problem_description:
 
@@ -38,11 +38,11 @@ The evaluation module receives ground-truth data from the simulator and the resu
 It calculates metrics for evaluating the performance or safety of planned vehicle trajectories.
 The individual nodes are all assumed to be input/output deterministic, meaning that when repeating the exact same sequence of inputs, the same sequence of outputs is produced.
 Nondeterministic behavior of the entire system may however occur in multiple situations, which all influence the order of callbacks at each node:
-\begin{itemize}
-    \item The control feedback from the planning module to the simulator has variable delay, and may happen during an earlier or later simulation timestep.
-    \item The order of received detections at the tracking module is nondeterministic, which may influence its result.
-    \item If the planning module is triggered by a timer instead of by data input, it may happen before or after an input is received from the tracking module.
-\end{itemize}
+
+* The control feedback from the planning module to the simulator has variable delay, and may happen during an earlier or later simulation timestep.
+* The order of received detections at the tracking module is nondeterministic, which may influence its result.
+* If the planning module is triggered by a timer instead of by data input, it may happen before or after an input is received from the tracking module.
+
 Those aspects may additionally be influenced by external factors such as system load and scheduling or choice of middleware implementation, leading to different evaluation results for each run.
 
 While the system may be expected to be resilient toward such arguably small deviations in runtime behavior, such that those do not significantly degrade system performance, eliminating those is still desirable.
@@ -121,34 +121,13 @@ Although these assumptions are not made about the ROS middleware, and generally 
 Multiple Publishers on the Same Topic
 -------------------------------------
 
-\begin{figure}[h]
-    \centering
-    \begin{tikzpicture}
-        \node (sensor) [rosnode] {S};
-        \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
+.. _fig-nodegraph-example_multiple_publishers:
 
-        \node (perception1) [rosnode, right of=sensortopic, xshift=1cm, yshift=1cm] {P1};
-        \node (p1topic) [topic, right of=perception1, xshift=1cm, yshift=-1cm] {D};
+.. figure:: tikz_figures/nodegraph-example_multiple_publishers.png
 
-        \node (perception2) [rosnode, right of=sensortopic, xshift=1cm, yshift=-1cm] {P2};
+   Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths, where the processing nodes on both paths use the same output topic :math:`D`. Both paths also share the same input topic :math:`M`.
 
-        \node (tracking) [rosnode, right of=p1topic, xshift=1cm] {T};
-
-
-        \draw [arrow] (sensor) -- (sensortopic); % chktex 8
-        \draw [arrow] (sensortopic) |- (perception1);
-        \draw [arrow] (sensortopic) |- (perception2);
-
-        \draw [arrow] (perception1) -| (p1topic); % chktex 8
-        \draw [arrow] (perception2) -| (p1topic); % chktex 8
-
-        \draw [arrow] (p1topic) -- (tracking);
-    \end{tikzpicture}
-    \caption[Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths, where the processing nodes on both paths use the same output topic.]{Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths, where the processing nodes on both paths use the same output topic :math:`D`. Both paths also share the same input topic :math:`M`.}
-    \label{fig:nodegraph:example_multiple_publishers}
-\end{figure}
-
-This scenario again consists of a data source :math:`S`, two processing nodes :math:`P1` and :math:`P2` and a node :math:`T` which receives the outputs of :math:`P1` and :math:`P2`, as shown in :numref:`fig:nodegraph:example_multiple_publishers`.
+This scenario again consists of a data source :math:`S`, two processing nodes :math:`P1` and :math:`P2` and a node :math:`T` which receives the outputs of :math:`P1` and :math:`P2`, as shown in :numref:`fig-nodegraph-example_multiple_publishers`.
 Once :math:`S` publishes a message, both processing callbacks at :math:`P1` and :math:`P2` run concurrently, eventually publishing an output.
 Distinct from the previous example, :math:`P1` and :math:`P2` use the same output topic :math:`D`, which consequently is the only input of :math:`T`.
 The communication middleware does not guarantee that the message delivery order at :math:`T` matches the publish order at :math:`P1` and :math:`P2`.
@@ -163,29 +142,13 @@ If the subscriber queue of :math:`T` is full already, a message from either publ
 Parallel Service Calls
 ----------------------
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \node (it) [topic] {M};
-        \node (s)  [rosnode, left of=it, xshift=-2cm] {S};
-        \node (n1) [rosnode, right of=it, xshift=3cm, yshift=2cm] {N1};
-        \node (n2) [rosnode, right of=it, xshift=3cm, yshift=-2cm] {N2};
-        \draw[arrow] (it) |- (n1);
-        \draw[arrow] (it) |- (n2);
+.. _fig-nodegraph-example_service_calls:
 
-        \node (sn) [rosnode, right of=it, xshift=3cm] {SP};
-        \draw[arrow] (it) -- (sn);
+.. figure:: tikz_figures/nodegraph-example_service_calls.png
 
-        \draw[arrow] (s) -- (it);
+   Node graph showing three nodes :math:`N1`, :math:`N2` and :math:`SP` all with topic :math:`M` as an input. Nodes :math:`N1` and :math:`N2` call a service provided by :math:`SP` during callback execution, as indicated by the dashed arrows.
 
-        \draw[arrow, dashed] (n1) -- (sn);
-        \draw[arrow, dashed] (n2) -- (sn);
-    \end{tikzpicture}
-    \caption[Node graph showing three nodes, two of which concurrently call a service provided by the third node.]{Node graph showing three nodes :math:`N1`, :math:`N2` and :math:`SP` all with topic :math:`M` as an input. Nodes :math:`N1` and :math:`N2` call a service provided by :math:`SP` during callback execution, as indicated by the dashed arrows.}
-    \label{fig:nodegraph:example_service_calls}
-\end{figure}
-
-This example involves four nodes, as shown in :numref:`fig:nodegraph:example_service_calls`:
+This example involves four nodes, as shown in :numref:`fig-nodegraph-example_service_calls`:
 One node :math:`S` publishes a message to topic :math:`M`, which causes subscription callbacks at nodes :math:`N1`, :math:`N2` and :math:`SP`.
 :math:`SP` provides a ROS service, which the nodes :math:`N1` and :math:`N2` call while executing the input callback.
 This causes three callbacks in total at the service provider node, the order of which is nondeterministic.
@@ -233,23 +196,16 @@ In all the scenarios presented above, deterministic execution can be achieved by
 Multiple methods of controlling callback invocations have been considered, which also directly influence the general architecture of the framework:
 
 .. Custom execution environment
-\begin{figure}[h]
-    \centering
-    \begin{tikzpicture}[rounded corners, thick]
-        % \draw[step=1cm,gray,very thin] (0,0) grid (10,6);
-        \draw [uulm_grey] (0.5,0.5) rectangle (12.5,4);
-        \draw (6.5, 3) node {Orchestrator};
-        \draw [uulm_blue] (1,1) rectangle (4,2) node [pos=0.5] {Component 1};
-        \draw [uulm_blue] (5,1) rectangle (8,2) node [pos=0.5] {Component 2};
-        \draw [uulm_blue] (9,1) rectangle (12,2) node [pos=0.5] {Component 3};
-    \end{tikzpicture}
-    \caption{Considered architecture of running all components within a custom execution environment, without using ROS.}
-    \label{fig:impl:callbacks:custom_exec}
-\end{figure}
+
+.. _fig-impl-callbacks-custom_exec:
+
+.. figure:: tikz_figures/impl-callbacks-custom_exec.png
+
+   Considered architecture of running all components within a custom execution environment, without using ROS.
 
 The first approach is to completely avoid the ROS communications middleware and  directly invoke the component's functionality, without running the corresponding ROS callbacks.
 This would completely replace the ROS client library or corresponding language bindings, at least for the testing and evaluation use case, and provide a fully custom, and thus entirely controllable, execution environment.
-:numref:`fig:impl:callbacks:custom_exec` shows the individual components contained within the orchestrator, without the ROS-specific functionality.
+:numref:`fig-impl-callbacks-custom_exec` shows the individual components contained within the orchestrator, without the ROS-specific functionality.
 While this approach would provide the largest amount of flexibility, and no dependency on or assumptions about ROS, this has been considered not feasible.
 
 While some ROS nodes cleanly separate algorithm implementation and ROS communication, and allow changing the communication framework easily, this is not the case for many of the ROS nodes considered here.
@@ -258,40 +214,27 @@ This also introduces the possibility of diverging implementations between the RO
 Additionally, this design represents a stark difference from the ROS design philosophy of independent and loosely coupled components.
 
 .. Rclcpp-builtin functionality
-\begin{figure}[ht]
-    \centering
-    \begin{tikzpicture}[rounded corners, thick]
-        %\draw[step=1cm,gray,very thin] (0,-1) grid (11,5);
-        \draw [uulm_blue] (0,0) rectangle (3,3);
-        \draw (0,2.8) node [align=left, anchor=north west] {ROS Node 1\\\\\small App\\\small rcl+orchestrator\\\small DDS};
-        \draw [uulm_blue] (4,0) rectangle (7,3);
-        \draw (4,2.8) node [align=left, anchor=north west] {ROS Node 2\\\\\small App\\\small rcl+orchestrator\\\small DDS};
-        \draw [uulm_blue] (8,0) rectangle (11,3);
-        \draw (8,2.8) node [align=left, anchor=north west] {ROS Node 3\\\\\small App\\\small rcl+orchestrator\\\small DDS};
-        \draw (0.5,-0.7) -- (8.5,-0.7);
-        \draw [-Latex] (0.5,-0.7) -- (0.5,0);
-        \draw [-Latex] (4.5,-0.7) -- (4.5,0);
-        \draw [-Latex] (8.5,-0.7) -- (8.5,0);
-    \end{tikzpicture}
-    \caption[Considered architecture of integrating the orchestrator directly into the ROS client library stack.]{Considered architecture of integrating the orchestrator directly into the ROS client library stack to control callback invocations via the executor.
-    The arrows represent ROS topics connecting the nodes, which would not be changed or modified using this approach.}
-    \label{fig:impl:callbacks:rcl}
-\end{figure}
+
+.. _fig-impl-callbacks-rcl:
+
+.. figure:: tikz_figures/impl-callbacks-rcl.png
+
+   Considered architecture of integrating the orchestrator directly into the ROS client library stack to control callback invocations via the executor.
+   The arrows represent ROS topics connecting the nodes, which would not be changed or modified using this approach.
 
 The second possible approach is to modify the ROS client library in order to control callback execution on a granular level.
-Callback execution in ROS nodes is performed by the executor, and while multiple implementations exist, the most commonly used standard executor in the \gls{rclcpp} has previously been described in [Casini2019]_.
+Callback execution in ROS nodes is performed by the executor, and while multiple implementations exist, the most commonly used standard executor in the ROS Client Library for C++ (``rclcpp``) has previously been described in [Casini2019]_.
 The executor is responsible for fetching messages from the DDS implementation and executing corresponding subscriber callbacks.
 It also manages time, including external time overrides by the ``/clock`` topic, and timer execution.
-On this layer between the DDS implementation and the user application, it would be possible to insert functionality to inhibit callback execution and to inform the framework of callback completion, as shown in :numref:`fig:impl:callbacks:rcl`.
+On this layer between the DDS implementation and the user application, it would be possible to insert functionality to inhibit callback execution and to inform the framework of callback completion, as shown in :numref:`fig-impl-callbacks-rcl`.
 Instrumenting the ROS node below the application layer is especially desirable since it would not require modification to the node's source code.
 This approach does however present other difficulties:
 While there is a method to introspect the ROS client libraries via the ros_tracing package,
 RCL does not offer a generic plugin interface or other methods to inject custom behavior.
-This leaves modifying the RCL implementation, and likely also the two most popular language bindings, the \gls{rclpy} and \gls{rclcpp} for C++, and building all nodes with those modified versions.
+This leaves modifying the RCL implementation, and likely also the two most popular language bindings, the ROS Client Library for Python
+(``rclpy``) and ``rclcpp`` for C++, and building all nodes with those modified versions.
 Modifying and distributing those libraries as well as keeping them up to date with the upstream versions, however, present a considerable implementation overhead.
-Using custom \gls{rclpy} and \gls{rclcpp} versions additionally inconveniences library users, since the orchestrated version exhibits different behavior to the unmodified library, which can be unexpected and difficult to introspect.
-
-\FloatBarrier
+Using custom ``rclpy`` and ``rclcpp`` versions additionally inconveniences library users, since the orchestrated version exhibits different behavior to the unmodified library, which can be unexpected and difficult to introspect.
 
 .. External topic interception
 \begin{figure}[t]
