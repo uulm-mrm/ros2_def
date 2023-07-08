@@ -9,7 +9,7 @@ Implementation
 
 This chapter will first introduce the problem of nondeterministic behavior in ROS using minimal examples in :ref:`sec-impl-problem_description`, :ref:`sec-impl-nondet_sources`.
 Then, in :ref:`sec-impl-design_goals`, the design goals and intended use cases for the implemented software are determined.
-Lastly, \crefrange{sec:impl:controlling_callbacks}{sec:impl:launch} describe the implementation in detail, covering the control of callback invocations, ordering of callbacks using dependency graphs, node and system configuration files, as well as details concerning dynamic reconfiguration.
+Lastly, \crefrange{sec:impl:controlling_callbacks}{sec-impl-launch} describe the implementation in detail, covering the control of callback invocations, ordering of callbacks using dependency graphs, node and system configuration files, as well as details concerning dynamic reconfiguration.
 
 .. _sec-impl-problem_description:
 
@@ -70,16 +70,16 @@ Lost or Reordered Messages
 :numref:`fig-nodegraph-example_reordering` shows two ROS nodes communicating via one topic, without any additional publishers or subscribers connected to the topic.
 In this scenario, the sending node publishes messages at a high rate, while the receiving node processes messages slower than required to handle every message.
 This causes the subscriber queue to fill up, eventually dropping messages.
-Current ROS defaults use the \texttt{keep last N} queue handling strategy, which would cause the oldest message to get dropped from the queue when a new one arrives.
+Current ROS defaults use the ``keep last N`` queue handling strategy, which would cause the oldest message to get dropped from the queue when a new one arrives.
 Under varying system load, the number of processed messages changes, which leads to nondeterministic node behavior.
 
 It should be noted that this can not be avoided by using the reliable \gls{qos} setting in ROS.
 A reliably delivered message may still cause another message to be dropped from the subscriber's queue if there is no space for the incoming message.
 Messages actually getting lost during delivery, which may happen using the best-effort \gls{qos} setting on a constrained transport medium, such as a low-bandwidth wireless network, are not handled here.
-A possible measure against this behavior is the \texttt{keep all} queuing mode, but this is often not feasible, since this may cause the queue size as well as the input-output latency of the node to grow without bounds.
+A possible measure against this behavior is the ``keep all`` queuing mode, but this is often not feasible, since this may cause the queue size as well as the input-output latency of the node to grow without bounds.
 
 Finally, message reordering might be of concern.
-The DDS standard allows ordering incoming data in the \texttt{BY\_RECEPTION\_TIMESTAMP} mode, which implies that the receive order might not match the order in which the messages were
+The DDS standard allows ordering incoming data in the ``BY\_RECEPTION\_TIMESTAMP`` mode, which implies that the receive order might not match the order in which the messages were
 published.
 While ROS does not make any claims regarding message ordering, it is assumed that the reliable \gls{qos} setting eliminates message reordering.
 Nonetheless, message reordering, should it occur, is later also addressed by the same mechanism as possible queue overflow.
@@ -281,7 +281,7 @@ Additionally, this design represents a stark difference from the ROS design phil
 The second possible approach is to modify the ROS client library in order to control callback execution on a granular level.
 Callback execution in ROS nodes is performed by the executor, and while multiple implementations exist, the most commonly used standard executor in the \gls{rclcpp} has previously been described in [Casini2019]_.
 The executor is responsible for fetching messages from the DDS implementation and executing corresponding subscriber callbacks.
-It also manages time, including external time overrides by the \texttt{/clock} topic, and timer execution.
+It also manages time, including external time overrides by the ``/clock`` topic, and timer execution.
 On this layer between the DDS implementation and the user application, it would be possible to insert functionality to inhibit callback execution and to inform the framework of callback completion, as shown in :numref:`fig:impl:callbacks:rcl`.
 Instrumenting the ROS node below the application layer is especially desirable since it would not require modification to the node's source code.
 This approach does however present other difficulties:
@@ -386,7 +386,7 @@ ROS callbacks may modify internal node state, but may also produce outputs on ot
 The orchestrator needs to know which outputs a callback may have, and also when a callback is done, in order to allow new events to occur at the node.
 The possible outputs are configured statically, as detailed in :ref:`sec-impl-configuration`.
 If a node omits one of the configured outputs dynamically, or if a node does not usually have any outputs which are visible to the orchestrator, a status message must be published, the definition of which is available in \cref{listing:status_message_definition}.
-The \texttt{omitted\_outputs} field optionally names one or multiple topics on which an output would usually be expected during this callback, but which are not published during this specific callback invocation.
+The ``omitted\_outputs`` field optionally names one or multiple topics on which an output would usually be expected during this callback, but which are not published during this specific callback invocation.
 
 \begin{listing}[ht]
     \begin{minted}[linenos]{text}
@@ -403,14 +403,14 @@ Timer Callbacks
 ---------------
 
 Intercepting topic inputs also allows controlling timer callback invocations, although some limitations apply.
-Both in simulation and during ROS bag replay, node time is usually already controlled by a topic input through the \texttt{/clock} topic.
+Both in simulation and during ROS bag replay, node time is usually already controlled by a topic input through the ``/clock`` topic.
 This allows the node to run as expected during slower than real-time simulation and playback.
 Since the clock messages only contain the current time (and not information such as the playback rate), and ROS does not extrapolate this time, this forms a topic input that triggers timer callbacks.
 Like any other topic input, this topic name can be remapped to form a specific clock topic for each node, allowing triggering timer callbacks at each node individually.
 
 This approach is limited, however, when multiple timers exist at the same node:
 Even if the timers are configured to different frequencies, the timer invocations will inevitably occur at the same time at some point.
-In that instant, the \texttt{/clock} input triggers both (all) timers, without the ability to specifically target the callback of an individual timer.
+In that instant, the ``/clock`` input triggers both (all) timers, without the ability to specifically target the callback of an individual timer.
 With two callbacks running simultaneously (and depending on the executor, possibly in parallel), nondeterministic message ordering may occur if, for example, both timer callbacks publish a message to the same topic.
 Thus, using multiple timers at the same node is only acceptable if the corresponding outputs are
 separate.
@@ -430,9 +430,9 @@ In this work, however, it was considered acceptable to discard the outputs of in
 Callbacks for Time-Synchronized Topics
 --------------------------------------
 
-The \texttt{message\_filters} package is not part of the ROS client library, but its popularity and interaction with message callback execution make it a relevant component to consider:
+The ``message\_filters`` package is not part of the ROS client library, but its popularity and interaction with message callback execution make it a relevant component to consider:
 This package provides convenient utilities for handling the use case in which messages on two or more subscriptions are expected to arrive (approximately) at the same time and need to be processed together.
-Specifically, it provides the \texttt{ApproximateTimeSynchronizer} class which wraps multiple subscribers and calls a single callback with all messages, as soon as messages have arrived on all topics within a sufficiently small time window.
+Specifically, it provides the ``ApproximateTimeSynchronizer`` class which wraps multiple subscribers and calls a single callback with all messages, as soon as messages have arrived on all topics within a sufficiently small time window.
 
 While this makes the node robust against variations in message reception time and order, it complicates reasoning about the node's behavior from the outside.
 The time synchronizer introduces an additional state to the node in the form of cached messages, which then influences whether a callback is executed or not for subsequent incoming messages.
@@ -440,9 +440,9 @@ Additionally, the callback behavior is now dependent on the message contents, si
 
 For handling such callbacks using the orchestrator, the following approach has been taken:
 For each input of the time synchronizer, it is initially assumed that the combined callback will be invoked.
-An instance of \texttt{ApproximateTimeSynchronizer} is additionally held at the orchestrator, which is then used to determine if the callback is expected to execute or not for a particular input message.
+An instance of ``ApproximateTimeSynchronizer`` is additionally held at the orchestrator, which is then used to determine if the callback is expected to execute or not for a particular input message.
 Since the message needs to be forwarded even when no callback is expected, a pathological error case emerges.
-Consider the case in which a \texttt{ApproximateTimeSynchronizer} is used to synchronize messages on topics A and B, where A is published at a significantly higher rate than B.
+Consider the case in which a ``ApproximateTimeSynchronizer`` is used to synchronize messages on topics A and B, where A is published at a significantly higher rate than B.
 The synchronizer may be parameterized in a way such that a message on B might be correctly combined with any of the last few messages on A.
 This could lead to a scenario where many messages are published on A, without receiving any confirmation, before publishing a message on B, which causes the combined callback.
 The message B might be combined nondeterministically with any message A, since for example, the latest message on A might not even be received by the node yet.
@@ -466,26 +466,26 @@ Edges between actions represent dependencies in execution order:
 An edge :math:`(u, v)` from action :math:`u` to action :math:`v` implies that the action :math:`u` must be executed after the action :math:`v` has run to completion.
 All outgoing edges from an action are created with the action itself.
 Additional edges are not added at a later time, and edges are only removed once one of the connected actions is removed.
-It should be noted that time inputs on the \texttt{/clock} topic for triggering timer callbacks as described in :ref:`sec-impl-controlling_callbacks-timers` are not represented as actions, as they do not contain any message data that needs to be buffered.
+It should be noted that time inputs on the ``/clock`` topic for triggering timer callbacks as described in :ref:`sec-impl-controlling_callbacks-timers` are not represented as actions, as they do not contain any message data that needs to be buffered.
 Instead, the appropriate timer callback actions are created as soon as the clock input is offered by the data provider.
 Once the actions are ready to execute, a corresponding clock message is sent to the node to trigger the callback.
 
 There are four distinct types of edges:
-\texttt{CAUSALITY} edges exist between actions that have an intrinsic data dependency, which for ROS means one action is triggered by an incoming ROS message, which the other action publishes.
+``CAUSALITY`` edges exist between actions that have an intrinsic data dependency, which for ROS means one action is triggered by an incoming ROS message, which the other action publishes.
 The ordering of two actions connected by such an edge is guaranteed implicitly since one action is directly triggered by the other.
 This means the orchestrator does not have to explicitly serialize those callbacks.
 
-\texttt{SAME\_NODE} edges are inserted between actions that occur at the same ROS node.
+``SAME\_NODE`` edges are inserted between actions that occur at the same ROS node.
 This guarantees that multiple actions at the same node, such as the callbacks for multiple different subscriptions, occur in the same order for every data input.
 
-\texttt{SAME\_TOPIC} edges are inserted from an action that publishes a specific topic, to existing actions that are triggered by messages on that topic.
+``SAME\_TOPIC`` edges are inserted from an action that publishes a specific topic, to existing actions that are triggered by messages on that topic.
 This dependency prevents message reordering and subscriber queue overflow, by ensuring that actions that publish on a topic only run after all the actions which are triggered by a previous message on that topic.
 
-\texttt{SERVICE\_GROUP} edges ensure deterministic execution involving service calls.
+``SERVICE\_GROUP`` edges ensure deterministic execution involving service calls.
 The result of a service call is considered to be dependent on the state of the service-providing node, and all service calls are assumed to possibly alter that state.
 Similarly, all other actions occurring directly at the service-providing node are also considered to alter that node's state.
 A service group for a particular service contains all actions which may call the service and all actions which occur directly at the service provider node.
-The \texttt{SERVICE\_GROUP} edge is then added to all nodes in all service groups of the services that a particular action may call.
+The ``SERVICE\_GROUP`` edge is then added to all nodes in all service groups of the services that a particular action may call.
 This ensures a deterministic execution order of all actions which can modify the service-providers state.
 
 \tikzstyle{callback} = [draw, circle, minimum size=1.6cm, align=center]
@@ -557,7 +557,7 @@ This ensures a deterministic execution order of all actions which can modify the
     \caption[Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.]{Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.
     "Input" actions represent the publishing of a topic by the data source.
     "Buffer" actions represent the input of an intercepted topic at the orchestrator, potentially for forwarding to downstream nodes.
-    Message callbacks at ROS nodes are represented as "\texttt{<node name>} Rx \texttt{<topic>}".
+    Message callbacks at ROS nodes are represented as "``<node name>`` Rx ``<topic>``".
     }
     \label{fig:impl:example_cb_graph}
 \end{figure}
@@ -565,14 +565,14 @@ This ensures a deterministic execution order of all actions which can modify the
 To illustrate the effects of specific edge types, the scenario from :numref:`fig:nodegraph:example_parallel_nodes` is considered for two subsequent inputs.
 The resulting callback graph is shown in :numref:`fig:impl:example_cb_graph`.
 Actions corresponding to the first input are shown in the left half of the graph.
-\texttt{CAUSALITY} connections drawn in blue show connections directly corresponding to the ROS node graph:
+``CAUSALITY`` connections drawn in blue show connections directly corresponding to the ROS node graph:
 They connect each callback to the previous callback publishing the required input data.
-\texttt{SAME\_NODE} edges connect the corresponding callbacks between timesteps, and the two callbacks of node :math:`T` within each timestep.
+``SAME\_NODE`` edges connect the corresponding callbacks between timesteps, and the two callbacks of node :math:`T` within each timestep.
 This ensures that the callback order at :math:`T` is deterministic even if the processing times of :math:`P1` and :math:`P2` are variable.
-The \texttt{SAME\_TOPIC} edges in this example might seem redundant to the \texttt{SAME\_NODE} connections, the outgoing edge from the second data input, however, is required to ensure that both inputs are not reordered before they arrive at the orchestrator.
+The ``SAME\_TOPIC`` edges in this example might seem redundant to the ``SAME\_NODE`` connections, the outgoing edge from the second data input, however, is required to ensure that both inputs are not reordered before they arrive at the orchestrator.
 This graph also shows additional nodes which do not directly correspond to callbacks within the software stack under test:
 The input nodes represent data inputs that may come from a ROS bag or the simulator.
-\emph{Buffer nodes} represent the action of storing a message at the orchestrator, and allow parallel execution by allowing \texttt{SAME\_TOPIC} dependencies to be made to specific outputs of callbacks instead of entire callbacks.
+\emph{Buffer nodes} represent the action of storing a message at the orchestrator, and allow parallel execution by allowing ``SAME\_TOPIC`` dependencies to be made to specific outputs of callbacks instead of entire callbacks.
 Some elements have been excluded from this graph for brevity:
 The callbacks at node :math:`T` do not have any output, which requires them to publish a status message.
 The reception of this status message is usually represented in the graph analogous to the buffer nodes.
@@ -768,7 +768,7 @@ This process is illustrated in :numref:`fig:impl:reconfig_sequence`.
         \end{call}
     \end{sequencediagram}
     \caption[Sequence diagram of communication between orchestrator and reconfigurator during the dynamic reconfiguration step.]{Communication between orchestrator and reconfigurator during the dynamic reconfiguration step.
-    The first callback at the reconfigurator is a message callback with the \texttt{may\_cause\_reconfiguration} flag set.
+    The first callback at the reconfigurator is a message callback with the ``may\_cause\_reconfiguration`` flag set.
     The second callback is the execution of the reconfiguration service call.}
     \label{fig:impl:reconfig_sequence}
 \end{figure}
@@ -789,29 +789,31 @@ Launch System
 
 The ROS 2 launch system is utilized to perform the initial topic interception via the orchestrator by remapping the corresponding topic names.
 The orchestrator provides the functionality to automatically generate the list of required remappings from the launch and node configuration files.
-These remappings map directly from the node-internal name to the intercepted topic name of the format \texttt{/intercepted/\{node\_name\}/sub/\{topic\_name\}}.
-By using node-specific remapping rules of the form \texttt{nodename:from:=to}, all remappings can be generated in the same place and then be applied at once, which allows wrapping an existing launch file without making any modifications to it.
-The following shows an example launch file that starts the software stack under test by first generating the required remappings in line \ref{code:gen_remappings} and then including the original launch file below.
+These remappings map directly from the node-internal name to the intercepted topic name of the format ``/intercepted/{node_name}/sub/{topic_name}``.
+By using node-specific remapping rules of the form ``nodename:from:=to``, all remappings can be generated in the same place and then be applied at once, which allows wrapping an existing launch file without making any modifications to it.
+The following shows an example launch file that starts the software stack under test by first generating the required remappings in line 3 and then including the original launch file below.
 
-\begin{minted}[linenos, escapeinside=||, highlightlines={3-6}]{python}
-def generate_launch_description():
-    return LaunchDescription([
-        *generate_remappings_from_config( |\label{code:gen_remappings}|
-            "orchestrator",
-            "sil_reconfig_launch_config.json"
-        ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                PathJoinSubstitution([
-                    FindPackageShare('platform_sil'),
-                    'launch/sil.py'
-                ])
-            ])
-        )
-    ])
-\end{minted}
+.. code-block:: python
+   :linenos:
+   :emphasize-lines: 3,4,5,6
+
+   def generate_launch_description():
+       return LaunchDescription([
+           *generate_remappings_from_config(
+               "orchestrator",
+               "sil_reconfig_launch_config.json"
+           ),
+           IncludeLaunchDescription(
+               PythonLaunchDescriptionSource([
+                   PathJoinSubstitution([
+                       FindPackageShare('platform_sil'),
+                       'launch/sil.py'
+                   ])
+               ])
+           )
+       ])
 
 A limitation exists with respect to the already existing launch file due to the capabilities of the node-specific remapping in ROS:
-The \texttt{nodename:} prefix which is used to restrict the remapping rule to one specific node, does not accept namespaces in the node name.
+The ``nodename:`` prefix which is used to restrict the remapping rule to one specific node, does not accept namespaces in the node name.
 This might necessitate changing the use of ROS namespaces to prefixes (without a forward slash separator) for node names in the existing launch files.
 Note that this limitation only applies to node names, and not to topic names.

@@ -374,7 +374,7 @@ While all examples show successful deterministic execution, some limitations and
 
 In the case of concurrent callbacks which publish on the same topic, parallelism could further be improved by extending the topic interception strategy.
 Currently, only the input topics of each node are intercepted by the orchestrator, the output topics are not changed.
-If the output topics of nodes were also remapped to individual topics, all \texttt{SAME\_TOPIC} dependencies would be eliminated.
+If the output topics of nodes were also remapped to individual topics, all ``SAME\_TOPIC`` dependencies would be eliminated.
 In the example from :numref:`fig:eval:parallel_inputs:sequence_orchestrator`, this would again allow the concurrent callbacks :math:`P1` and :math:`P2` to execute in parallel, with each output being individually buffered at the orchestrator.
 The individually and uniquely buffered outputs could then be forwarded to :math:`T` in a deterministic order, effectively resulting in a callback execution behavior as in :ref:`sec:eval:verification:parallel_inputs`.
 
@@ -486,12 +486,12 @@ which in this case is the simulator.
 
 The orchestrator component is instantiated within the simulator and then provides an \gls{api} that the simulator must call at specific points to ensure deterministic execution.
 To instantiate and start the orchestrator, the simulator must also provide the orchestrator with the appropriate launch configuration.
-All \gls{api} calls are of the form \texttt{wait\_until\_<condition>} and usually return a \texttt{Future} object that must be awaited before executing the corresponding actions.
-The \texttt{wait\_until\_publish\_allowed} function must be inserted before publishing any ROS message on any topic.
-Before publishing a \texttt{/clock} message, the new time must be provided to the orchestrator using the dedicated \texttt{wait\_until\_time\_publish\_allowed} \gls{api} call, which is required for the orchestrator to prepare for eventual timer callbacks.
-Before changing the internal simulation state, the \texttt{wait\_until\_dataprovider\_state\_update\_allowed} method must be called.
+All \gls{api} calls are of the form ``wait\_until\_<condition>`` and usually return a ``Future`` object that must be awaited before executing the corresponding actions.
+The ``wait\_until\_publish\_allowed`` function must be inserted before publishing any ROS message on any topic.
+Before publishing a ``/clock`` message, the new time must be provided to the orchestrator using the dedicated ``wait\_until\_time\_publish\_allowed`` \gls{api} call, which is required for the orchestrator to prepare for eventual timer callbacks.
+Before changing the internal simulation state, the ``wait\_until\_dataprovider\_state\_update\_allowed`` method must be called.
 This usually happens by performing a simulation timestep, and this method ensures synchronizing this timestep with expected inputs present in a closed-loop simulation, such as vehicle control inputs.
-The \texttt{wait\_until\_pending\_actions\_complete} method is used to ensure all callbacks finish cleanly once the simulation is done.
+The ``wait\_until\_pending\_actions\_complete`` method is used to ensure all callbacks finish cleanly once the simulation is done.
 
 To enable closed-loop simulation, the simulator must accept some input from the software under test, such as a control signal for an autonomous vehicle in this case.
 This implies a subscription callback, which must be described in a node configuration file.
@@ -501,13 +501,13 @@ If this callback does not publish any further messages, a status message must be
 ROS already provides a ROS bag player, which could be modified to include the orchestrator.
 Modifying the official ROS bag player would have the advantage of keeping access to the large set of features already implemented, and preserving the known user interface.
 Some aspects of the official player increase the integration effort considerably, however.
-Specifically, publishing of the \texttt{/clock} topic is asynchronous to message playback and at a fixed rate.
+Specifically, publishing of the ``/clock`` topic is asynchronous to message playback and at a fixed rate.
 While this has some advantages for interactive use, it interferes with deterministic execution and would require a significant change in design to accommodate the orchestrator.
 Furthermore, as with the initial architecture considerations of the orchestrator, it is undesirable to fork existing ROS components and maintain alternative versions, as this creates an additional maintenance burden and might prevent the easy adoption of new upstream features.
 
 Thus, a dedicated ROS bag player is implemented for use with the orchestrator instead of modifying the existing player.
 This does not have the same feature set as the official player but allows for evaluation of this use case with a reasonable implementation effort.
-To integrate the orchestrator, the ROS bag player requires the same adaptation as the simulator, except for the \texttt{wait\_until\_dataprovider\_state\_update\_allowed} call which is not applicable without closed-loop execution.
+To integrate the orchestrator, the ROS bag player requires the same adaptation as the simulator, except for the ``wait\_until\_dataprovider\_state\_update\_allowed`` call which is not applicable without closed-loop execution.
 Besides deterministic execution, a new feature is reliable faster-than-realtime execution, details of which are discussed in :ref:`sec:eval:execution_time`.
 
 \subsection{ROS Nodes}\label{sec:eval:system_integration:ros_nodes}
@@ -544,21 +544,21 @@ The tracking module employs a sophisticated queueing system, which aims to form 
 while also supporting dynamic addition and removal of sensors.
 Additionally, while processing is always triggered by an incoming message, the processing itself happens in a dedicated thread in order to allow the simultaneous processing of ROS messages.
 
-The input-output behavior itself is configurable such that only the reception of specific sensor inputs cause the processing and publishing of a "\texttt{tracks}" output message.
+The input-output behavior itself is configurable such that only the reception of specific sensor inputs cause the processing and publishing of a "``tracks``" output message.
 This is done to limit the output rate and reduce processing requirements.
 Due to the queueing, this does however not imply that reception of the configured input immediately causes an output to appear.
 It may be the case that additional inputs are required to produce the expected output.
 
 This behavior can however still be handled by the node configuration without requiring major modification to the tracking module:
 The node configuration was modified such that any input may cause an output to be published.
-Then, the processing method was adapted such that a status message is published that explicitly excludes the \texttt{tracks} output using the \texttt{omitted\_outputs} field when no tracks will be published.
+Then, the processing method was adapted such that a status message is published that explicitly excludes the ``tracks`` output using the ``omitted\_outputs`` field when no tracks will be published.
 In some circumstances, specifically following dropped messages, the queueing  additionally results in multiple outputs in a single callback.
 This behavior is described in detail in :ref:`sec:eval:real_use_case:rosbag` and is not currently supported by the orchestrator.
 
 While this is a pragmatic solution for describing the otherwise hard to statically describe input-output behavior of the tracking module, declaring more output topics than necessary for a callback is usually undesired:
-Subsequent callbacks which actually publish a message on the specified topic need to wait for this callback to complete due to a false \texttt{SAME\_TOPIC} dependency.
+Subsequent callbacks which actually publish a message on the specified topic need to wait for this callback to complete due to a false ``SAME\_TOPIC`` dependency.
 Additionally, the callback graph will contain possibly many actions resulting from the anticipated output.
-Those actions are then again false dependencies for subsequent actions, not only as \texttt{SAME\_TOPIC} dependencies but also \texttt{SAME\_NODE} and \texttt{SERVICE\_GROUP} edges.
+Those actions are then again false dependencies for subsequent actions, not only as ``SAME\_TOPIC`` dependencies but also ``SAME\_NODE`` and ``SERVICE\_GROUP`` edges.
 These false dependencies might reduce the number of callbacks able to execute in parallel and might force callback executions to be delayed more than necessary to ensure deterministic execution.
 Once a status message is received which specifies that the output message will not be published, the additional actions are removed, which then allows the execution of dependent actions.
 
@@ -883,7 +883,7 @@ This induced latency of :math:`0.35` ms on average is considered acceptable and 
             enlarge x limits={0.15,upper},
             height=5cm,
             width=12cm,
-            yticklabels={{\texttt{real\_time},\\orchestrator},{\texttt{fast},\\orchestrator},\texttt{real\_time}},
+            yticklabels={{``real\_time``,\\orchestrator},{``fast``,\\orchestrator},``real\_time``},
             yticklabel style={align=right},
             ytick=data,
             nodes near coords, nodes near coords align={horizontal},
@@ -903,12 +903,12 @@ This induced latency of :math:`0.35` ms on average is considered acceptable and 
 The first bar shows the runtime without using the orchestrator, the bottom two bars show the time when using the orchestrator.
 
 The simulator currently offers two modes of execution:
-\texttt{fast} executes the simulation as fast as possible, while \texttt{real\_time} slows down the simulation to run at real-time speed if the simulation itself would be able to run faster than real-time.
-Using the \texttt{fast} mode is only appropriate combined with the orchestrator or some other method of synchronization between the simulator and software under test.
+``fast`` executes the simulation as fast as possible, while ``real\_time`` slows down the simulation to run at real-time speed if the simulation itself would be able to run faster than real-time.
+Using the ``fast`` mode is only appropriate combined with the orchestrator or some other method of synchronization between the simulator and software under test.
 If the simulator is not able to run in real-time, deliberate delays to ensure real-time execution should already be zero.
-Since :numref:`fig:eval:execution_time:sim_comparison_barchart` still shows an increase in runtime for using the \texttt{real\_time} mode compared to the \texttt{fast} mode, the orchestrator is considered with the \texttt{fast} execution mode in the following.
+Since :numref:`fig:eval:execution_time:sim_comparison_barchart` still shows an increase in runtime for using the ``real\_time`` mode compared to the ``fast`` mode, the orchestrator is considered with the ``fast`` execution mode in the following.
 % time factor in test: 1.43063584
-Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73\% in the \texttt{fast} case.
+Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73\% in the ``fast`` case.
 
 Evaluating the orchestrator itself for execution time, it can be found that during a simulation run, the callback for intercepted message inputs runs on average :math:`0.6` ms, and the callback for status messages runs :math:`0.9` ms.
 The \gls{api} functions for waiting until publishing a time or data input execute in :math:`0.9` ms and :math:`0.5` ms.
@@ -921,10 +921,10 @@ The speed of publishing inputs by the simulator is greatly reduced especially fo
 This would usually happen without waiting, but the orchestrator requires confirmation from the tracking module that an input has been processed before forwarding the next input to ensure a deterministic processing order.
 
 Finally, the orchestrator requires the simulator to receive and process the output from the planning module before advancing the simulation.
-This is realized by the \texttt{changes\_dataprovider\_state} flag for the corresponding callback in the node configuration file, which causes the \texttt{wait\_until\_dataprovider\_state\_update\_allowed} \gls{api} call to block until the callback has finished.
+This is realized by the ``changes\_dataprovider\_state`` flag for the corresponding callback in the node configuration file, which causes the ``wait\_until\_dataprovider\_state\_update\_allowed`` \gls{api} call to block until the callback has finished.
 For any simulator, the "dataprovider state update" corresponds to executing a simulation timestep, which results in an effective slowdown of each simulation timestep to the execution time of the longest path resulting in some input to the simulator.
 
-The other available flag for callbacks, \texttt{may\_cause\_reconfiguration}, presents a similar point of global synchronization:
+The other available flag for callbacks, ``may\_cause\_reconfiguration``, presents a similar point of global synchronization:
 This flag is applied to callbacks of a component that may decide dynamically reconfigure the ROS system, as described in :ref:`sec:bg:reconfig`, based on the current system state (such as vehicle environment, in the autonomous driving use case).
 To ensure that the reconfiguration always occurs at the same point in time with respect to other callback executions at each node, any subsequent data inputs and dataprovider state updates must wait until either the reconfiguration is complete or the callback has finished without requesting reconfiguration.
 This presents an even more severe point of synchronization, since it immediately blocks the next data inputs from the simulator, and not only the start of the next timestep, while still allowing to publish the remaining inputs from the current timestep.
@@ -940,7 +940,7 @@ While some of that overhead is inherently required by the serialization to ensur
 
 When using a ROS bag instead of a simulator as the data source, some of the identified problems are less concerning.
 Since a ROS bag player does not have to perform any computation and reading recorded data is not usually a bottleneck for performance, the overhead of the orchestrator \gls{api} calls is less problematic.
-Furthermore, without closed-loop simulation, the \texttt{wait\_until\_dataprovider\_state\_update\_allowed} \gls{api} call is not necessary which has been identified as a factor that reduces the potential for parallel callback execution.
+Furthermore, without closed-loop simulation, the ``wait\_until\_dataprovider\_state\_update\_allowed`` \gls{api} call is not necessary which has been identified as a factor that reduces the potential for parallel callback execution.
 In some scenarios, the use of the orchestrator is even able to improve execution time:
 When replaying a ROS bag, the speed of playback is often adjusted.
 Use cases for playing back a recording at equal to or slower than real-time occur when the developer intends to use interactive tools for introspection and visualization such as for debugging the behavior of a software component in a specific scenario.
