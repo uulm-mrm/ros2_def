@@ -7,8 +7,8 @@ Implementation
 .. contents::
    :local:
 
-This chapter will first introduce the problem of nondeterministic behavior in ROS using minimal examples in \cref{sec:impl:problem_description,sec:impl:nondet_sources}.
-Then, in \cref{sec:impl:design_goals}, the design goals and intended use cases for the implemented software are determined.
+This chapter will first introduce the problem of nondeterministic behavior in ROS using minimal examples in :ref:`sec-impl-problem_description`, :ref:`sec-impl-nondet_sources`.
+Then, in :ref:`sec-impl-design_goals`, the design goals and intended use cases for the implemented software are determined.
 Lastly, \crefrange{sec:impl:controlling_callbacks}{sec:impl:launch} describe the implementation in detail, covering the control of callback invocations, ordering of callbacks using dependency graphs, node and system configuration files, as well as details concerning dynamic reconfiguration.
 
 .. _sec-impl-problem_description:
@@ -16,7 +16,7 @@ Lastly, \crefrange{sec:impl:controlling_callbacks}{sec:impl:launch} describe the
 Problem Description
 ===================
 
-An important property of all testing and evaluation approaches outlined in \cref{sec:bg:software_testing} is determinism.
+An important property of all testing and evaluation approaches outlined in :ref:`sec-bg-software_testing` is determinism.
 A nondeterministic simulation for example may result in substantially different scenarios leading to changing evaluation metrics over multiple test runs.
 If the software under test itself is not deterministic, a regression test might fail even if no functional changes to the software have been made.
 
@@ -24,33 +24,13 @@ It can be observed, however, that even with deterministic data sources such as s
 This is due to nondeterministic callback execution:
 Varying processing times of intermediate modules and nondeterministic behavior and latencies within the communication middleware can change the order in which callbacks are executed, which may alter a node's behavior, even if the content of the individual input messages is consistent.
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}[
-        % https://tex.stackexchange.com/a/125468/143051
-        buswidth/.style={decoration={
-            markings,
-            mark= at position 0.5 with {\node[font=\normalsize] {/};\node[below=1pt] {\tiny #1};}
-        }, postaction={decorate}}
-    ]
-        % \draw[step=1cm,gray,very thin] (0,-5) grid (10,5);
-        \node (sim) at (0,0) [rosnode] {Simulator};
-        \node (tracking) at (5,0) [rosnode] {Tracking};
-        \node (planning) at (10,0) [rosnode] {Planning};
-        \node (eval) at (7.5,-2) [rosnode] {Evaluation};
+.. _fig-impl-problem_description-example_nodegraph:
 
-        \draw [arrow,buswidth={}] (sim) -- node [above=1.5mm] {Detections} (tracking);
-        \draw [arrow] (tracking) |- (eval);
-        \draw [arrow] (tracking) -- node [above] {Tracks} (planning);
-        \draw [arrow] (planning) |- (eval);
-        \draw [arrow] (sim) -- (0,-3) -| node [pos=0.25, below] {Ground Truth} (eval);
-        \draw [arrow] (planning) -- (10, 1) -| node [pos=0.25, above] {Control Signals} (sim);
-    \end{tikzpicture}
-    \caption{An exemplary ROS node graph of an autonomous-driving test setup.}
-    \label{fig:impl:problem_description:example_nodegraph}
-\end{figure}
+.. figure:: tikz_figures/impl-problem_description-example_nodegraph.png
 
-\Cref{fig:impl:problem_description:example_nodegraph} displays an example ROS node graph for a testing setup in an autonomous-driving context.
+   An exemplary ROS node graph of an autonomous-driving test setup.
+
+:numref:`fig-impl-problem_description-example_nodegraph` displays an example ROS node graph for a testing setup in an autonomous-driving context.
 A simulator produces noisy object detections, which are published on multiple topics.
 The tracking module receives those detections and sends a combined list of tracked objects to the planning module, which generates a vehicle trajectory and appropriate control signals.
 Those are fed back to the simulator, updating the vehicle state.
@@ -221,7 +201,7 @@ The communication middleware does not guarantee that the message delivery order 
 This results in a nondeterministic arrival order of both messages at $T$.
 Note that while $P1$ and $P2$ run concurrently in this example, this would still be a concern if the processing nodes were triggered by separate inputs since callback duration and transmission latency would still be nondeterministic.
 
-As with the scenario in \cref{sec:impl:nondet_sources:reordering}, subscriber queue overflow is an additional concern here.
+As with the scenario in :ref:`sec-impl-nondet_sources-reordering`, subscriber queue overflow is an additional concern here.
 If the subscriber queue of $T$ is full already, a message from either publishing node may be dropped.
 
 .. _sec-impl-nondet_sources-service_calls:
@@ -430,7 +410,7 @@ Using custom \gls{rclpy} and \gls{rclcpp} versions additionally inconveniences l
 
 The final approach taken is to intercept the inputs to each node on the ROS-topic level:
 The orchestrator exists as an external component and individual ROS node and ensures that all communication passes through it, with no direct connections remaining between nodes, as visualized in \cref{fig:impl:callbacks:orchestrator_design}.
-With the knowledge of the intended node inputs (which are specified in description files, as described in \cref{sec:impl:configuration}), the orchestrator can now forward messages in the same way as with the originally intended topology.
+With the knowledge of the intended node inputs (which are specified in description files, as described in :ref:`sec-impl-configuration`), the orchestrator can now forward messages in the same way as with the originally intended topology.
 Additionally, however, the orchestrator can buffer inputs to one or multiple nodes, thereby delaying the corresponding callback execution.
 Since the orchestrator is not expected to execute additional callbacks (which would require generating or repeating messages), delaying callbacks is sufficient to control the node's behavior.
 By assigning every subscriber to a specific topic an individual connection (a distinct topic) to the orchestrator, it is also possible to separate callback executions for the same topic at different nodes.
@@ -450,7 +430,7 @@ Callback Outputs
 
 ROS callbacks may modify internal node state, but may also produce outputs on other ROS topics.
 The orchestrator needs to know which outputs a callback may have, and also when a callback is done, in order to allow new events to occur at the node.
-The possible outputs are configured statically, as detailed in \cref{sec:impl:configuration}.
+The possible outputs are configured statically, as detailed in :ref:`sec-impl-configuration`.
 If a node omits one of the configured outputs dynamically, or if a node does not usually have any outputs which are visible to the orchestrator, a status message must be published, the definition of which is available in \cref{listing:status_message_definition}.
 The \texttt{omitted\_outputs} field optionally names one or multiple topics on which an output would usually be expected during this callback, but which are not published during this specific callback invocation.
 
@@ -519,7 +499,7 @@ Ensuring Sequence Determinism Using Callback Graphs
 ===================================================
 
 Once the orchestrator has the ability to individually control callbacks at ROS nodes, it can ensure a deterministic order of callback execution at each node, leading to deterministic system execution.
-In order to avoid the sources of nondeterminism presented in \cref{sec:impl:nondet_sources}, the orchestrator constantly maintains a graph of all callbacks which are able to execute in the near future.
+In order to avoid the sources of nondeterminism presented in :ref:`sec-impl-nondet_sources`, the orchestrator constantly maintains a graph of all callbacks which are able to execute in the near future.
 By introducing ordering constraints between callbacks as edges in the graph, and only executing callbacks when those constraints are met, the possibly nondeterministic situations presented above are sufficiently serialized to guarantee a deterministic callback order.
 In the following, the elements of the callback graph are discussed in detail:
 
@@ -532,7 +512,7 @@ Edges between actions represent dependencies in execution order:
 An edge $(u, v)$ from action $u$ to action $v$ implies that the action $u$ must be executed after the action $v$ has run to completion.
 All outgoing edges from an action are created with the action itself.
 Additional edges are not added at a later time, and edges are only removed once one of the connected actions is removed.
-It should be noted that time inputs on the \texttt{/clock} topic for triggering timer callbacks as described in \cref{sec:impl:controlling_callbacks:timers} are not represented as actions, as they do not contain any message data that needs to be buffered.
+It should be noted that time inputs on the \texttt{/clock} topic for triggering timer callbacks as described in :ref:`sec-impl-controlling_callbacks-timers` are not represented as actions, as they do not contain any message data that needs to be buffered.
 Instead, the appropriate timer callback actions are created as soon as the clock input is offered by the data provider.
 Once the actions are ready to execute, a corresponding clock message is sent to the node to trigger the callback.
 
@@ -723,7 +703,7 @@ A node configuration consists of a list of callbacks and a list of provided serv
 }
 \end{minted}
 
-Each callback specifies its trigger, possible service calls made during execution, its outputs, and flags regarding closed-loop simulation and online reconfiguration (which is described in detail in \cref{sec:impl:reconfig}):
+Each callback specifies its trigger, possible service calls made during execution, its outputs, and flags regarding closed-loop simulation and online reconfiguration (which is described in detail in :ref:`sec-impl-reconfig`):
 
 \begin{minted}[linenos, escapeinside=||]{json}
 {
@@ -790,7 +770,7 @@ With the corresponding node configuration:
 Dynamic Reconfiguration
 =======================
 
-Dynamically reconfiguring components during runtime (see \cref{sec:bg:reconfig}) presents a challenge to the orchestrator, as the software setup is usually specified in advance in the launch configuration file.
+Dynamically reconfiguring components during runtime (see :ref:`sec-bg-reconfig`) presents a challenge to the orchestrator, as the software setup is usually specified in advance in the launch configuration file.
 
 To support this use case in combination with the orchestrator, the following assumptions are made with respect to the reconfiguration process:
 \begin{itemize}

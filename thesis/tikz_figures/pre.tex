@@ -1,0 +1,127 @@
+\documentclass[tikz, convert]{standalone}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, arrows.meta, positioning, graphs, decorations.markings, patterns.meta}
+\usepackage{pgfgantt}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{pgfplots.groupplots}
+\usepackage{pgf-umlsd} % sequence diagrams
+\usepackage{pgfplotstable}
+
+% uni-ulm corporate design colors
+\definecolor{uulm_orange_1}{HTML}{df6d07}
+\definecolor{uulm_orange_2}{HTML}{e58a39}
+\definecolor{uulm_orange_3}{HTML}{eca76a}
+\definecolor{uulm_orange_4}{HTML}{f2c59c}
+\definecolor{uulm_orange_5}{HTML}{f9e2cd}
+\definecolor{uulm_green_1}{HTML}{56aa1c}
+\definecolor{uulm_green_2}{HTML}{78bb49}
+\definecolor{uulm_green_3}{HTML}{9acc77}
+\definecolor{uulm_green_4}{HTML}{bbdda4}
+\definecolor{uulm_green_5}{HTML}{ddeed2}
+\definecolor{uulm_red_1}{HTML}{a32638}
+\definecolor{uulm_red_2}{HTML}{b55160}
+\definecolor{uulm_red_3}{HTML}{c87d88}
+\definecolor{uulm_red_4}{HTML}{daa8af}
+\definecolor{uulm_red_5}{HTML}{edd4d7}
+\definecolor{uulm_blue_1}{HTML}{26547c}
+\definecolor{uulm_blue_2}{HTML}{517696}
+\definecolor{uulm_blue_3}{HTML}{7d98b0}
+\definecolor{uulm_blue_4}{HTML}{a8bbcb}
+\definecolor{uulm_blue_5}{HTML}{d4dde5}
+\definecolor{uulm_brown_1}{HTML}{a9a28d}
+\definecolor{uulm_brown_2}{HTML}{bab5a4}
+\definecolor{uulm_brown_3}{HTML}{cbc7bb}
+\definecolor{uulm_brown_4}{HTML}{dddad1}
+\definecolor{uulm_brown_5}{HTML}{eeece8}
+\definecolor{uulm_grey_1}{HTML}{7d9aaa}
+\definecolor{uulm_grey_2}{HTML}{97aebb}
+\definecolor{uulm_grey_3}{HTML}{b1c2cc}
+\definecolor{uulm_grey_4}{HTML}{cbd7dd}
+\definecolor{uulm_grey_5}{HTML}{e5ebee}
+
+\definecolor{uulm_dark_grey}{HTML}{575756}
+
+\pgfplotscreateplotcyclelist{uulm}{
+    {uulm_blue_1},
+    {uulm_orange_1},
+    {uulm_red_1},
+    {uulm_green_1},
+    {uulm_brown_1},
+    {uulm_grey_1}
+}
+
+\tikzstyle{uulm_blue} = [draw=uulm_blue_1, fill=uulm_blue_4]
+\tikzstyle{uulm_orange} = [draw=uulm_orange_1, fill=uulm_orange_4]
+\tikzstyle{uulm_grey} = [draw=uulm_grey_1, fill=uulm_grey_5]
+
+% tikz styles for node graphs
+\tikzstyle{rosnode} = [ellipse, text centered, draw=black]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+\tikzstyle{topic} = [rectangle, rounded corners, minimum width=1cm, minimum height=1cm,text centered, draw=uulm_blue_1, fill=uulm_blue_4, thick]
+
+% tikz stuff for sequence diagrams
+
+% from, to, level, color
+\newcommand{\callbackinvocation}[4]{
+    \filldraw[fill=#4_4, draw=#4_1, thick] ({\xscale*(#1-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#2-\xshift)}, 0.15-#3*\timelinesep);
+}
+
+% 1: from, 2: to, 3: level, 4: color, 5: idle_start, 6: idle_end
+\newcommand{\callbackinvocationidle}[6]{
+    \fill[fill=#4_4] ({\xscale*(#1-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#5-\xshift)}, 0.15-#3*\timelinesep);
+    \fill[pattern=north east lines, pattern color=#4_1, fill=#4_5] ({\xscale*(#5-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#6-\xshift)}, 0.15-#3*\timelinesep);
+    \fill[pattern={Lines[
+                  distance=2mm,
+                  angle=45,
+                  line width=0.4mm
+                 ]},
+        pattern color=#4_1] ({\xscale*(#5-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#6-\xshift)}, 0.15-#3*\timelinesep);
+    \fill[fill=#4_4] ({\xscale*(#6-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#2-\xshift)}, 0.15-#3*\timelinesep);
+    \draw[draw=#4_1, thick] ({\xscale*(#1-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#2-\xshift)}, 0.15-#3*\timelinesep);
+}
+
+
+
+% #1: from level, #2: from time, #3: to level, #4: to time
+\newcommand{\connectingarrow}[4]{
+    \ifnum #3 > #1
+        \draw[-Latex, very thick, uulm_brown_1] ({\xscale*(#2-\xshift)}, -#1*\timelinesep) -- ({\xscale*(#4-\xshift)}, -#3*\timelinesep+0.15);
+    \else
+        \draw[-Latex, very thick, uulm_brown_1] ({\xscale*(#2-\xshift)}, -#1*\timelinesep) -- ({\xscale*(#4-\xshift)}, -#3*\timelinesep-0.15);
+    \fi
+}
+
+% #1: from level, #2: from time, #3: to level, #4: to time
+\newcommand{\connectingarrowwithcorners}[4]{
+    \draw[-Latex, very thick, uulm_brown_1] ({\xscale*(#2-\xshift)}, -#1*\timelinesep) 
+        -- ({\xscale*(#2-\xshift)}, {(-#1-0.382)*\timelinesep})
+        -| ({\xscale*(#4-\xshift)}, -#3*\timelinesep+0.15);
+}
+
+% time
+\newcommand{\datainput}[1]{
+    \filldraw[gray] ({\xscale*(#1-\xshift)},0) circle [radius=1.5mm];
+}
+
+% time, id
+\newcommand{\messageid}[2]{
+    \draw ({\xscale*(#1-\xshift)}, 0.2) node[anchor=south] {\small #2};
+}
+
+% name, level, length
+\newcommand{\timeline}[3]{
+    \draw (0, - #2 * \timelinesep) node[anchor=east] {#1};
+    \draw[-Latex] (0,- #2 * \timelinesep) -- (#3,- #2 * \timelinesep);
+    \ifnum #2 = 0
+        \draw (#3-0.1,- #2 * \timelinesep+0.1) node [anchor=south east] {$t$};
+    \fi
+}
+
+% level, timeline-length
+\newcommand{\timeannotation}[2]{
+    \draw[-Latex] (0.5 * #2 - 0.5, - #1 * \timelinesep) -- node[above] {$t$} (0.5 * #2 + 0.5, - #1 * \timelinesep);
+}
+
+\begin{document}

@@ -5,7 +5,7 @@ Background
 **********
 
 This chapter introduces ROS and motivates the additional use case of dynamically reconfiguring ROS systems.
-Additionally, background on robotics software testing methodology is given, which will form the context and intended use of the method proposed in \cref{sec:impl}.
+Additionally, background on robotics software testing methodology is given, which will form the context and intended use of the method proposed in :ref:`sec:impl`.
 
 ROS
 ===
@@ -73,7 +73,7 @@ Those launch files are typically Python scripts, and actions include launching n
 The possibility to include other launch files allows developers to create subsystems that themselves consist of multiple nodes in a specific configuration.
 Typically, name remapping is used within the launch file to connect multiple nodes, by setting their internal, generic names for subscribers and publishers to a common name.
 
-In this work, the launch system will be utilized to redirect subscriptions of nodes under test by setting appropriate name remappings, and then including the original launch file as a subsystem, with those parameters applied (further details are provided in \cref{sec:impl:launch}).
+In this work, the launch system will be utilized to redirect subscriptions of nodes under test by setting appropriate name remappings, and then including the original launch file as a subsystem, with those parameters applied (further details are provided in :ref:`sec:impl:launch`).
 
 .. _sec-bg-reconfig:
 
@@ -91,7 +91,7 @@ This module may then decide to perform a system reconfiguration when appropriate
 To enable this use case, it is necessary to allow changing the system configuration during runtime.
 ROS allows starting and stopping nodes at any time, and new publishers and subscribers can join existing topics.
 Parameters within ROS nodes may also be changed during runtime, although the specific node implementation may choose to only read parameters once during startup.
-While this is generally possible within ROS, the interaction of dynamic reconfiguration with the work presented in this thesis requires special attention (\cref{sec:impl:reconfig}), due to the additional information about system behavior required by the proposed method.
+While this is generally possible within ROS, the interaction of dynamic reconfiguration with the work presented in this thesis requires special attention (:ref:`sec:impl:reconfig`), due to the additional information about system behavior required by the proposed method.
 
 .. _sec-bg-software_testing:
 Software Testing
@@ -146,7 +146,7 @@ The \gls{ospa} metric of order $p$ is defined for two sets $X = \{ x_1, \dots, x
 \end{equation*}
 In the context of multi-object tracking, the sets $X$ and $Y$ represent the estimated tracks at a specific time step and the corresponding ground truth states.
 The resulting distance may then be interpreted as the average distance between a track and its corresponding ground truth object, with unassigned tracks being assigned the cutoff value $c$.
-This metric will be used in \cref{sec:eval:real_use_case:reconfig} to visualize a change in the system performance during a single simulation run, which would not be visible using a metric that is averaged over the entire sequence.
+This metric will be used in :ref:`sec:eval:real_use_case:reconfig` to visualize a change in the system performance during a single simulation run, which would not be visible using a metric that is averaged over the entire sequence.
 
 Recorded Data
 -------------
