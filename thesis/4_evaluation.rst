@@ -1,7 +1,11 @@
 .. _sec-eval:
 
+**********
 Evaluation
-==========
+**********
+
+.. contents::
+   :local:
 
 In this chapter, the functionality and applicability of the proposed framework will be evaluated.
 In :ref:`sec:eval:verification`, the behavior with and without the orchestrator in the minimal examples presented in :ref:`sec:impl:nondet_sources` is verified.
@@ -9,7 +13,11 @@ In :ref:`sec:eval:verification`, the behavior with and without the orchestrator 
 The process of integrating the existing components with the orchestrator is covered in :ref:`sec:eval:system_integration`, followed by an evaluation and discussion of using the orchestrator in the presented use case in :ref:`sec:eval:real_use_case`.
 In :ref:`sec:eval:execution_time`, the impact of using the orchestrator on execution time is explicitly assessed, and approaches for improvement are discussed.
 
-\section{Verification of Functionality}\label{sec:eval:verification}
+.. _sec-eval-verification:
+
+Verification of Functionality
+=============================
+
 In order to verify the functionality of the orchestrator, without depending on existing ROS node implementations,
 individual test cases for specific sources of nondeterminism as well as a combined mockup of an autonomous
 driving software stack were developed.
@@ -325,7 +333,7 @@ Since the processing time of $P2$ is longer than the processing time of the firs
 $P2$ starts processing simultaneously to the first $T$ callback, causing $T$ to be idle between the completion of the first callback and the completion of processing at $P2$.
 It should be noted, however, that even though the total processing time exceeds the input frequency of $S$ for input 2, the data source was not required to slow down.
 :numref:`fig:eval:same_output:sequence_orchestrator` shows that $T$ is still running while $P1$ processes input 3.
-This kind of ``pipelining'' happens implicitly because the callback execution at $P1$ has no dependency on the callback at $T$, and by eagerly allowing inputs from $S$.
+This kind of "pipelining" happens implicitly because the callback execution at $P1$ has no dependency on the callback at $T$, and by eagerly allowing inputs from $S$.
 In the current implementation, the orchestrator requests the publishing of the next message by the data provider as soon as the processing of the last input on the same topic has started.
 In the case of a time input, the input is requested as soon as no actions remain which are still waiting on an input of a previous time update.
 Both kinds of input may additionally be delayed if the system is pending dynamic reconfiguration, or if a callback is still running that may cause a reconfiguration at the end of the current timestep.
@@ -333,185 +341,28 @@ Both kinds of input may additionally be delayed if the system is pending dynamic
 \FloatBarrier
 \subsection{Parallel Service Calls}\label{sec:eval:verification:service_calls}
 
-\def\xshift{2.8}
-\def\xscale{5.0}
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        % Timelines
-        \timeline{S}{0}{11.5};
-        \timeline{N1}{1}{11.5};
-        \timeline{N2}{2}{11.5};
-        \timeline{SP}{3}{11.5};        
+.. _fig-eval-service-sequence_before:
 
-        % Message connections S -> N1
-        \foreach \s / \t in {2.902259927/2.903853899, 3.902223706/3.904135078} {
-            \connectingarrow{0}{\s}{1}{\t}
-        }
+.. figure:: tikz_figures/eval-service-sequence_before.png
 
-        % Message connections N1 -> SP
-        \foreach \s / \t in {2.994818625/3.105586950, 3.994420082/4.308609834} {
-            \connectingarrow{1}{\s}{3}{\t};
-        }
-
-        % Message connections SP -> N1
-        \foreach \s / \t in {3.306603107/3.308302070, 4.509625945/4.511254511} {
-            \connectingarrow{3}{\s}{1}{\t}
-        }
-
-        % Message connections N2 -> SP
-        \foreach \s / \t in {3.011678583/3.307828193, 3.972481495/4.105901069} {
-            \connectingarrow{2}{\s}{3}{\t};
-        }
-
-        % Message connections SP -> N2
-        \foreach \s / \t in {3.508879427/3.511158009, 4.307407818/4.308959688} {
-            \connectingarrow{3}{\s}{2}{\t}
-        }
-
-        % Message connections S -> N2
-        \foreach \s / \t in {2.902259927/2.904797661, 3.902223706/3.904296277} {
-            \connectingarrow{0}{\s}{2}{\t}
-        }
-
-        % Message connections S -> SP
-        \foreach \s / \t in {2.902259927/2.903508969, 3.902223706/3.903818137} {
-            \connectingarrow{0}{\s}{3}{\t}
-        }
-
-        % N1
-        \foreach \s / \e / \is / \ie in {2.903853899/3.409238673/2.994818625/3.308302070, 3.904135078/4.612211694/3.994420082/4.511254511} {
-            %\callbackinvocation{\s}{\e}{1}{uulm_blue}
-            \callbackinvocationidle{\s}{\e}{1}{uulm_blue}{\is}{\ie};
-        }
-
-        % N2
-        \foreach \s / \e / \is / \ie in {2.904797661/3.612105523/3.011678583/3.511158009, 3.904296277/4.409858080/3.972481495/4.308959688} {
-            %\callbackinvocation{\s}{\e}{2}{uulm_orange}
-            \callbackinvocationidle{\s}{\e}{2}{uulm_orange}{\is}{\ie};
-        }
-
-        % SP 1
-        \foreach \s / \e in {3.105586950/3.306603107, 4.308609834/4.509625945} {
-            \callbackinvocation{\s}{\e}{3}{uulm_blue}
-        }
-
-        % SP 2
-        \foreach \s / \e in {3.307828193/3.508879427, 4.105901069/4.307407818} {
-            \callbackinvocation{\s}{\e}{3}{uulm_orange}
-        }
-
-        % SP Update
-        \foreach \s / \e in {2.903508969/3.104476546, 3.903818137/4.104792016} {
-            \callbackinvocation{\s}{\e}{3}{uulm_red}
-        }
-
-        % Publish events
-        \foreach \x [count=\i] in {2.902259927, 3.902223706} {
-            \datainput{\x};
-            \messageid{\x}{\i};
-        }
-    \end{tikzpicture}
-    \caption[Sequence diagram showing the parallel execution of callbacks at $N1$ and $N2$, which both call the same service.]{Sequence diagram showing the parallel execution of callbacks at $N1$ and $N2$.
-    The hatched area within the callback shows the duration of service calls, which are made to a service provided by $SP$, upwards arrows represent responses to service calls.
-    The variable timing of the service calls results in a nondeterministic callback order at $SP$.
-    The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_service_calls`.}
-    \label{fig:eval:service:sequence_before}
-\end{figure}
+   Sequence diagram showing the parallel execution of callbacks at $N1$ and $N2$.
+   The hatched area within the callback shows the duration of service calls, which are made to a service provided by $SP$, upwards arrows represent responses to service calls.
+   The variable timing of the service calls results in a nondeterministic callback order at $SP$.
+   The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_service_calls`.
 
 :numref:`fig:nodegraph:example_service_calls` shows the node setup for this example, which has been identified in :ref:`sec:impl:nondet_sources:service_calls`.
 A single message triggers a callback at three nodes, one of which ($SP$) also provides a ROS service.
 The two other nodes $N1$ and $N2$ call the provided service during callback execution.
-The resulting order of all three callbacks at $SP$ in response to a single message input is nondeterministic, as shown in :numref:`fig:eval:service:sequence_before`.
+The resulting order of all three callbacks at $SP$ in response to a single message input is nondeterministic, as shown in :numref:`fig-eval-service-sequence_before`.
 Since the orchestrator only controls service calls by controlling the callback they originate from, it is necessary to serialize all callbacks interacting with the service, which in this case are the message callbacks at $N1$, $N2$, and $SP$.
 
-\def\xshift{88.05}
-\def\xscale{5.0}
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        % Timelines
-        \timeline{S}{0}{11.5};
-        \timeline{N1}{1}{11.5};
-        \timeline{N2}{2}{11.5};
-        \timeline{SP}{3}{11.5};        
+.. _fig-eval-service-sequence_orchestrator:
 
-        % Message connections S -> N1
-        \foreach \s / \t in {88.121494205/88.134215281, 89.180127517/89.184218275} {
-            \connectingarrow{0}{\s}{1}{\t}
-        }
+.. figure:: tikz_figures/eval-service-sequence_orchestrator.png
 
-        % Message connections N1 -> SP
-        \foreach \s in {88.246147198, 89.287170045} {
-            \connectingarrow{1}{\s}{3}{\s}
-        }
+   Sequence diagram showing the serialized callbacks from :numref:`fig-eval-service-sequence_before`. Serialization of the callbacks at $N1$ and $N2$ leads to a deterministic callback order at $SP$.
 
-        % Message connections SP -> N1
-        \foreach \s in {88.447030736, 89.488723451} {
-            \connectingarrow{3}{\s}{1}{\s}
-        }
-
-        % Message connections N2 -> SP
-        \foreach \s in {88.669793698, 89.699241124} {
-            \connectingarrow{2}{\s}{3}{\s}
-        }
-
-        % Message connections SP -> N2
-        \foreach \s in {88.870660979, 89.900704579} {
-            \connectingarrow{3}{\s}{2}{\s}
-        }
-
-        % Message connections S -> N2
-        \foreach \s / \t in {88.121494205/88.567736609, 89.180127517/89.596266248} {
-            \connectingarrow{0}{\s}{2}{\t}
-        }
-
-        % Message connections S -> SP
-        \foreach \s / \t in {88.121494205/88.976891167, 89.180127517/90.007667525} {
-            \connectingarrow{0}{\s}{3}{\t}
-        }
-
-        % N1
-        \foreach \s / \e / \is / \ie in {88.134215281/88.550073492/88.246147198/88.447030736, 89.184218275/89.593010249/89.287170045/89.488723451} {
-            %\callbackinvocation{\s}{\e}{1}{uulm_blue}
-            \callbackinvocationidle{\s}{\e}{1}{uulm_blue}{\is}{\ie};
-        }
-
-        % N2
-        \foreach \s / \e / \is / \ie in {88.567736609/88.974497892/88.669793698/88.87066097, 89.596266248/90.004936093/89.699241124/89.900704579} {
-            %\callbackinvocation{\s}{\e}{2}{uulm_orange}
-            \callbackinvocationidle{\s}{\e}{2}{uulm_orange}{\is}{\ie};
-        }
-
-        % SP 1
-        \foreach \s / \e in {88.246147198/88.447030736, 89.287170045/89.488723451} {
-            \callbackinvocation{\s}{\e}{3}{uulm_blue}
-        }
-
-        % SP 2
-        \foreach \s / \e in {88.669793698/88.870660979, 89.699241124/89.900704579} {
-            \callbackinvocation{\s}{\e}{3}{uulm_orange}
-        }
-
-        % SP Update
-        \foreach \s / \e in {88.976891167/89.177840443, 90.007667525/90.209047344} {
-            \callbackinvocation{\s}{\e}{3}{uulm_red}
-        }
-
-        % Publish events
-        \foreach \x [count=\i] in {88.121494205, 89.180127517} {
-            \datainput{\x};
-            \messageid{\x}{\i};
-        }
-    \end{tikzpicture}
-    \caption[Sequence diagram showing the serialized callbacks from :numref:`fig:eval:service:sequence_before`.]{
-        Sequence diagram showing the serialized callbacks from :numref:`fig:eval:service:sequence_before`.
-        Serialization of the callbacks at $N1$ and $N2$ leads to a deterministic callback order at $SP$.
-    }
-    \label{fig:eval:service:sequence_orchestrator}
-\end{figure}
-
-The resulting callback sequence is shown in :numref:`fig:eval:service:sequence_orchestrator`.
+The resulting callback sequence is shown in :numref:`fig-eval-service-sequence_orchestrator`.
 By serializing the callbacks at $N1$ and $N2$, the order of service callbacks at $SP$ is now fixed.
 In this example, it is again apparent that parallel execution of the $N1$ and $N2$ callbacks might be possible while still maintaining a deterministic callback order at $SP$.
 This limitation is discussed in detail in :ref:`sec:eval:verification:discussion`.
@@ -532,7 +383,7 @@ Here, the orchestrator now requires all callbacks to execute sequentially, while
 An important factor determining the impact of this is the proportion of service-call duration to total callback duration for the calling nodes.
 If the service call is expected to take only a small fraction of the entire callback duration, a large improvement in execution time could be gained by allowing parallel execution of the callbacks $N1$ and $N2$, which both call the service.
 This might be possible by explicitly controlling service calls directly instead of controlling the entire callback executing that call.
-In the example shown in :numref:`fig:eval:service:sequence_orchestrator`, serializing only the service calls would allow the portion of the $N2$ callback before the service call to execute concurrently to $N1$, and the portion after the service call to overlap with the message callback at $SP$.
+In the example shown in :numref:`fig-eval-service-sequence_orchestrator`, serializing only the service calls would allow the portion of the $N2$ callback before the service call to execute concurrently to $N1$, and the portion after the service call to overlap with the message callback at $SP$.
 
 Another possible extension to improve parallelism in scenarios involving service calls is to allow specifying that some actions might interact with the service provider without modifying its state.
 Currently, all actions interacting with the service (by running at the same node, or calling the service) are assumed to modify the service provider state.
@@ -547,8 +398,11 @@ It is however still desirable to keep the system behavior when using the orchest
 One proposed future addition is thus allowing nodes to optionally specify an expected callback duration in the corresponding configuration file.
 This information may then be used by the orchestrator to establish a more realistic callback ordering.
 
-\FloatBarrier
-\section{System Setup}\label{sec:eval:system_setup}
+.. _sec-eval-system_setup:
+
+System Setup
+============
+
 In the following, the integration of the orchestrator with parts of an already existing autonomous driving software stack is evaluated.
 This section introduces the system setup and example use case, which will be utilized in :ref:`sec:eval:system_integration,sec:eval:real_use_case`.
 
@@ -612,11 +466,15 @@ When using recorded measurement data from a ROS bag, the scenario ends once ever
 The recorded results of the tracking module and the recorded ground truth data are then used to calculate application-specific metrics to assess the performance of the multi-object tracking algorithm.
 \end{minipage}
 
-\section{System Integration}\label{sec:eval:system_integration}
+.. _sec-eval-system_integration:
+
+System Integration
+==================
+
 To determine the feasibility of integrating the proposed framework into existing software,
 the framework was applied to the scenario for testing a multi-object tracking module introduced in :ref:`sec:eval:system_setup`.
 In this section, the necessary modifications to each existing component are discussed.
-:ref:`sec:eval:system_integration:simulator,sec:eval:system_integration:bag_player` will cover the integration of both ``data provider'' components, a simulator, and the ROS bag player, which will contain the orchestrator.
+:ref:`sec:eval:system_integration:simulator,sec:eval:system_integration:bag_player` will cover the integration of both "data provider" components, a simulator, and the ROS bag player, which will contain the orchestrator.
 :ref:`sec:eval:system_integration:ros_nodes` covers the integration of the ROS nodes present in
 the test scenario.
 
@@ -686,7 +544,7 @@ The tracking module employs a sophisticated queueing system, which aims to form 
 while also supporting dynamic addition and removal of sensors.
 Additionally, while processing is always triggered by an incoming message, the processing itself happens in a dedicated thread in order to allow the simultaneous processing of ROS messages.
 
-The input-output behavior itself is configurable such that only the reception of specific sensor inputs cause the processing and publishing of a ``\texttt{tracks}'' output message.
+The input-output behavior itself is configurable such that only the reception of specific sensor inputs cause the processing and publishing of a "\texttt{tracks}" output message.
 This is done to limit the output rate and reduce processing requirements.
 Due to the queueing, this does however not imply that reception of the configured input immediately causes an output to appear.
 It may be the case that additional inputs are required to produce the expected output.
@@ -727,11 +585,14 @@ Although the orchestrator can detect some mismatches between node behavior and d
 omitted outputs and services can not be controlled by the orchestrator and might lead to nondeterministic system behavior.
 
 While the model of ROS nodes that only execute ROS callbacks, which then publish at most one message on each configured output topic, is clearly not sufficient for all existing ROS nodes, it does apply to a wide class of nodes in use.
-Nodes such as detection modules and control algorithms often operate in a simple ``one output for each input'' way or are completely time triggered, executing the same callback at a fixed frequency.
+Nodes such as detection modules and control algorithms often operate in a simple "one output for each input" way or are completely time triggered, executing the same callback at a fixed frequency.
 Such nodes are not part of this experimental setup, since the specific simulator in use already integrates the detection modules.
 
+.. _sec-eval-real_use_case:
 
-\section{Application to existing Scenario}\label{sec:eval:real_use_case}
+Application to existing Scenario
+================================
+
 In this section, the effect of using the orchestrator in the use case introduced in :ref:`sec:eval:system_setup` is evaluated.
 In the following, the ability of the orchestrator to ensure deterministic execution up to the metric-calculation step is demonstrated using both the simulator and recorded input data from a ROS bag, as well as combined with dynamic reconfiguration during test execution.
 
@@ -842,7 +703,7 @@ More details on this specific use case will be given in :ref:`sec:eval:execution
 \subsection{Dynamic Reconfiguration}\label{sec:eval:real_use_case:reconfig}
 To test the orchestrator in a scenario including dynamic reconfiguration, the previous setup was extended by such a component.
 Since a module for dynamic reconfiguration of components or the communication structure was not readily available, a minimal functional mockup was created:
-A ``reconfigurator'' component with a periodic timer callback decides within this callback if the system needs to be reconfigured, and then executes that reconfiguration.
+A "reconfigurator" component with a periodic timer callback decides within this callback if the system needs to be reconfigured, and then executes that reconfiguration.
 The node description for the reconfiguration node is given in \cref{listing:eval:reconfig:node_config}.
 In this example, the reconfiguration reduces simulated measurement noise, which could simulate switching to a more accurate, but also more computationally demanding perception module.
 The mock reconfigurator always chooses to reconfigure after a set time.
@@ -998,15 +859,18 @@ A solution to this problem might be to allow the node to publish a status messag
 This would allow the orchestrator to ensure the reception of every callback output, and prevent wrong associations of outputs to callbacks.
 As additional messages on the corresponding topics would also cause additional downstream callbacks for subscribers of those topics, this approach might however introduce additional points of synchronization across the callback graph.
 
-\FloatBarrier
-\section{Execution-Time impact}\label{sec:eval:execution_time}
+.. _sec-eval-execution_time:
+
+Execution-Time Impact
+=====================
+
 Due to the required serialization of callbacks and buffering of messages, a general increase in execution time is to be expected when using the orchestrator.
 In the following, this impact is measured for a simulation use case and the individual sources of increased execution time, as well as possible future improvements, are discussed.
 
 \subsection{Analysis}\label{sec:eval:execution_time:analysis}
 To measure the impact of topic interception, the induced delay of forwarding a message via a ROS node is measured.
 In order to compensate for latency in the measuring node, the difference in latency for directly sending and receiving a message in the same node versus the latency of sending a message and receiving a forwarded message is measured.
-When using a measuring and forwarding node implemented in Python and using the ``eProsima Fast DDS'' middleware, the latency from publishing to receiving increases from a mean of $0.64$ ms to $0.99$ ms.
+When using a measuring and forwarding node implemented in Python and using the "eProsima Fast DDS" middleware, the latency from publishing to receiving increases from a mean of $0.64$ ms to $0.99$ ms.
 This induced latency of $0.35$ ms on average is considered acceptable and justifies the design choice of controlling callbacks by intercepting the corresponding message inputs.
 
 \begin{figure}[t]
@@ -1058,7 +922,7 @@ This would usually happen without waiting, but the orchestrator requires confirm
 
 Finally, the orchestrator requires the simulator to receive and process the output from the planning module before advancing the simulation.
 This is realized by the \texttt{changes\_dataprovider\_state} flag for the corresponding callback in the node configuration file, which causes the \texttt{wait\_until\_dataprovider\_state\_update\_allowed} \gls{api} call to block until the callback has finished.
-For any simulator, the ``dataprovider state update'' corresponds to executing a simulation timestep, which results in an effective slowdown of each simulation timestep to the execution time of the longest path resulting in some input to the simulator.
+For any simulator, the "dataprovider state update" corresponds to executing a simulation timestep, which results in an effective slowdown of each simulation timestep to the execution time of the longest path resulting in some input to the simulator.
 
 The other available flag for callbacks, \texttt{may\_cause\_reconfiguration}, presents a similar point of global synchronization:
 This flag is applied to callbacks of a component that may decide dynamically reconfigure the ROS system, as described in :ref:`sec:bg:reconfig`, based on the current system state (such as vehicle environment, in the autonomous driving use case).

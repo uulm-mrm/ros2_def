@@ -418,11 +418,11 @@ Additionally, simultaneous execution must not change the internal node state non
 
 Using only one timer per node eliminates this problem as well, although there remains one instance where multiple timers fire at once:
 When each node receives the first clock input, the internal clock jumps from zero to the initial simulation or recorded time.
-This results in the execution of at most one ``missed'' timer callback, and, if the clock input is a multiple of the timer period, one ``current'' timer callback.
+This results in the execution of at most one "missed" timer callback, and, if the clock input is a multiple of the timer period, one "current" timer callback.
 The latter case is immediately observed with a simulation timer starting at a large multiple of one second, and timers running at a fraction of one second.
 This is an especially challenging situation since both callback invocations correspond to the \emph{same} timer, compared to \emph{separate} timers above.
 This implies that both callbacks have exactly the same outputs, making it impossible for the orchestrator to differentiate the outputs of both callback executions.
-A desirable property of a ROS node may be that the node itself only sets up timers when the node-local time has been initialized, which may be possible using ROS 2 ``lifecycle nodes'', which have the notion of an initialization phase at node startup.
+A desirable property of a ROS node may be that the node itself only sets up timers when the node-local time has been initialized, which may be possible using ROS 2 "lifecycle nodes", which have the notion of an initialization phase at node startup.
 In this work, however, it was considered acceptable to discard the outputs of initial timer invocations in that case, since nodes can not usually be expected to perform such initialization.
 
 .. _sec-time_synchronizer_callbacks:
@@ -555,9 +555,9 @@ This ensures a deterministic execution order of all actions which can modify the
 
     \end{tikzpicture}
     \caption[Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.]{Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.
-    ``Input'' actions represent the publishing of a topic by the data source.
-    ``Buffer'' actions represent the input of an intercepted topic at the orchestrator, potentially for forwarding to downstream nodes.
-    Message callbacks at ROS nodes are represented as ``\texttt{<node name>} Rx \texttt{<topic>}''.
+    "Input" actions represent the publishing of a topic by the data source.
+    "Buffer" actions represent the input of an intercepted topic at the orchestrator, potentially for forwarding to downstream nodes.
+    Message callbacks at ROS nodes are represented as "\texttt{<node name>} Rx \texttt{<topic>}".
     }
     \label{fig:impl:example_cb_graph}
 \end{figure}
@@ -694,7 +694,7 @@ The launch configuration describes the entire software stack under test.
 More specifically, it describes specific instances of nodes and connections between them.
 Each node is identified by a unique name, and the type of node is specified by reference to the corresponding node configuration file.
 Connections between nodes are specified using name remappings, which assign a globally unique topic name to the internal names used in the node configuration.
-In this example, an ego-motion estimation node is instanced for the simulated ``vhcl1800'' vehicle, receiving the proper sensor data input and providing the ``/sil\_vhcl1800/ego\_motion\_service'' service:
+In this example, an ego-motion estimation node is instanced for the simulated "vhcl1800" vehicle, receiving the proper sensor data input and providing the "/sil\_vhcl1800/ego\_motion\_service" service:
 
 \begin{minted}[linenos, escapeinside=||]{json}
 "sil_vhcl1800_ego_motion_service": {
@@ -734,9 +734,9 @@ To support this use case in combination with the orchestrator, the following ass
 \end{itemize}
 
 In the following, the ROS node which decides when to reconfigure the system is referred to as the
-``reconfigurator''.
+"reconfigurator".
 To ensure deterministic execution before, during, and after reconfiguration, coordination between the reconfigurator and orchestrator is necessary:
-The orchestrator provides a ``reconfiguration announcement'' ROS service, which the reconfigurator must call if a reconfiguration is to be performed.
+The orchestrator provides a "reconfiguration announcement" ROS service, which the reconfigurator must call if a reconfiguration is to be performed.
 The orchestrator then completes the processing of all in-progress and waiting callbacks, without requesting the next data- or time input from the data provider.
 Once all callbacks are complete, the orchestrator then calls the reconfigurator to execute the reconfiguration.
 Once complete, the reconfigurator returns the new system configuration to the orchestrator.
