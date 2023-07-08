@@ -73,15 +73,15 @@ This causes the subscriber queue to fill up, eventually dropping messages.
 Current ROS defaults use the ``keep last N`` queue handling strategy, which would cause the oldest message to get dropped from the queue when a new one arrives.
 Under varying system load, the number of processed messages changes, which leads to nondeterministic node behavior.
 
-It should be noted that this can not be avoided by using the reliable \gls{qos} setting in ROS.
+It should be noted that this can not be avoided by using the reliable QoS setting in ROS.
 A reliably delivered message may still cause another message to be dropped from the subscriber's queue if there is no space for the incoming message.
-Messages actually getting lost during delivery, which may happen using the best-effort \gls{qos} setting on a constrained transport medium, such as a low-bandwidth wireless network, are not handled here.
+Messages actually getting lost during delivery, which may happen using the best-effort QoS setting on a constrained transport medium, such as a low-bandwidth wireless network, are not handled here.
 A possible measure against this behavior is the ``keep all`` queuing mode, but this is often not feasible, since this may cause the queue size as well as the input-output latency of the node to grow without bounds.
 
 Finally, message reordering might be of concern.
 The DDS standard allows ordering incoming data in the ``BY_RECEPTION_TIMESTAMP`` mode, which implies that the receive order might not match the order in which the messages were
 published.
-While ROS does not make any claims regarding message ordering, it is assumed that the reliable \gls{qos} setting eliminates message reordering.
+While ROS does not make any claims regarding message ordering, it is assumed that the reliable QoS setting eliminates message reordering.
 Nonetheless, message reordering, should it occur, is later also addressed by the same mechanism as possible queue overflow.
 
 .. _sec:impl-nondet_sources-parallel:

@@ -14,7 +14,7 @@ The Robot Operating System (ROS) [Macenski2022]_ is a software framework used by
 It provides valuable abstractions and libraries in the areas of communication between components, system startup, configuration, and introspection.
 Since its first release in 2010, it has gained wide adoption in the robotics community, with thousands of packages released which provide common functionality in the form of ROS components that can be integrated into complete software stacks.
 In 2017, the first distribution of ROS 2 was released.
-This marked a complete redesign and introduced multiple new features explained in detail below, such as \gls{qos} and the reliance on the Data Distribution Service (DDS) standard for message transport.
+This marked a complete redesign and introduced multiple new features explained in detail below, such as Quality of Service (QoS) and the reliance on the Data Distribution Service (DDS) standard for message transport.
 This work is entirely using ROS 2, and while core concepts have changed little, important details relied upon here do not apply to ROS 1.
 
 This section serves as a brief introduction to the concepts of ROS nodes and topics, which are the basic primitives allowing communication between software modules, as well as the launch system.
@@ -28,22 +28,21 @@ An example may be an object detector node, which has a camera image as input, an
 Usually, although not always, each ROS node runs in a dedicated process.
 
 Every ROS Node is a participant in the ROS communication graph, which represents the connections between the inputs and outputs of multiple nodes.
-Multiple such communication graphs (or "ROS node graphs") are shown in this work, such as in :numref:`fig:impl:problem_description:example_nodegraph`.
+Multiple such communication graphs (or "ROS node graphs") are shown in this work, such as in :numref:`fig-impl-problem_description-example_nodegraph`.
 Communication between nodes is message-based and happens via topics, which are multi-producer, multi-consumer message channels.
 Nodes can send messages to topics using publishers, and receive messages from topics using subscribers.
-For each publisher and subscriber, nodes can configure a number of \gls{qos} settings, notably, they can request best-effort or reliable transport and can configure queue sizes.
-For publishing, the application calls a simple \gls{api} method of the publisher object, which may directly transfer the message or push the message to a queue for later, asynchronous transmission.
-Receiving messages from subscribers is realized by registering a callback function with the ROS \gls{api}.
+For each publisher and subscriber, nodes can configure a number of QoS settings, notably, they can request best-effort or reliable transport and can configure queue sizes.
+For publishing, the application calls a simple Application Programming Interface (API) method of the publisher object, which may directly transfer the message or push the message to a queue for later, asynchronous transmission.
+Receiving messages from subscribers is realized by registering a callback function with the ROS API.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8 \textwidth]{img/ros_client_library_api_stack.png}
-    \caption[The ROS 2 client library API stack.]{The ROS 2 client library API stack, showing the ability to both support multiple underlying communication middlewares (DDS implementations) and client library bindings in multiple languages. Diagram by the contributors of the ROS 2 documentation on \href{https://docs.ros.org}{docs.ros.org}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.}
-    \label{fig:rcl_api_stack}
-\end{figure}
+.. _fig-rcl_api_stack:
 
-While ROS provides this functionality to the nodes by its \gls{api}, the underlying functionality of message delivery and node discovery relies on existing implementations of the DDS standard.
-:numref:`fig:rcl_api_stack` shows the \gls{api} stack, with the user code at the very top and the DDS implementation at the bottom.
+.. figure:: png_figures/ros_client_library_api_stack.png
+
+   The ROS 2 client library API stack, showing the ability to both support multiple underlying communication middlewares (DDS implementations) and client library bindings in multiple languages. Diagram by the contributors of the ROS 2 documentation on `docs.ros.org <https://docs.ros.org>`_, licensed under `CC BY 4.0 <https://creativecommons.org/licenses/by/4.0/>`_.
+
+While ROS provides this functionality to the nodes by its API, the underlying functionality of message delivery and node discovery relies on existing implementations of the DDS standard.
+:numref:`fig-rcl_api_stack` shows the API stack, with the user code at the very top and the DDS implementation at the bottom.
 The diagram illustrates that ROS forms a common layer that enables the use of multiple DDS implementations within the middleware (visualized as the blue elements at the bottom of the diagram) and the use of different programming languages for application development (*ros client library* bindings, directly below the user application in the diagram).
 
 An important aspect of the ROS node communication model is that there is no implicit or explicit back-channel or feedback to the publisher of a message about its (intended) reception.
@@ -91,7 +90,7 @@ This module may then decide to perform a system reconfiguration when appropriate
 To enable this use case, it is necessary to allow changing the system configuration during runtime.
 ROS allows starting and stopping nodes at any time, and new publishers and subscribers can join existing topics.
 Parameters within ROS nodes may also be changed during runtime, although the specific node implementation may choose to only read parameters once during startup.
-While this is generally possible within ROS, the interaction of dynamic reconfiguration with the work presented in this thesis requires special attention (:ref:`sec:impl:reconfig`), due to the additional information about system behavior required by the proposed method.
+While this is generally possible within ROS, the interaction of dynamic reconfiguration with the work presented in this thesis requires special attention (:ref:`sec-impl-reconfig`), due to the additional information about system behavior required by the proposed method.
 
 .. _sec-bg-software_testing:
 Software Testing
@@ -127,14 +126,14 @@ Notably, the authors of [Westhofen2023]_ explicitly assume a deterministic testi
 Since those metrics evaluate the resulting traffic situation, they require running the entire software stack, even when the influence of only a single module on the result is to be determined.
 
 As an example for performance evaluation using application-specific metrics, multiple metrics for a multi-object tracking module are considered.
-Specifically, the \gls{motp} and \gls{mota} metrics as proposed in [Bernardin2008]_ are used in this work.
-\Gls{motp} is defined as the average distance error :math:`d` over all matches :math:`i` in each timestep :math:`t` (with :math:`c_t` the number of matches between detections and ground-truth objects in timestep :math:`t`)
+Specifically, the Multiple Object Tracking Precision (MOTP) and Multiple Object Tracking Accuracy (MOTA) metrics as proposed in [Bernardin2008]_ are used in this work.
+MOTP is defined as the average distance error :math:`d` over all matches :math:`i` in each timestep :math:`t` (with :math:`c_t` the number of matches between detections and ground-truth objects in timestep :math:`t`)
 
 .. math::
 
    \text{MOTP} = \frac{\sum_i^t{d_t^i}}{\sum_t{c_t}}.
 
-\Gls{mota} provides a measure for how well the tracking algorithm performs with respect to missed objects (:math:`m`), false positives (:math:`fp`), and track mismatches (:math:`mme`, i.e. identity switches between identified objects) over the total number of objects :math:`g_t`, as defined by
+MOTA provides a measure for how well the tracking algorithm performs with respect to missed objects (:math:`m`), false positives (:math:`fp`), and track mismatches (:math:`mme`, i.e. identity switches between identified objects) over the total number of objects :math:`g_t`, as defined by
 
 .. math::
 
@@ -152,7 +151,7 @@ The \gls{ospa} metric of order :math:`p` is defined for two sets :math:`X = \{ x
 
 In the context of multi-object tracking, the sets :math:`X` and :math:`Y` represent the estimated tracks at a specific time step and the corresponding ground truth states.
 The resulting distance may then be interpreted as the average distance between a track and its corresponding ground truth object, with unassigned tracks being assigned the cutoff value :math:`c`.
-This metric will be used in :ref:`sec:eval:real_use_case:reconfig` to visualize a change in the system performance during a single simulation run, which would not be visible using a metric that is averaged over the entire sequence.
+This metric will be used in :ref:`sec-eval-real_use_case-reconfig` to visualize a change in the system performance during a single simulation run, which would not be visible using a metric that is averaged over the entire sequence.
 
 Recorded Data
 -------------

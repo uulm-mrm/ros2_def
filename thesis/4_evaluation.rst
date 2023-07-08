@@ -484,11 +484,11 @@ The orchestrator represents an individual component (see :ref:`sec:impl:controll
 but is located within the same process as the data provider,
 which in this case is the simulator.
 
-The orchestrator component is instantiated within the simulator and then provides an \gls{api} that the simulator must call at specific points to ensure deterministic execution.
+The orchestrator component is instantiated within the simulator and then provides an API that the simulator must call at specific points to ensure deterministic execution.
 To instantiate and start the orchestrator, the simulator must also provide the orchestrator with the appropriate launch configuration.
-All \gls{api} calls are of the form ``wait_until_<condition>`` and usually return a ``Future`` object that must be awaited before executing the corresponding actions.
+All API calls are of the form ``wait_until_<condition>`` and usually return a ``Future`` object that must be awaited before executing the corresponding actions.
 The ``wait_until_publish_allowed`` function must be inserted before publishing any ROS message on any topic.
-Before publishing a ``/clock`` message, the new time must be provided to the orchestrator using the dedicated ``wait_until_time_publish_allowed`` \gls{api} call, which is required for the orchestrator to prepare for eventual timer callbacks.
+Before publishing a ``/clock`` message, the new time must be provided to the orchestrator using the dedicated ``wait_until_time_publish_allowed`` API call, which is required for the orchestrator to prepare for eventual timer callbacks.
 Before changing the internal simulation state, the ``wait_until_dataprovider_state_update_allowed`` method must be called.
 This usually happens by performing a simulation timestep, and this method ensures synchronizing this timestep with expected inputs present in a closed-loop simulation, such as vehicle control inputs.
 The ``wait_until_pending_actions_complete`` method is used to ensure all callbacks finish cleanly once the simulation is done.
@@ -597,7 +597,7 @@ In this section, the effect of using the orchestrator in the use case introduced
 In the following, the ability of the orchestrator to ensure deterministic execution up to the metric-calculation step is demonstrated using both the simulator and recorded input data from a ROS bag, as well as combined with dynamic reconfiguration during test execution.
 
 \subsection{Simulator}\label{sec:eval:real_use_case:sim}
-When evaluating the tracking module in the previously introduced scenario, the \gls{mota} and \gls{motp} metrics introduced in :ref:`sec:bg:metrics` are calculated.
+When evaluating the tracking module in the previously introduced scenario, the MOTA and MOTP metrics introduced in :ref:`sec:bg:metrics` are calculated.
 To calculate these metrics, the tracking outputs are recorded together with ground truth data from the simulator during a simulation run.
 Those recordings are then loaded and processed offline.
 When running the evaluation procedure multiple times, it can be observed that the resulting values differ for each run, as shown in :numref:`fig:eval:sim:nondet_metrics`.
@@ -659,7 +659,7 @@ o_6,165,0.757282,0.335777
             \label{plot_motp}
         \end{axis}
     \end{tikzpicture}
-    \caption[Evaluation of the MOTA and MOTP metrics using the experimental setup.]{Evaluation of the \gls{mota} and \gls{motp} metrics in the scenario introduced in :ref:`sec:eval:system_setup` over multiple simulation runs, both with and without the orchestrator.}
+    \caption[Evaluation of the MOTA and MOTP metrics using the experimental setup.]{Evaluation of the MOTA and MOTP metrics in the scenario introduced in :ref:`sec:eval:system_setup` over multiple simulation runs, both with and without the orchestrator.}
     \label{fig:eval:sim:nondet_metrics}
 \end{figure}
 
@@ -679,7 +679,7 @@ This results in a ROS bag with missing sensor samples (due to dropped messages a
 All those effects would usually not be expected from a simulator, which produces predictable and periodic inputs.
 
 This does not present a problem for the orchestrator:
-Since the callback graph construction is incremental for each input, the only a priori knowledge the orchestrator requires is the \gls{api} call from the data provider informing the orchestrator of the next input, and the node and launch configurations to determine the resulting callbacks.
+Since the callback graph construction is incremental for each input, the only a priori knowledge the orchestrator requires is the API call from the data provider informing the orchestrator of the next input, and the node and launch configurations to determine the resulting callbacks.
 Specifically, the orchestrator does not require information such as expected publishing frequencies or periodically repeating inputs at all.
 
 In order to reuse the existing test setup, a ROS bag was recorded from the outputs of the simulator.
@@ -700,7 +700,11 @@ The further behavior of the orchestrator remains unchanged, meaning nondetermini
 Furthermore, when using ROS bags as the data source it may be possible to easily maximize the playback speed without manually choosing a rate that does not overwhelm the processing components causing dropped messages.
 More details on this specific use case will be given in :ref:`sec:eval:execution_time`.
 
-\subsection{Dynamic Reconfiguration}\label{sec:eval:real_use_case:reconfig}
+.. _sec-eval-real_use_case-reconfig:
+
+Dynamic Reconfiguration
+-----------------------
+
 To test the orchestrator in a scenario including dynamic reconfiguration, the previous setup was extended by such a component.
 Since a module for dynamic reconfiguration of components or the communication structure was not readily available, a minimal functional mockup was created:
 A "reconfigurator" component with a periodic timer callback decides within this callback if the system needs to be reconfigured, and then executes that reconfiguration.
@@ -813,7 +817,7 @@ A real working counterpart would require additional inputs such as the current v
 \end{figure}
 
 :numref:`fig:eval:config:ospa` shows the OSPA distance (see :ref:`sec:bg:metrics`) between the tracking result and the ground truth object data from the simulator over multiple simulation runs.
-The OSPA distance was chosen as a metric in this case since it is calculated for every time step instead of as an average over the entire simulation run, as is the case with the \gls{mota} and \gls{motp} metrics used above.
+The OSPA distance was chosen as a metric in this case since it is calculated for every time step instead of as an average over the entire simulation run, as is the case with the MOTA and MOTP metrics used above.
 This allows evaluation of how the metric changes during the simulation run and clearly shows the reconfiguration step.
 It is apparent that the reconfiguration module successfully switched to a lower measurement noise at :math:`t=7s`.
 Importantly, however, the evaluation results of the multiple runs do not completely overlap.
@@ -847,13 +851,13 @@ The output is however deterministic and repeatable, even if a reconfiguration oc
 Again, this demonstrates the successful application of the orchestrator framework, even in the presence of dynamic reconfiguration at runtime.
 
 \subsection{Discussion}\label{sec:eval:real_use_case:discussion}
-In :ref:`sec:eval:real_use_case`, the successful implementation of two design goals was verified:
-First, :ref:`sec:eval:real_use_case:sim,sec:eval:real_use_case:rosbag` demonstrate successful use of the orchestrator with both a simulator and ROS bag as data sources.
+In :ref:`sec-eval-real_use_case`, the successful implementation of two design goals was verified:
+First, :ref:`sec-eval-real_use_case-sim` and :ref:`sec-eval-real_use_case-rosbag` demonstrate successful use of the orchestrator with both a simulator and ROS bag as data sources.
 Notably, no additional requirements are placed on the specific ROS bag used, allowing the use of the orchestrator with already existing recorded data.
-Secondly, :ref:`sec:eval:real_use_case:reconfig` shows that the guarantees of the orchestrator hold when the system is dynamically reconfigured at runtime.
+Secondly, :ref:`sec-eval-real_use_case-reconfig` shows that the guarantees of the orchestrator hold when the system is dynamically reconfigured at runtime.
 These tests represent exactly the use case of evaluation of a component within a larger software stack that motivated this work, that is able to run repeatedly and deterministically using the orchestrator.
 
-In :ref:`sec:eval:real_use_case:rosbag`, a limitation of the orchestrator in terms of modeling a node's output behavior was reached.
+In :ref:`sec-eval-real_use_case-rosbag`, a limitation of the orchestrator in terms of modeling a node's output behavior was reached.
 In order to use such nodes with the orchestrator in the future, an extension to the current callback handling might be required and is proposed here:
 A solution to this problem might be to allow the node to publish a status message after every callback, which specifies the number of outputs that have actually been published in this specific callback invocation.
 This would allow the orchestrator to ensure the reception of every callback output, and prevent wrong associations of outputs to callbacks.
@@ -911,9 +915,9 @@ Since :numref:`fig:eval:execution_time:sim_comparison_barchart` still shows an i
 Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73\% in the ``fast`` case.
 
 Evaluating the orchestrator itself for execution time, it can be found that during a simulation run, the callback for intercepted message inputs runs on average :math:`0.6` ms, and the callback for status messages runs :math:`0.9` ms.
-The \gls{api} functions for waiting until publishing a time or data input execute in :math:`0.9` ms and :math:`0.5` ms.
+The API functions for waiting until publishing a time or data input execute in :math:`0.9` ms and :math:`0.5` ms.
 This sums up to more than :math:`12.3` seconds spent executing interception and status callbacks, which in this scenario happens within the simulator.
-The simulator furthermore spends about :math:`5` seconds executing orchestrator \gls{api} calls.
+The simulator furthermore spends about :math:`5` seconds executing orchestrator API calls.
 
 The remaining increase in execution time is explained by serializing the execution of dependent callbacks.
 The vehicle tracking and planning components may both call the ego-motion service, which prevents parallel execution.
@@ -921,7 +925,7 @@ The speed of publishing inputs by the simulator is greatly reduced especially fo
 This would usually happen without waiting, but the orchestrator requires confirmation from the tracking module that an input has been processed before forwarding the next input to ensure a deterministic processing order.
 
 Finally, the orchestrator requires the simulator to receive and process the output from the planning module before advancing the simulation.
-This is realized by the ``changes_dataprovider_state`` flag for the corresponding callback in the node configuration file, which causes the ``wait_until_dataprovider_state_update_allowed`` \gls{api} call to block until the callback has finished.
+This is realized by the ``changes_dataprovider_state`` flag for the corresponding callback in the node configuration file, which causes the ``wait_until_dataprovider_state_update_allowed`` API call to block until the callback has finished.
 For any simulator, the "dataprovider state update" corresponds to executing a simulation timestep, which results in an effective slowdown of each simulation timestep to the execution time of the longest path resulting in some input to the simulator.
 
 The other available flag for callbacks, ``may_cause_reconfiguration``, presents a similar point of global synchronization:
@@ -932,15 +936,15 @@ This presents an even more severe point of synchronization, since it immediately
 \subsection{Discussion}\label{sec:eval:execution_time:discussion}
 Using the orchestrator significantly increased execution time in the simulation scenario.
 To reduce the runtime overhead caused by the orchestrator, multiple approaches are viable.
-As significant time is spent executing orchestrator callbacks and \gls{api} calls, improving the performance of the orchestrator itself would be beneficial.
+As significant time is spent executing orchestrator callbacks and API calls, improving the performance of the orchestrator itself would be beneficial.
 A possible approach worth investigating could be parallelizing the execution of orchestrator callbacks.
 Both parallelizing multiple orchestrator callbacks and running those callbacks in parallel to the host node (the simulator or ROS bag player) could be viable.
 In addition to a more efficient implementation of the orchestrator itself, the overhead of serializing callback executions is significant.
 While some of that overhead is inherently required by the serialization to ensure deterministic execution, it has already been shown in :ref:`sec:eval:verification:multiple_publishers_on_topic,sec:eval:verification:service_calls` that parallelism of callback executions can be improved with more granular control over callbacks, their outputs, and service calls made from within those callbacks.
 
 When using a ROS bag instead of a simulator as the data source, some of the identified problems are less concerning.
-Since a ROS bag player does not have to perform any computation and reading recorded data is not usually a bottleneck for performance, the overhead of the orchestrator \gls{api} calls is less problematic.
-Furthermore, without closed-loop simulation, the ``wait_until_dataprovider_state_update_allowed`` \gls{api} call is not necessary which has been identified as a factor that reduces the potential for parallel callback execution.
+Since a ROS bag player does not have to perform any computation and reading recorded data is not usually a bottleneck for performance, the overhead of the orchestrator API calls is less problematic.
+Furthermore, without closed-loop simulation, the ``wait_until_dataprovider_state_update_allowed`` API call is not necessary which has been identified as a factor that reduces the potential for parallel callback execution.
 In some scenarios, the use of the orchestrator is even able to improve execution time:
 When replaying a ROS bag, the speed of playback is often adjusted.
 Use cases for playing back a recording at equal to or slower than real-time occur when the developer intends to use interactive tools for introspection and visualization such as for debugging the behavior of a software component in a specific scenario.
