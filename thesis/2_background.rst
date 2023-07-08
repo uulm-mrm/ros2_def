@@ -128,11 +128,11 @@ Since those metrics evaluate the resulting traffic situation, they require runni
 
 As an example for performance evaluation using application-specific metrics, multiple metrics for a multi-object tracking module are considered.
 Specifically, the \gls{motp} and \gls{mota} metrics as proposed in [Bernardin2008]_ are used in this work.
-\Gls{motp} is defined as the average distance error $d$ over all matches $i$ in each timestep $t$ (with $c_t$ the number of matches between detections and ground-truth objects in timestep $t$)
+\Gls{motp} is defined as the average distance error :math:`d` over all matches :math:`i` in each timestep :math:`t` (with :math:`c_t` the number of matches between detections and ground-truth objects in timestep :math:`t`)
 \begin{equation*}
     \text{MOTP} = \frac{\sum_i^t{d_t^i}}{\sum_t{c_t}}.
 \end{equation*}
-\Gls{mota} provides a measure for how well the tracking algorithm performs with respect to missed objects ($m$), false positives ($fp$), and track mismatches ($mme$, i.e. identity switches between identified objects) over the total number of objects $g_t$, as defined by
+\Gls{mota} provides a measure for how well the tracking algorithm performs with respect to missed objects (:math:`m`), false positives (:math:`fp`), and track mismatches (:math:`mme`, i.e. identity switches between identified objects) over the total number of objects :math:`g_t`, as defined by
 \begin{equation*}
     \text{MOTA} = 1 - \frac{\sum_t{(m_t+fp_t+mme_t)}}{\sum_t{g_t}}.
 \end{equation*}
@@ -140,12 +140,12 @@ Both metrics are calculated over an entire sequence, instead of individual frame
 
 An additional metric for multi-object tracking applications is the \gls{ospa} metric as defined in [Schuhmacher2008]_.
 This metric directly measures the distance between two sets of states with different cardinality, and can thus be calculated for each timestep instead of over an entire sequence.
-The \gls{ospa} metric of order $p$ is defined for two sets $X = \{ x_1, \dots, x_m \}$ and $Y = \{y_1, \dots, y_n\}$ and a distance measure $d^{(c)}(x,y)$ with cutoff at $c$ as
+The \gls{ospa} metric of order :math:`p` is defined for two sets :math:`X = \{ x_1, \dots, x_m \}` and :math:`Y = \{y_1, \dots, y_n\}` and a distance measure :math:`d^{(c)}(x,y)` with cutoff at :math:`c` as
 \begin{equation*}
     \bar{d}_p^{(c)}(X, Y) = \left( \frac{1}{n} \left( \min_{\pi \in \Pi_n} \sum_{i=1}^m d^{(c)}(x_i, y_{\pi(i)})^p + c^p(n-m) \right)  \right)^{1/p}.
 \end{equation*}
-In the context of multi-object tracking, the sets $X$ and $Y$ represent the estimated tracks at a specific time step and the corresponding ground truth states.
-The resulting distance may then be interpreted as the average distance between a track and its corresponding ground truth object, with unassigned tracks being assigned the cutoff value $c$.
+In the context of multi-object tracking, the sets :math:`X` and :math:`Y` represent the estimated tracks at a specific time step and the corresponding ground truth states.
+The resulting distance may then be interpreted as the average distance between a track and its corresponding ground truth object, with unassigned tracks being assigned the cutoff value :math:`c`.
 This metric will be used in :ref:`sec:eval:real_use_case:reconfig` to visualize a change in the system performance during a single simulation run, which would not be visible using a metric that is averaged over the entire sequence.
 
 Recorded Data

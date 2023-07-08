@@ -65,7 +65,7 @@ Lost or Reordered Messages
 
 .. figure:: tikz_figures/nodegraph-example_reordering.png
 
-   Node graph showing a data source $S$ and processing node $P$, connected with topic $M$.
+   Node graph showing a data source :math:`S` and processing node :math:`P`, connected with topic :math:`M`.
 
 :numref:`fig-nodegraph-example_reordering` shows two ROS nodes communicating via one topic, without any additional publishers or subscribers connected to the topic.
 In this scenario, the sending node publishes messages at a high rate, while the receiving node processes messages slower than required to handle every message.
@@ -93,27 +93,27 @@ Inputs From Parallel Processing Chains
 
 .. figure:: tikz_figures/nodegraph-example_parallel_topics.png
 
-   Node graph showing a data source $S$ and node $T$ connected by two parallel topics $D1$ and $D2$, on which messages are published simultaneously by $S$.
+   Node graph showing a data source :math:`S` and node :math:`T` connected by two parallel topics :math:`D1` and :math:`D2`, on which messages are published simultaneously by :math:`S`.
 
 .. _fig-nodegraph-example_parallel_nodes:
 
 .. figure:: tikz_figures/nodegraph-example_parallel_nodes.png
 
-   Node graph showing data source $S$ and node $T$ connected by two parallel paths. Each path contains a processing node with a dedicated output topic. Both paths share the same input topic $M$.
+   Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths. Each path contains a processing node with a dedicated output topic. Both paths share the same input topic :math:`M`.
 
 In this scenario, a node receives messages on multiple topics, which originate from the same event in no specified order.
-In :numref:`fig-nodegraph-example_parallel_topics`, node $S$ publishes a message to both topics $D1$ and $D2$ during the same callback.
+In :numref:`fig-nodegraph-example_parallel_topics`, node :math:`S` publishes a message to both topics :math:`D1` and :math:`D2` during the same callback.
 Usually, those messages would be regarded as published at the same time.
-This results in a nondeterministic receive order of both messages at node $T$, since transmission latency might differ.
+This results in a nondeterministic receive order of both messages at node :math:`T`, since transmission latency might differ.
 
 In :numref:`fig-nodegraph-example_parallel_nodes`, a similar scenario is shown.
-Node $T$ again has two input topics $D1$ and $D2$, and a message on both topics is triggered by a single callback at node $S$.
-Compared to the previous example however, $S$ publishes a single message on topic $M$, that is then processed by both nodes $P1$ and $P2$, which then produce the outputs on $D1$ and $D2$.
-This exhibits the same problem of nondeterministic receive order of both messages at node $T$, and does so even if some assumptions about $S$ and the transmission latency can be made.
-First, the nodes $P1$ and $P2$ add a nondeterministic processing latency to the total latency between $S$ and $T$.
+Node :math:`T` again has two input topics :math:`D1` and :math:`D2`, and a message on both topics is triggered by a single callback at node :math:`S`.
+Compared to the previous example however, :math:`S` publishes a single message on topic :math:`M`, that is then processed by both nodes :math:`P1` and :math:`P2`, which then produce the outputs on :math:`D1` and :math:`D2`.
+This exhibits the same problem of nondeterministic receive order of both messages at node :math:`T`, and does so even if some assumptions about :math:`S` and the transmission latency can be made.
+First, the nodes :math:`P1` and :math:`P2` add a nondeterministic processing latency to the total latency between :math:`S` and :math:`T`.
 This results in nondeterministic latency, even if the transmission latency of the ROS topic was constant.
-Second, the data source $S$ publishes only a single message.
-In the previous example, deterministic behavior might be achieved if the middleware were to guarantee immediate and synchronous delivery of messages, and if the publish order within $S$ was deterministic.
+Second, the data source :math:`S` publishes only a single message.
+In the previous example, deterministic behavior might be achieved if the middleware were to guarantee immediate and synchronous delivery of messages, and if the publish order within :math:`S` was deterministic.
 Although these assumptions are not made about the ROS middleware, and generally do not hold, this demonstrates that the problem persists even with stronger guarantees from the middleware.
 
 .. _sec-impl-nondet_sources-multiple_publishers:
@@ -144,19 +144,19 @@ Multiple Publishers on the Same Topic
 
         \draw [arrow] (p1topic) -- (tracking);
     \end{tikzpicture}
-    \caption[Node graph showing data source $S$ and node $T$ connected by two parallel paths, where the processing nodes on both paths use the same output topic.]{Node graph showing data source $S$ and node $T$ connected by two parallel paths, where the processing nodes on both paths use the same output topic $D$. Both paths also share the same input topic $M$.}
+    \caption[Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths, where the processing nodes on both paths use the same output topic.]{Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths, where the processing nodes on both paths use the same output topic :math:`D`. Both paths also share the same input topic :math:`M`.}
     \label{fig:nodegraph:example_multiple_publishers}
 \end{figure}
 
-This scenario again consists of a data source $S$, two processing nodes $P1$ and $P2$ and a node $T$ which receives the outputs of $P1$ and $P2$, as shown in :numref:`fig:nodegraph:example_multiple_publishers`.
-Once $S$ publishes a message, both processing callbacks at $P1$ and $P2$ run concurrently, eventually publishing an output.
-Distinct from the previous example, $P1$ and $P2$ use the same output topic $D$, which consequently is the only input of $T$.
-The communication middleware does not guarantee that the message delivery order at $T$ matches the publish order at $P1$ and $P2$.
-This results in a nondeterministic arrival order of both messages at $T$.
-Note that while $P1$ and $P2$ run concurrently in this example, this would still be a concern if the processing nodes were triggered by separate inputs since callback duration and transmission latency would still be nondeterministic.
+This scenario again consists of a data source :math:`S`, two processing nodes :math:`P1` and :math:`P2` and a node :math:`T` which receives the outputs of :math:`P1` and :math:`P2`, as shown in :numref:`fig:nodegraph:example_multiple_publishers`.
+Once :math:`S` publishes a message, both processing callbacks at :math:`P1` and :math:`P2` run concurrently, eventually publishing an output.
+Distinct from the previous example, :math:`P1` and :math:`P2` use the same output topic :math:`D`, which consequently is the only input of :math:`T`.
+The communication middleware does not guarantee that the message delivery order at :math:`T` matches the publish order at :math:`P1` and :math:`P2`.
+This results in a nondeterministic arrival order of both messages at :math:`T`.
+Note that while :math:`P1` and :math:`P2` run concurrently in this example, this would still be a concern if the processing nodes were triggered by separate inputs since callback duration and transmission latency would still be nondeterministic.
 
 As with the scenario in :ref:`sec-impl-nondet_sources-reordering`, subscriber queue overflow is an additional concern here.
-If the subscriber queue of $T$ is full already, a message from either publishing node may be dropped.
+If the subscriber queue of :math:`T` is full already, a message from either publishing node may be dropped.
 
 .. _sec-impl-nondet_sources-service_calls:
 
@@ -181,15 +181,15 @@ Parallel Service Calls
         \draw[arrow, dashed] (n1) -- (sn);
         \draw[arrow, dashed] (n2) -- (sn);
     \end{tikzpicture}
-    \caption[Node graph showing three nodes, two of which concurrently call a service provided by the third node.]{Node graph showing three nodes $N1$, $N2$ and $SP$ all with topic $M$ as an input. Nodes $N1$ and $N2$ call a service provided by $SP$ during callback execution, as indicated by the dashed arrows.}
+    \caption[Node graph showing three nodes, two of which concurrently call a service provided by the third node.]{Node graph showing three nodes :math:`N1`, :math:`N2` and :math:`SP` all with topic :math:`M` as an input. Nodes :math:`N1` and :math:`N2` call a service provided by :math:`SP` during callback execution, as indicated by the dashed arrows.}
     \label{fig:nodegraph:example_service_calls}
 \end{figure}
 
 This example involves four nodes, as shown in :numref:`fig:nodegraph:example_service_calls`:
-One node $S$ publishes a message to topic $M$, which causes subscription callbacks at nodes $N1$, $N2$ and $SP$.
-$SP$ provides a ROS service, which the nodes $N1$ and $N2$ call while executing the input callback.
+One node :math:`S` publishes a message to topic :math:`M`, which causes subscription callbacks at nodes :math:`N1`, :math:`N2` and :math:`SP`.
+:math:`SP` provides a ROS service, which the nodes :math:`N1` and :math:`N2` call while executing the input callback.
 This causes three callbacks in total at the service provider node, the order of which is nondeterministic.
-In this case, this influences not only the future behavior of the service provider node but also the result of the callbacks at nodes $N1$ and $N2$, since each service response might depend on previous service calls and message inputs.
+In this case, this influences not only the future behavior of the service provider node but also the result of the callbacks at nodes :math:`N1` and :math:`N2`, since each service response might depend on previous service calls and message inputs.
 
 .. _sec-impl-design_goals:
 
@@ -331,7 +331,7 @@ Using custom \gls{rclpy} and \gls{rclcpp} versions additionally inconveniences l
             \draw [arrow] (sensortopic) |- (perception1);
             \draw [arrow] (sensortopic) |- (perception2);
         \end{tikzpicture}
-        \caption{Before interception: Data source $S$ publishes to topic $M$, which is an input to nodes $P1$ and $P2$.}
+        \caption{Before interception: Data source :math:`S` publishes to topic :math:`M`, which is an input to nodes :math:`P1` and :math:`P2`.}
     \end{subfigure}
 
     \begin{subfigure}{\textwidth}
@@ -356,7 +356,7 @@ Using custom \gls{rclpy} and \gls{rclcpp} versions additionally inconveniences l
             \draw [arrow] (sensortopic_1) -- (perception1);
             \draw [arrow] (sensortopic_2) -- (perception2);
         \end{tikzpicture}
-        \caption{Interception using orchestrator $O$: The orchestrator subscribes to $M$ and publishes to individual input topics for each node $P1$ and $P2$, allowing individual callback execution.}
+        \caption{Interception using orchestrator :math:`O`: The orchestrator subscribes to :math:`M` and publishes to individual input topics for each node :math:`P1` and :math:`P2`, allowing individual callback execution.}
     \end{subfigure}
     \caption{Visualization of the ROS topic interception of node inputs by the orchestrator.}
     \label{fig:impl:topic_interception}
@@ -370,7 +370,7 @@ Since the orchestrator is not expected to execute additional callbacks (which wo
 By assigning every subscriber to a specific topic an individual connection (a distinct topic) to the orchestrator, it is also possible to separate callback executions for the same topic at different nodes.
 For inputs into the orchestrator, such separation is not required, since the orchestrator can ensure sequential execution of callbacks which publish a message on the corresponding topics.
 :numref:`fig:impl:topic_interception` shows an example of a one-to-many connection between three nodes using one topic.
-When using the orchestrator, $M$ is still used as an output of $S$, but each receiving node now subscribes to an individual input topic \textit{P1/M} and \textit{P2/M}.
+When using the orchestrator, :math:`M` is still used as an output of :math:`S`, but each receiving node now subscribes to an individual input topic \textit{P1/M} and \textit{P2/M}.
 
 The orchestrator ROS node is typically located in the same process as the data provider,
 which would be a simulator or ROS bag player.
@@ -463,7 +463,7 @@ The orchestrator contains one callback graph, which gets extended every time the
 A data input is any ROS message that is not published by a node within the system under test, but originates from an external source, such as data generated by a simulator or messages from a ROS bag.
 Completed actions are removed from the graph.
 Edges between actions represent dependencies in execution order:
-An edge $(u, v)$ from action $u$ to action $v$ implies that the action $u$ must be executed after the action $v$ has run to completion.
+An edge :math:`(u, v)` from action :math:`u` to action :math:`v` implies that the action :math:`u` must be executed after the action :math:`v` has run to completion.
 All outgoing edges from an action are created with the action itself.
 Additional edges are not added at a later time, and edges are only removed once one of the connected actions is removed.
 It should be noted that time inputs on the \texttt{/clock} topic for triggering timer callbacks as described in :ref:`sec-impl-controlling_callbacks-timers` are not represented as actions, as they do not contain any message data that needs to be buffered.
@@ -567,14 +567,14 @@ The resulting callback graph is shown in :numref:`fig:impl:example_cb_graph`.
 Actions corresponding to the first input are shown in the left half of the graph.
 \texttt{CAUSALITY} connections drawn in blue show connections directly corresponding to the ROS node graph:
 They connect each callback to the previous callback publishing the required input data.
-\texttt{SAME\_NODE} edges connect the corresponding callbacks between timesteps, and the two callbacks of node $T$ within each timestep.
-This ensures that the callback order at $T$ is deterministic even if the processing times of $P1$ and $P2$ are variable.
+\texttt{SAME\_NODE} edges connect the corresponding callbacks between timesteps, and the two callbacks of node :math:`T` within each timestep.
+This ensures that the callback order at :math:`T` is deterministic even if the processing times of :math:`P1` and :math:`P2` are variable.
 The \texttt{SAME\_TOPIC} edges in this example might seem redundant to the \texttt{SAME\_NODE} connections, the outgoing edge from the second data input, however, is required to ensure that both inputs are not reordered before they arrive at the orchestrator.
 This graph also shows additional nodes which do not directly correspond to callbacks within the software stack under test:
 The input nodes represent data inputs that may come from a ROS bag or the simulator.
 \emph{Buffer nodes} represent the action of storing a message at the orchestrator, and allow parallel execution by allowing \texttt{SAME\_TOPIC} dependencies to be made to specific outputs of callbacks instead of entire callbacks.
 Some elements have been excluded from this graph for brevity:
-The callbacks at node $T$ do not have any output, which requires them to publish a status message.
+The callbacks at node :math:`T` do not have any output, which requires them to publish a status message.
 The reception of this status message is usually represented in the graph analogous to the buffer nodes.
 
 .. \section{Interface/API/Behavior/Execution}\label{sec:impl:algorithm}

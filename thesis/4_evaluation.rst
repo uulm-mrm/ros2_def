@@ -26,9 +26,9 @@ is individually evaluated.
 
 \subsection{Lost or Reordered Messages}
 To verify that the problem of lost messages due to overflowing subscriber queues, as introduced in :ref:`sec:impl:nondet_sources:reordering`, is solved by the orchestrator, a test case was set up:
-A data source $S$ publishes messages at a fixed frequency.
-The messages are received by the node under test $P$, which has a fixed queue size (of three messages in this example), and a varying processing time that on average is significantly slower than the period of message publishing.
-After processing, $P$ publishes the result on a different topic.
+A data source :math:`S` publishes messages at a fixed frequency.
+The messages are received by the node under test :math:`P`, which has a fixed queue size (of three messages in this example), and a varying processing time that on average is significantly slower than the period of message publishing.
+After processing, :math:`P` publishes the result on a different topic.
 This behavior might correspond to a simulator running at a fixed frequency, and a computationally expensive processing component such as a perception module, running on a resource-constrained system.
 
 \def\xshift{4.2}
@@ -59,13 +59,13 @@ This behavior might correspond to a simulator running at a fixed frequency, and 
 
         % \timeannotation{2}{11.5};
     \end{tikzpicture}
-    \caption[Sequence diagram showing dropped messages due to subscriber queue overflow.]{Sequence diagram showing dropped messages due to subscriber queue overflow, with a subscriber queue size of 3 at $P$. The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_reordering`.}
+    \caption[Sequence diagram showing dropped messages due to subscriber queue overflow.]{Sequence diagram showing dropped messages due to subscriber queue overflow, with a subscriber queue size of 3 at :math:`P`. The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_reordering`.}
     \label{fig:eval:reordering:timeline}
 \end{figure}
 
 :numref:`fig:eval:reordering:timeline` shows the sequence of events when running this test:
-The first timeline shows the periodic publishing of input messages by $S$.
-The second timeline shows the callback duration of node $P$.
+The first timeline shows the periodic publishing of input messages by :math:`S`.
+The second timeline shows the callback duration of node :math:`P`.
 It can be seen that once the processing of the first message finishes, processing immediately continues for message 5, which is the third-recent message published at that point in time, skipping messages 2, 3, and 4 which were published during processing.
 During the processing of message 5, four further messages are discarded.
 The exact number of skipped messages depends on the callback duration, which in this case is deliberately randomized but is usually highly dependent on external factors such as system load.
@@ -165,8 +165,8 @@ This is not explicitly demonstrated here but follows immediately from the fact t
             \messageid{\x}{\i};
         }
     \end{tikzpicture}
-    \caption[Sequence diagram showing the execution of two parallel processing nodes with nondeterministic processing time.]{Sequence diagram showing the execution of two parallel processing nodes $P1$ and $P2$ with nondeterministic processing time.
-    This results in a nondeterministic callback order at $T$, which subscribes to the outputs of both chains.
+    \caption[Sequence diagram showing the execution of two parallel processing nodes with nondeterministic processing time.]{Sequence diagram showing the execution of two parallel processing nodes :math:`P1` and :math:`P2` with nondeterministic processing time.
+    This results in a nondeterministic callback order at :math:`T`, which subscribes to the outputs of both chains.
     The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_parallel_nodes`.}
     \label{fig:eval:parallel_inputs:sequence}
 \end{figure}
@@ -174,12 +174,12 @@ This is not explicitly demonstrated here but follows immediately from the fact t
 
 To verify deterministic callback execution at a node with multiple parallel inputs, the example introduced in :ref:`sec:impl:nondet_sources:parallel` with the ROS graph shown in :numref:`fig:nodegraph:example_parallel_nodes` is realized.
 :numref:`fig:eval:parallel_inputs:sequence` shows all callback invocations resulting from
-two inputs from $S$.
-Without the orchestrator, the combination of nondeterministic transmission latency and variable duration of callback execution at $P1$ and $P2$ results in a nondeterministic execution order of both callbacks at $T$ resulting from one input from $S$.
+two inputs from :math:`S`.
+Without the orchestrator, the combination of nondeterministic transmission latency and variable duration of callback execution at :math:`P1` and :math:`P2` results in a nondeterministic execution order of both callbacks at :math:`T` resulting from one input from :math:`S`.
 
-For input 1, $P1$ finishes processing before $P2$, and no significant transmission
-latency occurs, which causes $T$ to process the message on $D1$ before $D2$.
-Following input 2, $P2$ is slightly faster than $P1$ resulting in a different callback order
+For input 1, :math:`P1` finishes processing before :math:`P2`, and no significant transmission
+latency occurs, which causes :math:`T` to process the message on :math:`D1` before :math:`D2`.
+Following input 2, :math:`P2` is slightly faster than :math:`P1` resulting in a different callback order
 compared to the first input.
 
 
@@ -240,19 +240,19 @@ compared to the first input.
             \messageid{\x}{\i};
         }
     \end{tikzpicture}
-    \caption[Sequence diagram showing a deterministic callback order at $T$ despite nondeterministic callback durations at $P1$ and $P2$.]{Sequence diagram showing a deterministic callback order at $T$ despite nondeterministic callback durations at $P1$ and $P2$ as an effect of the orchestrator on the behavior shown in :numref:`fig:eval:parallel_inputs:sequence`.}
+    \caption[Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2`.]{Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2` as an effect of the orchestrator on the behavior shown in :numref:`fig:eval:parallel_inputs:sequence`.}
     \label{fig:eval:parallel_inputs:sequence_orchestrator}
 \end{figure}
 
 Using the orchestrator, the callback order changes, as visualized in :numref:`fig:eval:parallel_inputs:sequence_orchestrator`.
-For the first and third data input, $P1$ requires more processing time than $P2$.
-This would ordinarily allow the $D2$ callback at $T$ to execute before the $D1$ callback.
-The orchestrator however ensures a deterministic callback order at $T$ for every data input from $S$, by buffering the $D2$ message until $T$ finishes processing $D1$.
+For the first and third data input, :math:`P1` requires more processing time than :math:`P2`.
+This would ordinarily allow the :math:`D2` callback at :math:`T` to execute before the :math:`D1` callback.
+The orchestrator however ensures a deterministic callback order at :math:`T` for every data input from :math:`S`, by buffering the :math:`D2` message until :math:`T` finishes processing :math:`D1`.
 Note that the orchestrator does not implement a specific callback order defined by the node or externally.
 It only ensures that the order is consistent over multiple executions.
 The actual order results from the order in which nodes and callbacks are listed in configuration files, but this is not intended to be adjusted by the user.
 If a node requires a distinct receive order, it must implement appropriate ordering internally, to ensure correct operation without the orchestrator.
-From the point of the orchestrator, consistently ordering $P2$ before $P1$ would have also been a valid solution.
+From the point of the orchestrator, consistently ordering :math:`P2` before :math:`P1` would have also been a valid solution.
 
 \FloatBarrier
 \subsection{Multiple Publishers on the Same Topic}\label{sec:eval:verification:multiple_publishers_on_topic}
@@ -314,26 +314,26 @@ From the point of the orchestrator, consistently ordering $P2$ before $P1$ would
             \messageid{\x}{\i};
         }
     \end{tikzpicture}
-    \caption[Sequence diagram showing serialized callback executions of nodes $P1$ and $P2$, which is required to achieve a deterministic callback order.]{Sequence diagram showing serialized callback executions of nodes $P1$ and $P2$, which is required to achieve a deterministic callback order at $T$ in this example, since $P1$ and $P2$ use the same output topic.
+    \caption[Sequence diagram showing serialized callback executions of nodes :math:`P1` and :math:`P2`, which is required to achieve a deterministic callback order.]{Sequence diagram showing serialized callback executions of nodes :math:`P1` and :math:`P2`, which is required to achieve a deterministic callback order at :math:`T` in this example, since :math:`P1` and :math:`P2` use the same output topic.
     The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_multiple_publishers`.}
     \label{fig:eval:same_output:sequence_orchestrator}
 \end{figure}
 
 This example extends the previous scenario from :ref:`sec:eval:verification:parallel_inputs` such that both processing nodes publish their result on the same topic, corresponding to the example introduced in :ref:`sec:impl:nondet_sources:multiple_publishers`, with the ROS graph shown in :numref:`fig:nodegraph:example_multiple_publishers`.
-Again, this results in nondeterministic callback order at $T$, with a callback order identical to the previous case shown in :numref:`fig:eval:parallel_inputs:sequence`.
-In this case, both callback executions at $T$ are of the same callback, while previously two distinct callbacks were executed once each.
+Again, this results in nondeterministic callback order at :math:`T`, with a callback order identical to the previous case shown in :numref:`fig:eval:parallel_inputs:sequence`.
+In this case, both callback executions at :math:`T` are of the same callback, while previously two distinct callbacks were executed once each.
 
-Because only node \emph{inputs} are intercepted, this scenario requires serializing the callbacks at $P1$ and $P2$.
+Because only node \emph{inputs} are intercepted, this scenario requires serializing the callbacks at :math:`P1` and :math:`P2`.
 :numref:`fig:eval:same_output:sequence_orchestrator` shows the resulting callback sequence when using the orchestrator.
-By ensuring that processing at $P2$ only starts after the output from $P1$ is received, reordering of the messages on $D$ is prevented.
-Note that while the different colors of the callbacks at $T$ correspond to the sources of the corresponding input, both inputs cause the same subscription callback to be executed at the node.
+By ensuring that processing at :math:`P2` only starts after the output from :math:`P1` is received, reordering of the messages on :math:`D` is prevented.
+Note that while the different colors of the callbacks at :math:`T` correspond to the sources of the corresponding input, both inputs cause the same subscription callback to be executed at the node.
 Generally, the node would not be able to determine the source of the input message.
 
-Since the processing time of $P2$ is longer than the processing time of the first callback at $T$ in this example, the orchestrator causes a larger overhead for this node graph compared to the previous one.
-$P2$ starts processing simultaneously to the first $T$ callback, causing $T$ to be idle between the completion of the first callback and the completion of processing at $P2$.
-It should be noted, however, that even though the total processing time exceeds the input frequency of $S$ for input 2, the data source was not required to slow down.
-:numref:`fig:eval:same_output:sequence_orchestrator` shows that $T$ is still running while $P1$ processes input 3.
-This kind of "pipelining" happens implicitly because the callback execution at $P1$ has no dependency on the callback at $T$, and by eagerly allowing inputs from $S$.
+Since the processing time of :math:`P2` is longer than the processing time of the first callback at :math:`T` in this example, the orchestrator causes a larger overhead for this node graph compared to the previous one.
+:math:`P2` starts processing simultaneously to the first :math:`T` callback, causing :math:`T` to be idle between the completion of the first callback and the completion of processing at :math:`P2`.
+It should be noted, however, that even though the total processing time exceeds the input frequency of :math:`S` for input 2, the data source was not required to slow down.
+:numref:`fig:eval:same_output:sequence_orchestrator` shows that :math:`T` is still running while :math:`P1` processes input 3.
+This kind of "pipelining" happens implicitly because the callback execution at :math:`P1` has no dependency on the callback at :math:`T`, and by eagerly allowing inputs from :math:`S`.
 In the current implementation, the orchestrator requests the publishing of the next message by the data provider as soon as the processing of the last input on the same topic has started.
 In the case of a time input, the input is requested as soon as no actions remain which are still waiting on an input of a previous time update.
 Both kinds of input may additionally be delayed if the system is pending dynamic reconfiguration, or if a callback is still running that may cause a reconfiguration at the end of the current timestep.
@@ -345,26 +345,26 @@ Both kinds of input may additionally be delayed if the system is pending dynamic
 
 .. figure:: tikz_figures/eval-service-sequence_before.png
 
-   Sequence diagram showing the parallel execution of callbacks at $N1$ and $N2$.
-   The hatched area within the callback shows the duration of service calls, which are made to a service provided by $SP$, upwards arrows represent responses to service calls.
-   The variable timing of the service calls results in a nondeterministic callback order at $SP$.
+   Sequence diagram showing the parallel execution of callbacks at :math:`N1` and :math:`N2`.
+   The hatched area within the callback shows the duration of service calls, which are made to a service provided by :math:`SP`, upwards arrows represent responses to service calls.
+   The variable timing of the service calls results in a nondeterministic callback order at :math:`SP`.
    The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_service_calls`.
 
 :numref:`fig:nodegraph:example_service_calls` shows the node setup for this example, which has been identified in :ref:`sec:impl:nondet_sources:service_calls`.
-A single message triggers a callback at three nodes, one of which ($SP$) also provides a ROS service.
-The two other nodes $N1$ and $N2$ call the provided service during callback execution.
-The resulting order of all three callbacks at $SP$ in response to a single message input is nondeterministic, as shown in :numref:`fig-eval-service-sequence_before`.
-Since the orchestrator only controls service calls by controlling the callback they originate from, it is necessary to serialize all callbacks interacting with the service, which in this case are the message callbacks at $N1$, $N2$, and $SP$.
+A single message triggers a callback at three nodes, one of which (:math:`SP`) also provides a ROS service.
+The two other nodes :math:`N1` and :math:`N2` call the provided service during callback execution.
+The resulting order of all three callbacks at :math:`SP` in response to a single message input is nondeterministic, as shown in :numref:`fig-eval-service-sequence_before`.
+Since the orchestrator only controls service calls by controlling the callback they originate from, it is necessary to serialize all callbacks interacting with the service, which in this case are the message callbacks at :math:`N1`, :math:`N2`, and :math:`SP`.
 
 .. _fig-eval-service-sequence_orchestrator:
 
 .. figure:: tikz_figures/eval-service-sequence_orchestrator.png
 
-   Sequence diagram showing the serialized callbacks from :numref:`fig-eval-service-sequence_before`. Serialization of the callbacks at $N1$ and $N2$ leads to a deterministic callback order at $SP$.
+   Sequence diagram showing the serialized callbacks from :numref:`fig-eval-service-sequence_before`. Serialization of the callbacks at :math:`N1` and :math:`N2` leads to a deterministic callback order at :math:`SP`.
 
 The resulting callback sequence is shown in :numref:`fig-eval-service-sequence_orchestrator`.
-By serializing the callbacks at $N1$ and $N2$, the order of service callbacks at $SP$ is now fixed.
-In this example, it is again apparent that parallel execution of the $N1$ and $N2$ callbacks might be possible while still maintaining a deterministic callback order at $SP$.
+By serializing the callbacks at :math:`N1` and :math:`N2`, the order of service callbacks at :math:`SP` is now fixed.
+In this example, it is again apparent that parallel execution of the :math:`N1` and :math:`N2` callbacks might be possible while still maintaining a deterministic callback order at :math:`SP`.
 This limitation is discussed in detail in :ref:`sec:eval:verification:discussion`.
 
 \FloatBarrier
@@ -375,15 +375,15 @@ While all examples show successful deterministic execution, some limitations and
 In the case of concurrent callbacks which publish on the same topic, parallelism could further be improved by extending the topic interception strategy.
 Currently, only the input topics of each node are intercepted by the orchestrator, the output topics are not changed.
 If the output topics of nodes were also remapped to individual topics, all \texttt{SAME\_TOPIC} dependencies would be eliminated.
-In the example from :numref:`fig:eval:parallel_inputs:sequence_orchestrator`, this would again allow the concurrent callbacks $P1$ and $P2$ to execute in parallel, with each output being individually buffered at the orchestrator.
-The individually and uniquely buffered outputs could then be forwarded to $T$ in a deterministic order, effectively resulting in a callback execution behavior as in :ref:`sec:eval:verification:parallel_inputs`.
+In the example from :numref:`fig:eval:parallel_inputs:sequence_orchestrator`, this would again allow the concurrent callbacks :math:`P1` and :math:`P2` to execute in parallel, with each output being individually buffered at the orchestrator.
+The individually and uniquely buffered outputs could then be forwarded to :math:`T` in a deterministic order, effectively resulting in a callback execution behavior as in :ref:`sec:eval:verification:parallel_inputs`.
 
 The last example of concurrent service calls (:ref:`sec:eval:verification:service_calls`) also shows how this method of ensuring deterministic execution comes with a significant runtime penalty.
 Here, the orchestrator now requires all callbacks to execute sequentially, while previously all callbacks started executing in parallel, with the only point of synchronization being the service provider, depending on available parallel callback execution within the node.
 An important factor determining the impact of this is the proportion of service-call duration to total callback duration for the calling nodes.
-If the service call is expected to take only a small fraction of the entire callback duration, a large improvement in execution time could be gained by allowing parallel execution of the callbacks $N1$ and $N2$, which both call the service.
+If the service call is expected to take only a small fraction of the entire callback duration, a large improvement in execution time could be gained by allowing parallel execution of the callbacks :math:`N1` and :math:`N2`, which both call the service.
 This might be possible by explicitly controlling service calls directly instead of controlling the entire callback executing that call.
-In the example shown in :numref:`fig-eval-service-sequence_orchestrator`, serializing only the service calls would allow the portion of the $N2$ callback before the service call to execute concurrently to $N1$, and the portion after the service call to overlap with the message callback at $SP$.
+In the example shown in :numref:`fig-eval-service-sequence_orchestrator`, serializing only the service calls would allow the portion of the :math:`N2` callback before the service call to execute concurrently to :math:`N1`, and the portion after the service call to overlap with the message callback at :math:`SP`.
 
 Another possible extension to improve parallelism in scenarios involving service calls is to allow specifying that some actions might interact with the service provider without modifying its state.
 Currently, all actions interacting with the service (by running at the same node, or calling the service) are assumed to modify the service provider state.
@@ -815,7 +815,7 @@ A real working counterpart would require additional inputs such as the current v
 :numref:`fig:eval:config:ospa` shows the OSPA distance (see :ref:`sec:bg:metrics`) between the tracking result and the ground truth object data from the simulator over multiple simulation runs.
 The OSPA distance was chosen as a metric in this case since it is calculated for every time step instead of as an average over the entire simulation run, as is the case with the \gls{mota} and \gls{motp} metrics used above.
 This allows evaluation of how the metric changes during the simulation run and clearly shows the reconfiguration step.
-It is apparent that the reconfiguration module successfully switched to a lower measurement noise at $t=7s$.
+It is apparent that the reconfiguration module successfully switched to a lower measurement noise at :math:`t=7s`.
 Importantly, however, the evaluation results of the multiple runs do not completely overlap.
 This is again due to nondeterministic callback execution within the tracking, planning, and simulator modules.
 The differences between the runs, plotted in :numref:`fig:eval:config:ospa_diff`, show that all runs deviate from the first run, with two runs showing the largest difference at the exact time of reconfiguration.
@@ -870,8 +870,8 @@ In the following, this impact is measured for a simulation use case and the indi
 \subsection{Analysis}\label{sec:eval:execution_time:analysis}
 To measure the impact of topic interception, the induced delay of forwarding a message via a ROS node is measured.
 In order to compensate for latency in the measuring node, the difference in latency for directly sending and receiving a message in the same node versus the latency of sending a message and receiving a forwarded message is measured.
-When using a measuring and forwarding node implemented in Python and using the "eProsima Fast DDS" middleware, the latency from publishing to receiving increases from a mean of $0.64$ ms to $0.99$ ms.
-This induced latency of $0.35$ ms on average is considered acceptable and justifies the design choice of controlling callbacks by intercepting the corresponding message inputs.
+When using a measuring and forwarding node implemented in Python and using the "eProsima Fast DDS" middleware, the latency from publishing to receiving increases from a mean of :math:`0.64` ms to :math:`0.99` ms.
+This induced latency of :math:`0.35` ms on average is considered acceptable and justifies the design choice of controlling callbacks by intercepting the corresponding message inputs.
 
 \begin{figure}[t]
     \centering
@@ -910,10 +910,10 @@ Since :numref:`fig:eval:execution_time:sim_comparison_barchart` still shows an i
 % time factor in test: 1.43063584
 Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73\% in the \texttt{fast} case.
 
-Evaluating the orchestrator itself for execution time, it can be found that during a simulation run, the callback for intercepted message inputs runs on average $0.6$ ms, and the callback for status messages runs $0.9$ ms.
-The \gls{api} functions for waiting until publishing a time or data input execute in $0.9$ ms and $0.5$ ms.
-This sums up to more than $12.3$ seconds spent executing interception and status callbacks, which in this scenario happens within the simulator.
-The simulator furthermore spends about $5$ seconds executing orchestrator \gls{api} calls.
+Evaluating the orchestrator itself for execution time, it can be found that during a simulation run, the callback for intercepted message inputs runs on average :math:`0.6` ms, and the callback for status messages runs :math:`0.9` ms.
+The \gls{api} functions for waiting until publishing a time or data input execute in :math:`0.9` ms and :math:`0.5` ms.
+This sums up to more than :math:`12.3` seconds spent executing interception and status callbacks, which in this scenario happens within the simulator.
+The simulator furthermore spends about :math:`5` seconds executing orchestrator \gls{api} calls.
 
 The remaining increase in execution time is explained by serializing the execution of dependent callbacks.
 The vehicle tracking and planning components may both call the ego-motion service, which prevents parallel execution.
