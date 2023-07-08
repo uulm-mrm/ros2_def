@@ -32,7 +32,11 @@ html_clean:
 	$(MAKE) html
 	$(MAKE) clean_tikz_figure_intermediates
 
-figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png
+figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
+	thesis/tikz_figures/nodegraph-example_reordering.png \
+	thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
+	thesis/tikz_figures/nodegraph-example_parallel_nodes.png \
+	thesis/tikz_figures/nodegraph-example_parallel_topics.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

@@ -61,21 +61,13 @@ In this section, minimal examples of nodes and connecting topics will be present
 Lost or Reordered Messages
 --------------------------
 
-\begin{figure}[h]
-    \centering
-    \begin{tikzpicture}
-        \node (sensor) [rosnode] {S};
-        \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
-        \node (perception1) [rosnode, right of=sensortopic, xshift=1cm] {P};
+.. _fig-nodegraph-example_reordering:
 
-        \draw [arrow] (sensor) -- (sensortopic);
-        \draw [arrow] (sensortopic) -- (perception1);
-    \end{tikzpicture}
-    \caption{Node graph showing a data source $S$ and processing node $P$, connected with topic $M$.}
-    \label{fig:nodegraph:example_reordering}
-\end{figure}
+.. figure:: tikz_figures/nodegraph-example_reordering.png
 
-\Cref{fig:nodegraph:example_reordering} shows two ROS nodes communicating via one topic, without any additional publishers or subscribers connected to the topic.
+   Node graph showing a data source $S$ and processing node $P$, connected with topic $M$.
+
+:numref:`fig-nodegraph-example_reordering` shows two ROS nodes communicating via one topic, without any additional publishers or subscribers connected to the topic.
 In this scenario, the sending node publishes messages at a high rate, while the receiving node processes messages slower than required to handle every message.
 This causes the subscriber queue to fill up, eventually dropping messages.
 Current ROS defaults use the \texttt{keep last N} queue handling strategy, which would cause the oldest message to get dropped from the queue when a new one arrives.
@@ -97,62 +89,24 @@ Nonetheless, message reordering, should it occur, is later also addressed by the
 Inputs From Parallel Processing Chains
 --------------------------------------
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        %\draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
-        \node (sensor) at (0,0) [rosnode] {S};
-        \node (p1topic) at (2,1) [topic] {D1};
-        \node (p2topic) at (2,-1) [topic] {D2};
+.. _fig-nodegraph-example_parallel_topics:
 
-        \node (tracking) at (4,0) [rosnode] {T};
+.. figure:: tikz_figures/nodegraph-example_parallel_topics.png
 
-        \draw [arrow] (sensor) |- (p1topic);
-        \draw [arrow] (sensor) |- (p2topic);
+   Node graph showing a data source $S$ and node $T$ connected by two parallel topics $D1$ and $D2$, on which messages are published simultaneously by $S$.
 
-        \draw [arrow] (p1topic) -| (tracking);
-        \draw [arrow] (p2topic) -| (tracking);
-    \end{tikzpicture}
-    \caption[Node graph showing a data source $S$ and node $T$ connected by two parallel topics $D1$ and $D2$.]{Node graph showing a data source $S$ and node $T$ connected by two parallel topics $D1$ and $D2$, on which messages are published simultaneously by $S$.}
-    \label{fig:nodegraph:example_parallel_topics}
-\end{figure}
+.. _fig-nodegraph-example_parallel_nodes:
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        %\draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
-        \node (sensor) [rosnode] {S};
-        \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
+.. figure:: tikz_figures/nodegraph-example_parallel_nodes.png
 
-        \node (perception1) [rosnode, right of=sensortopic, xshift=1cm, yshift=1cm] {P1};
-        \node (p1topic) [topic, right of=perception1, xshift=1cm] {D1};
-
-        \node (perception2) [rosnode, right of=sensortopic, xshift=1cm, yshift=-1cm] {P2};
-        \node (p2topic) [topic, right of=perception2, xshift=1cm] {D2};
-
-        \node (tracking) [rosnode, right of=p1topic, xshift=1cm, yshift=-1cm] {T};
-
-
-        \draw [arrow] (sensor) -- (sensortopic); % chktex 8
-        \draw [arrow] (sensortopic) |- (perception1);
-        \draw [arrow] (sensortopic) |- (perception2);
-
-        \draw [arrow] (perception1) -- (p1topic); % chktex 8
-        \draw [arrow] (perception2) -- (p2topic); % chktex 8
-
-        \draw [arrow] (p1topic) -| (tracking);
-        \draw [arrow] (p2topic) -| (tracking);
-    \end{tikzpicture}
-    \caption[Node graph showing data source $S$ and node $T$ connected by two parallel paths, each path contains a processing node.]{Node graph showing data source $S$ and node $T$ connected by two parallel paths. Each path contains a processing node with a dedicated output topic. Both paths share the same input topic $M$.}
-    \label{fig:nodegraph:example_parallel_nodes}
-\end{figure}
+   Node graph showing data source $S$ and node $T$ connected by two parallel paths. Each path contains a processing node with a dedicated output topic. Both paths share the same input topic $M$.
 
 In this scenario, a node receives messages on multiple topics, which originate from the same event in no specified order.
-In \cref{fig:nodegraph:example_parallel_topics}, node $S$ publishes a message to both topics $D1$ and $D2$ during the same callback.
+In :numref:`fig-nodegraph-example_parallel_topics`, node $S$ publishes a message to both topics $D1$ and $D2$ during the same callback.
 Usually, those messages would be regarded as published at the same time.
 This results in a nondeterministic receive order of both messages at node $T$, since transmission latency might differ.
 
-In \cref{fig:nodegraph:example_parallel_nodes}, a similar scenario is shown.
+In :numref:`fig-nodegraph-example_parallel_nodes`, a similar scenario is shown.
 Node $T$ again has two input topics $D1$ and $D2$, and a message on both topics is triggered by a single callback at node $S$.
 Compared to the previous example however, $S$ publishes a single message on topic $M$, that is then processed by both nodes $P1$ and $P2$, which then produce the outputs on $D1$ and $D2$.
 This exhibits the same problem of nondeterministic receive order of both messages at node $T$, and does so even if some assumptions about $S$ and the transmission latency can be made.
@@ -194,7 +148,7 @@ Multiple Publishers on the Same Topic
     \label{fig:nodegraph:example_multiple_publishers}
 \end{figure}
 
-This scenario again consists of a data source $S$, two processing nodes $P1$ and $P2$ and a node $T$ which receives the outputs of $P1$ and $P2$, as shown in \cref{fig:nodegraph:example_multiple_publishers}.
+This scenario again consists of a data source $S$, two processing nodes $P1$ and $P2$ and a node $T$ which receives the outputs of $P1$ and $P2$, as shown in :numref:`fig:nodegraph:example_multiple_publishers`.
 Once $S$ publishes a message, both processing callbacks at $P1$ and $P2$ run concurrently, eventually publishing an output.
 Distinct from the previous example, $P1$ and $P2$ use the same output topic $D$, which consequently is the only input of $T$.
 The communication middleware does not guarantee that the message delivery order at $T$ matches the publish order at $P1$ and $P2$.
@@ -231,7 +185,7 @@ Parallel Service Calls
     \label{fig:nodegraph:example_service_calls}
 \end{figure}
 
-This example involves four nodes, as shown in \cref{fig:nodegraph:example_service_calls}:
+This example involves four nodes, as shown in :numref:`fig:nodegraph:example_service_calls`:
 One node $S$ publishes a message to topic $M$, which causes subscription callbacks at nodes $N1$, $N2$ and $SP$.
 $SP$ provides a ROS service, which the nodes $N1$ and $N2$ call while executing the input callback.
 This causes three callbacks in total at the service provider node, the order of which is nondeterministic.
@@ -295,7 +249,7 @@ Multiple methods of controlling callback invocations have been considered, which
 
 The first approach is to completely avoid the ROS communications middleware and  directly invoke the component's functionality, without running the corresponding ROS callbacks.
 This would completely replace the ROS client library or corresponding language bindings, at least for the testing and evaluation use case, and provide a fully custom, and thus entirely controllable, execution environment.
-\Cref{fig:impl:callbacks:custom_exec} shows the individual components contained within the orchestrator, without the ROS-specific functionality.
+:numref:`fig:impl:callbacks:custom_exec` shows the individual components contained within the orchestrator, without the ROS-specific functionality.
 While this approach would provide the largest amount of flexibility, and no dependency on or assumptions about ROS, this has been considered not feasible.
 
 While some ROS nodes cleanly separate algorithm implementation and ROS communication, and allow changing the communication framework easily, this is not the case for many of the ROS nodes considered here.
@@ -328,7 +282,7 @@ The second possible approach is to modify the ROS client library in order to con
 Callback execution in ROS nodes is performed by the executor, and while multiple implementations exist, the most commonly used standard executor in the \gls{rclcpp} has previously been described in [Casini2019]_.
 The executor is responsible for fetching messages from the DDS implementation and executing corresponding subscriber callbacks.
 It also manages time, including external time overrides by the \texttt{/clock} topic, and timer execution.
-On this layer between the DDS implementation and the user application, it would be possible to insert functionality to inhibit callback execution and to inform the framework of callback completion, as shown in \cref{fig:impl:callbacks:rcl}.
+On this layer between the DDS implementation and the user application, it would be possible to insert functionality to inhibit callback execution and to inform the framework of callback completion, as shown in :numref:`fig:impl:callbacks:rcl`.
 Instrumenting the ROS node below the application layer is especially desirable since it would not require modification to the node's source code.
 This approach does however present other difficulties:
 While there is a method to introspect the ROS client libraries via the ros\_tracing package,
@@ -409,13 +363,13 @@ Using custom \gls{rclpy} and \gls{rclcpp} versions additionally inconveniences l
 \end{figure}
 
 The final approach taken is to intercept the inputs to each node on the ROS-topic level:
-The orchestrator exists as an external component and individual ROS node and ensures that all communication passes through it, with no direct connections remaining between nodes, as visualized in \cref{fig:impl:callbacks:orchestrator_design}.
+The orchestrator exists as an external component and individual ROS node and ensures that all communication passes through it, with no direct connections remaining between nodes, as visualized in :numref:`fig:impl:callbacks:orchestrator_design`.
 With the knowledge of the intended node inputs (which are specified in description files, as described in :ref:`sec-impl-configuration`), the orchestrator can now forward messages in the same way as with the originally intended topology.
 Additionally, however, the orchestrator can buffer inputs to one or multiple nodes, thereby delaying the corresponding callback execution.
 Since the orchestrator is not expected to execute additional callbacks (which would require generating or repeating messages), delaying callbacks is sufficient to control the node's behavior.
 By assigning every subscriber to a specific topic an individual connection (a distinct topic) to the orchestrator, it is also possible to separate callback executions for the same topic at different nodes.
 For inputs into the orchestrator, such separation is not required, since the orchestrator can ensure sequential execution of callbacks which publish a message on the corresponding topics.
-\Cref{fig:impl:topic_interception} shows an example of a one-to-many connection between three nodes using one topic.
+:numref:`fig:impl:topic_interception` shows an example of a one-to-many connection between three nodes using one topic.
 When using the orchestrator, $M$ is still used as an output of $S$, but each receiving node now subscribes to an individual input topic \textit{P1/M} and \textit{P2/M}.
 
 The orchestrator ROS node is typically located in the same process as the data provider,
@@ -600,7 +554,7 @@ This ensures a deterministic execution order of all actions which can modify the
         };
 
     \end{tikzpicture}
-    \caption[Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in \cref{fig:nodegraph:example_parallel_nodes}.]{Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in \cref{fig:nodegraph:example_parallel_nodes}.
+    \caption[Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.]{Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.
     ``Input'' actions represent the publishing of a topic by the data source.
     ``Buffer'' actions represent the input of an intercepted topic at the orchestrator, potentially for forwarding to downstream nodes.
     Message callbacks at ROS nodes are represented as ``\texttt{<node name>} Rx \texttt{<topic>}''.
@@ -608,8 +562,8 @@ This ensures a deterministic execution order of all actions which can modify the
     \label{fig:impl:example_cb_graph}
 \end{figure}
 
-To illustrate the effects of specific edge types, the scenario from \cref{fig:nodegraph:example_parallel_nodes} is considered for two subsequent inputs.
-The resulting callback graph is shown in \cref{fig:impl:example_cb_graph}.
+To illustrate the effects of specific edge types, the scenario from :numref:`fig:nodegraph:example_parallel_nodes` is considered for two subsequent inputs.
+The resulting callback graph is shown in :numref:`fig:impl:example_cb_graph`.
 Actions corresponding to the first input are shown in the left half of the graph.
 \texttt{CAUSALITY} connections drawn in blue show connections directly corresponding to the ROS node graph:
 They connect each callback to the previous callback publishing the required input data.
@@ -786,7 +740,7 @@ The orchestrator provides a ``reconfiguration announcement'' ROS service, which 
 The orchestrator then completes the processing of all in-progress and waiting callbacks, without requesting the next data- or time input from the data provider.
 Once all callbacks are complete, the orchestrator then calls the reconfigurator to execute the reconfiguration.
 Once complete, the reconfigurator returns the new system configuration to the orchestrator.
-This process is illustrated in \cref{fig:impl:reconfig_sequence}.
+This process is illustrated in :numref:`fig:impl:reconfig_sequence`.
 
 \begin{figure}
     \centering

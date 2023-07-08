@@ -1,0 +1,12 @@
+\input{pre}
+
+\begin{tikzpicture}
+    \node (sensor) [rosnode] {S};
+    \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
+    \node (perception1) [rosnode, right of=sensortopic, xshift=1cm] {P};
+
+    \draw [arrow] (sensor) -- (sensortopic);
+    \draw [arrow] (sensortopic) -- (perception1);
+\end{tikzpicture}
+
+\input{post}

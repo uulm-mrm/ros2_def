@@ -28,7 +28,7 @@ An example may be an object detector node, which has a camera image as input, an
 Usually, although not always, each ROS node runs in a dedicated process.
 
 Every ROS Node is a participant in the ROS communication graph, which represents the connections between the inputs and outputs of multiple nodes.
-Multiple such communication graphs (or "ROS node graphs") are shown in this work, such as in \cref{fig:impl:problem_description:example_nodegraph}.
+Multiple such communication graphs (or "ROS node graphs") are shown in this work, such as in :numref:`fig:impl:problem_description:example_nodegraph`.
 Communication between nodes is message-based and happens via topics, which are multi-producer, multi-consumer message channels.
 Nodes can send messages to topics using publishers, and receive messages from topics using subscribers.
 For each publisher and subscriber, nodes can configure a number of \gls{qos} settings, notably, they can request best-effort or reliable transport and can configure queue sizes.
@@ -43,7 +43,7 @@ Receiving messages from subscribers is realized by registering a callback functi
 \end{figure}
 
 While ROS provides this functionality to the nodes by its \gls{api}, the underlying functionality of message delivery and node discovery relies on existing implementations of the DDS standard.
-\Cref{fig:rcl_api_stack} shows the \gls{api} stack, with the user code at the very top and the DDS implementation at the bottom.
+:numref:`fig:rcl_api_stack` shows the \gls{api} stack, with the user code at the very top and the DDS implementation at the bottom.
 The diagram illustrates that ROS forms a common layer that enables the use of multiple DDS implementations within the middleware (visualized as the blue elements at the bottom of the diagram) and the use of different programming languages for application development (\emph{ros client library} bindings, directly below the user application in the diagram).
 
 An important aspect of the ROS node communication model is that there is no implicit or explicit back-channel or feedback to the publisher of a message about its (intended) reception.
