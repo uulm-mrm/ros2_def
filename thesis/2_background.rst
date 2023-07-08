@@ -22,7 +22,7 @@ This section serves as a brief introduction to the concepts of ROS nodes and top
 Communication
 -------------
 
-Individual software components within a ROS stack are referred to as \emph{nodes}.
+Individual software components within a ROS stack are referred to as *nodes*.
 A node typically has one distinct functionality, and well-defined inputs and outputs.
 An example may be an object detector node, which has a camera image as input, and a list of object hypotheses as output.
 Usually, although not always, each ROS node runs in a dedicated process.
@@ -44,7 +44,7 @@ Receiving messages from subscribers is realized by registering a callback functi
 
 While ROS provides this functionality to the nodes by its \gls{api}, the underlying functionality of message delivery and node discovery relies on existing implementations of the DDS standard.
 :numref:`fig:rcl_api_stack` shows the \gls{api} stack, with the user code at the very top and the DDS implementation at the bottom.
-The diagram illustrates that ROS forms a common layer that enables the use of multiple DDS implementations within the middleware (visualized as the blue elements at the bottom of the diagram) and the use of different programming languages for application development (\emph{ros client library} bindings, directly below the user application in the diagram).
+The diagram illustrates that ROS forms a common layer that enables the use of multiple DDS implementations within the middleware (visualized as the blue elements at the bottom of the diagram) and the use of different programming languages for application development (*ros client library* bindings, directly below the user application in the diagram).
 
 An important aspect of the ROS node communication model is that there is no implicit or explicit back-channel or feedback to the publisher of a message about its (intended) reception.
 This implies that there exists no concept of back pressure or congestion:
@@ -52,15 +52,15 @@ If a downstream node is not able to process messages at the rate at which they a
 
 Individual topics in ROS are identified by name and type, whereby the type is an externally defined structure of named elements which themselves are other ROS types or of a predefined type such as string, numeric, or array types.
 Topics are created as soon as a node creates a corresponding publisher and subscriber, and two nodes must use the matching name and type to communicate over a topic.
-In order to allow flexibility when using a node in different environments, the possibility of changing internally used names while starting a node is provided, and referred to as \emph{name remapping}.
+In order to allow flexibility when using a node in different environments, the possibility of changing internally used names while starting a node is provided, and referred to as *name remapping*.
 
 ROS does provide additional mechanisms for communication patterns that do not fit the publish-subscribe model:
-ROS \emph{services} provide a method of one-way remote procedure calling between ROS nodes.
-A ROS node can provide a service by registering a service \emph{server}, which can then be called by other nodes using a service \emph{client}.
+ROS *services* provide a method of one-way remote procedure calling between ROS nodes.
+A ROS node can provide a service by registering a service *server*, which can then be called by other nodes using a service *client*.
 Identically to topics, services are identified by name and type, where the type of a ROS service includes both the request and response type.
 In contrast to topics, a service call always has a response, which the caller can await.
 
-An additional mechanism built on top of services is \emph{actions}, which are a ROS way of controlling long-running, interruptible, tasks running within a ROS node.
+An additional mechanism built on top of services is *actions*, which are a ROS way of controlling long-running, interruptible, tasks running within a ROS node.
 Since these are however fundamentally built atop of services and topics and are not used in the ROS software stack used for evaluation in this work, actions are not of special interest to this work.
 
 ROS Launch
@@ -80,7 +80,7 @@ In this work, the launch system will be utilized to redirect subscriptions of no
 Dynamic Reconfiguration
 =======================
 
-The combination of a specific set of active components, their specific connections, and parameters is referred to as the \emph{system configuration}.
+The combination of a specific set of active components, their specific connections, and parameters is referred to as the *system configuration*.
 The above section describes how a static, or initial system configuration is specified by the launch file.
 
 Recently, however, research has gone into finding the optimal system configuration depending on the current operating environment, in order to minimize processing requirements while maintaining sufficient system performance [Henning2023]_.
@@ -109,7 +109,7 @@ Other testing methods may verify attributes related to software quality and resi
 Achieving reproducibility is especially difficult for those testing methods involving multiple components and their interaction and communication, which is what this work aims to address by ensuring deterministic execution.
 
 Regression testing describes the practice of verifying that the performance of the system under test does not fall below previous test executions.
-As a special case of regression testing, one could verify that the output of the system \emph{exactly} matches a previous output.
+As a special case of regression testing, one could verify that the output of the system *exactly* matches a previous output.
 This allows the developer to verify that presumably non-functional changes do indeed not modify the observable system behavior, which may have previously been quantitatively evaluated.
 
 .. _sec-bg-metrics:

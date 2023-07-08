@@ -323,7 +323,7 @@ This example extends the previous scenario from :ref:`sec:eval:verification:para
 Again, this results in nondeterministic callback order at :math:`T`, with a callback order identical to the previous case shown in :numref:`fig:eval:parallel_inputs:sequence`.
 In this case, both callback executions at :math:`T` are of the same callback, while previously two distinct callbacks were executed once each.
 
-Because only node \emph{inputs} are intercepted, this scenario requires serializing the callbacks at :math:`P1` and :math:`P2`.
+Because only node *inputs* are intercepted, this scenario requires serializing the callbacks at :math:`P1` and :math:`P2`.
 :numref:`fig:eval:same_output:sequence_orchestrator` shows the resulting callback sequence when using the orchestrator.
 By ensuring that processing at :math:`P2` only starts after the output from :math:`P1` is received, reordering of the messages on :math:`D` is prevented.
 Note that while the different colors of the callbacks at :math:`T` correspond to the sources of the corresponding input, both inputs cause the same subscription callback to be executed at the node.
