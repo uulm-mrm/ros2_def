@@ -341,9 +341,8 @@ Both kinds of input may additionally be delayed if the system is pending dynamic
 \FloatBarrier
 \subsection{Parallel Service Calls}\label{sec:eval:verification:service_calls}
 
-.. _fig-eval-service-sequence_before:
-
 .. figure:: tikz_figures/eval-service-sequence_before.png
+   :name: fig-eval-service-sequence_before
 
    Sequence diagram showing the parallel execution of callbacks at :math:`N1` and :math:`N2`.
    The hatched area within the callback shows the duration of service calls, which are made to a service provided by :math:`SP`, upwards arrows represent responses to service calls.
@@ -356,9 +355,8 @@ The two other nodes :math:`N1` and :math:`N2` call the provided service during c
 The resulting order of all three callbacks at :math:`SP` in response to a single message input is nondeterministic, as shown in :numref:`fig-eval-service-sequence_before`.
 Since the orchestrator only controls service calls by controlling the callback they originate from, it is necessary to serialize all callbacks interacting with the service, which in this case are the message callbacks at :math:`N1`, :math:`N2`, and :math:`SP`.
 
-.. _fig-eval-service-sequence_orchestrator:
-
 .. figure:: tikz_figures/eval-service-sequence_orchestrator.png
+   :name: fig-eval-service-sequence_orchestrator
 
    Sequence diagram showing the serialized callbacks from :numref:`fig-eval-service-sequence_before`. Serialization of the callbacks at :math:`N1` and :math:`N2` leads to a deterministic callback order at :math:`SP`.
 

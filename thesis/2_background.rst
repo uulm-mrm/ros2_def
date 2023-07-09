@@ -5,7 +5,7 @@ Background
 **********
 
 This chapter introduces ROS and motivates the additional use case of dynamically reconfiguring ROS systems.
-Additionally, background on robotics software testing methodology is given, which will form the context and intended use of the method proposed in :ref:`sec:impl`.
+Additionally, background on robotics software testing methodology is given, which will form the context and intended use of the method proposed in :ref:`sec-impl`.
 
 ROS
 ===
@@ -35,9 +35,8 @@ For each publisher and subscriber, nodes can configure a number of QoS settings,
 For publishing, the application calls a simple Application Programming Interface (API) method of the publisher object, which may directly transfer the message or push the message to a queue for later, asynchronous transmission.
 Receiving messages from subscribers is realized by registering a callback function with the ROS API.
 
-.. _fig-rcl_api_stack:
-
 .. figure:: png_figures/ros_client_library_api_stack.png
+   :name: fig-rcl_api_stack
 
    The ROS 2 client library API stack, showing the ability to both support multiple underlying communication middlewares (DDS implementations) and client library bindings in multiple languages. Diagram by the contributors of the ROS 2 documentation on `docs.ros.org <https://docs.ros.org>`_, licensed under `CC BY 4.0 <https://creativecommons.org/licenses/by/4.0/>`_.
 
@@ -93,6 +92,7 @@ Parameters within ROS nodes may also be changed during runtime, although the spe
 While this is generally possible within ROS, the interaction of dynamic reconfiguration with the work presented in this thesis requires special attention (:ref:`sec-impl-reconfig`), due to the additional information about system behavior required by the proposed method.
 
 .. _sec-bg-software_testing:
+
 Software Testing
 ================
 

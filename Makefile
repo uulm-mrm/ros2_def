@@ -42,7 +42,12 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	thesis/tikz_figures/nodegraph-example_multiple_publishers.png \
 	thesis/tikz_figures/nodegraph-example_service_calls.png \
 	thesis/tikz_figures/impl-callbacks-custom_exec.png \
-	thesis/tikz_figures/impl-callbacks-rcl.png
+	thesis/tikz_figures/impl-callbacks-rcl.png \
+	thesis/tikz_figures/impl-callbacks-orchestrator_design.png \
+	thesis/tikz_figures/impl-topic_interception_before.png \
+	thesis/tikz_figures/impl-topic_interception_after.png \
+	thesis/tikz_figures/impl-example_cb_graph.png \
+	thesis/tikz_figures/impl-reconfig_sequence.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

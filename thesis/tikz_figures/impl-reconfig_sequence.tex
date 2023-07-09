@@ -1,0 +1,27 @@
+\input{pre}
+
+\begin{sequencediagram}
+    \newthread{o}{Orchestrator}
+    \newinst[3]{r}{Reconfigurator}
+    \begin{call}{o}{input data}{r}{status}
+        \postlevel
+        \mess{r}{announce reconfiguration}{o}
+        \postlevel
+    \end{call}
+
+    \postlevel
+
+    \begin{call}{o}{complete timestep}{o}{}
+        \postlevel
+    \end{call}
+
+    \postlevel
+
+    \begin{call}{o}{request reconfiguration}{r}{new node configuration}
+        \begin{call}{r}{reconfiguration}{r}{}
+            \postlevel
+        \end{call}
+    \end{call}
+\end{sequencediagram}
+
+\input{post}

@@ -24,9 +24,8 @@ It can be observed, however, that even with deterministic data sources such as s
 This is due to nondeterministic callback execution:
 Varying processing times of intermediate modules and nondeterministic behavior and latencies within the communication middleware can change the order in which callbacks are executed, which may alter a node's behavior, even if the content of the individual input messages is consistent.
 
-.. _fig-impl-problem_description-example_nodegraph:
-
 .. figure:: tikz_figures/impl-problem_description-example_nodegraph.png
+   :name: fig-impl-problem_description-example_nodegraph
 
    An exemplary ROS node graph of an autonomous-driving test setup.
 
@@ -61,9 +60,8 @@ In this section, minimal examples of nodes and connecting topics will be present
 Lost or Reordered Messages
 --------------------------
 
-.. _fig-nodegraph-example_reordering:
-
 .. figure:: tikz_figures/nodegraph-example_reordering.png
+   :name: fig-nodegraph-example_reordering
 
    Node graph showing a data source :math:`S` and processing node :math:`P`, connected with topic :math:`M`.
 
@@ -89,15 +87,13 @@ Nonetheless, message reordering, should it occur, is later also addressed by the
 Inputs From Parallel Processing Chains
 --------------------------------------
 
-.. _fig-nodegraph-example_parallel_topics:
-
 .. figure:: tikz_figures/nodegraph-example_parallel_topics.png
+   :name: fig-nodegraph-example_parallel_topics
 
    Node graph showing a data source :math:`S` and node :math:`T` connected by two parallel topics :math:`D1` and :math:`D2`, on which messages are published simultaneously by :math:`S`.
 
-.. _fig-nodegraph-example_parallel_nodes:
-
 .. figure:: tikz_figures/nodegraph-example_parallel_nodes.png
+   :name: fig-nodegraph-example_parallel_nodes
 
    Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths. Each path contains a processing node with a dedicated output topic. Both paths share the same input topic :math:`M`.
 
@@ -121,9 +117,8 @@ Although these assumptions are not made about the ROS middleware, and generally 
 Multiple Publishers on the Same Topic
 -------------------------------------
 
-.. _fig-nodegraph-example_multiple_publishers:
-
 .. figure:: tikz_figures/nodegraph-example_multiple_publishers.png
+   :name: fig-nodegraph-example_multiple_publishers
 
    Node graph showing data source :math:`S` and node :math:`T` connected by two parallel paths, where the processing nodes on both paths use the same output topic :math:`D`. Both paths also share the same input topic :math:`M`.
 
@@ -142,9 +137,8 @@ If the subscriber queue of :math:`T` is full already, a message from either publ
 Parallel Service Calls
 ----------------------
 
-.. _fig-nodegraph-example_service_calls:
-
 .. figure:: tikz_figures/nodegraph-example_service_calls.png
+   :name: fig-nodegraph-example_service_calls
 
    Node graph showing three nodes :math:`N1`, :math:`N2` and :math:`SP` all with topic :math:`M` as an input. Nodes :math:`N1` and :math:`N2` call a service provided by :math:`SP` during callback execution, as indicated by the dashed arrows.
 
@@ -197,9 +191,8 @@ Multiple methods of controlling callback invocations have been considered, which
 
 .. Custom execution environment
 
-.. _fig-impl-callbacks-custom_exec:
-
 .. figure:: tikz_figures/impl-callbacks-custom_exec.png
+   :name: fig-impl-callbacks-custom_exec
 
    Considered architecture of running all components within a custom execution environment, without using ROS.
 
@@ -215,9 +208,8 @@ Additionally, this design represents a stark difference from the ROS design phil
 
 .. Rclcpp-builtin functionality
 
-.. _fig-impl-callbacks-rcl:
-
 .. figure:: tikz_figures/impl-callbacks-rcl.png
+   :name: fig-impl-callbacks-rcl
 
    Considered architecture of integrating the orchestrator directly into the ROS client library stack to control callback invocations via the executor.
    The arrows represent ROS topics connecting the nodes, which would not be changed or modified using this approach.
@@ -237,83 +229,31 @@ Modifying and distributing those libraries as well as keeping them up to date wi
 Using custom ``rclpy`` and ``rclcpp`` versions additionally inconveniences library users, since the orchestrated version exhibits different behavior to the unmodified library, which can be unexpected and difficult to introspect.
 
 .. External topic interception
-\begin{figure}[t]
-    \centering
-    \begin{tikzpicture}[rounded corners, thick]
-        %\draw[step=1cm,gray,very thin] (0,-4) grid (11,5);
-        \draw [uulm_blue] (0,0) rectangle (3,1) node [pos=0.5] {ROS Node 1};
-        \draw [uulm_blue] (4,0) rectangle (7,1) node [pos=0.5] {ROS Node 2};
-        \draw [uulm_blue] (8,0) rectangle (11,1) node [pos=0.5] {ROS Node 3};
 
-        \draw [uulm_grey] (4,-1) rectangle (7,-2.5);
-        \draw (5.5, -2) node {Orchestrator};
+.. figure:: tikz_figures/impl-callbacks-orchestrator_design.png
+   :name: fig-impl-callbacks-orchestrator_design
 
-        \draw [Latex-Latex] (4,-1.5) -| (1.5,0);
-        \draw [Latex-Latex] (7,-1.5) -| (9.5,0);
-        \draw [Latex-Latex] (5.5,-1) -- (5.5,0);
+   Chosen architecture of an external orchestrator component, that intercepts all communication between nodes on a ROS topic level.
 
-        \draw [Latex-Latex, dashed] (4,-1.5) -- (7,-1.5);
-        \draw [-Latex, dashed] (5.5,-1.5) -- (5.5,-1);
-    \end{tikzpicture}
-    \caption{Chosen architecture of an external orchestrator component, that intercepts all communication between nodes on a ROS topic level.}
-    \label{fig:impl:callbacks:orchestrator_design}
-\end{figure}
+.. figure:: tikz_figures/impl-topic_interception_before.png
+   :name: fig-impl-topic_interception_before
 
-\begin{figure}
-    \centering
-    \begin{subfigure}{\textwidth}
-    \centering
-        \begin{tikzpicture}
-            % \draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
-            \node (sensor) [rosnode] {S};
-            \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
-            \node (perception1) [rosnode, right of=sensortopic, xshift=2cm, yshift=1cm] {P1};
-            \node (perception2) [rosnode, right of=sensortopic, xshift=2cm, yshift=-1cm] {P2};
+   Before interception: Data source :math:`S` publishes to topic :math:`M`, which is an input to nodes :math:`P1` and :math:`P2`.
 
-            \draw [arrow] (sensor) -- (sensortopic);
-            \draw [arrow] (sensortopic) |- (perception1);
-            \draw [arrow] (sensortopic) |- (perception2);
-        \end{tikzpicture}
-        \caption{Before interception: Data source :math:`S` publishes to topic :math:`M`, which is an input to nodes :math:`P1` and :math:`P2`.}
-    \end{subfigure}
+.. figure:: tikz_figures/impl-topic_interception_after.png
+   :name: fig-impl-topic_interception_after
 
-    \begin{subfigure}{\textwidth}
-        \centering
-        \begin{tikzpicture}
-            % \draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
-            \node (sensor) [rosnode] {S};
-            \node (sensortopic) at (2,0) [topic] {M};
-
-            \node (orchestrator) at (4,0) [rosnode] {O};
-
-            \node (sensortopic_1) at (6,1) [topic] {P1/M};
-            \node (sensortopic_2) at (6,-1) [topic] {P2/M};
-
-            \node (perception1) at (8,1) [rosnode] {P1};
-            \node (perception2) at (8,-1) [rosnode] {P2};
-
-            \draw [arrow] (sensor) -- (sensortopic);
-            \draw [arrow] (sensortopic) -- (orchestrator);
-            \draw [arrow] (orchestrator) |- (sensortopic_1);
-            \draw [arrow] (orchestrator) |- (sensortopic_2);
-            \draw [arrow] (sensortopic_1) -- (perception1);
-            \draw [arrow] (sensortopic_2) -- (perception2);
-        \end{tikzpicture}
-        \caption{Interception using orchestrator :math:`O`: The orchestrator subscribes to :math:`M` and publishes to individual input topics for each node :math:`P1` and :math:`P2`, allowing individual callback execution.}
-    \end{subfigure}
-    \caption{Visualization of the ROS topic interception of node inputs by the orchestrator.}
-    \label{fig:impl:topic_interception}
-\end{figure}
+   Interception using orchestrator :math:`O`: The orchestrator subscribes to :math:`M` and publishes to individual input topics for each node :math:`P1` and :math:`P2`, allowing individual callback execution.
 
 The final approach taken is to intercept the inputs to each node on the ROS-topic level:
-The orchestrator exists as an external component and individual ROS node and ensures that all communication passes through it, with no direct connections remaining between nodes, as visualized in :numref:`fig:impl:callbacks:orchestrator_design`.
+The orchestrator exists as an external component and individual ROS node and ensures that all communication passes through it, with no direct connections remaining between nodes, as visualized in :numref:`fig-impl-callbacks-orchestrator_design`.
 With the knowledge of the intended node inputs (which are specified in description files, as described in :ref:`sec-impl-configuration`), the orchestrator can now forward messages in the same way as with the originally intended topology.
 Additionally, however, the orchestrator can buffer inputs to one or multiple nodes, thereby delaying the corresponding callback execution.
 Since the orchestrator is not expected to execute additional callbacks (which would require generating or repeating messages), delaying callbacks is sufficient to control the node's behavior.
 By assigning every subscriber to a specific topic an individual connection (a distinct topic) to the orchestrator, it is also possible to separate callback executions for the same topic at different nodes.
 For inputs into the orchestrator, such separation is not required, since the orchestrator can ensure sequential execution of callbacks which publish a message on the corresponding topics.
-:numref:`fig:impl:topic_interception` shows an example of a one-to-many connection between three nodes using one topic.
-When using the orchestrator, :math:`M` is still used as an output of :math:`S`, but each receiving node now subscribes to an individual input topic \textit{P1/M} and \textit{P2/M}.
+:numref:`fig-impl-topic_interception_before` and :numref:`fig-impl-topic_interception_after` show an example of a one-to-many connection between three nodes using one topic.
+When using the orchestrator, :math:`M` is still used as an output of :math:`S`, but each receiving node now subscribes to an individual input topic *P1/M* and *P2/M*.
 
 The orchestrator ROS node is typically located in the same process as the data provider,
 which would be a simulator or ROS bag player.
@@ -328,17 +268,16 @@ Callback Outputs
 ROS callbacks may modify internal node state, but may also produce outputs on other ROS topics.
 The orchestrator needs to know which outputs a callback may have, and also when a callback is done, in order to allow new events to occur at the node.
 The possible outputs are configured statically, as detailed in :ref:`sec-impl-configuration`.
-If a node omits one of the configured outputs dynamically, or if a node does not usually have any outputs which are visible to the orchestrator, a status message must be published, the definition of which is available in \cref{listing:status_message_definition}.
+If a node omits one of the configured outputs dynamically, or if a node does not usually have any outputs which are visible to the orchestrator, a status message must be published, the definition of which is available in :numref:`listing-status_message_definition`.
 The ``omitted_outputs`` field optionally names one or multiple topics on which an output would usually be expected during this callback, but which are not published during this specific callback invocation.
 
-\begin{listing}[ht]
-    \begin{minted}[linenos]{text}
-string node_name
-string[] omitted_outputs
-    \end{minted}
-    \caption{ROS message definition of the status message, which informs the orchestrator that the specified node has completed its last callback. Optionally, a list of omitted outputs can be specified.}
-    \label{listing:status_message_definition}
-\end{listing}
+.. code-block:: text
+   :caption: ROS message definition of the status message, which informs the orchestrator that the specified node has completed its last callback. Optionally, a list of omitted outputs can be specified.
+   :name: listing-status_message_definition
+   :linenos:
+
+   string node_name
+   string[] omitted_outputs
 
 .. _sec-impl-controlling_callbacks-timers:
 
@@ -431,82 +370,16 @@ A service group for a particular service contains all actions which may call the
 The ``SERVICE_GROUP`` edge is then added to all nodes in all service groups of the services that a particular action may call.
 This ensures a deterministic execution order of all actions which can modify the service-providers state.
 
-\tikzstyle{callback} = [draw, circle, minimum size=1.6cm, align=center]
-\begin{figure}[ht]
-    \centering
-    % 0.75, 0.8125
-    \begin{tikzpicture}[node font=\footnotesize]
-        %\draw[step=1cm,gray,very thin] (0,0) grid (15,-10);
-        \node [callback] (input1) at (0,0) {Input\\M};
-        \node [callback, draw=gray] (bufferm1) at (0,-3) {Buffer\\M};
-        \node [callback] (p1rx1) at (0,-6) {P1\\Rx M};
-        \node [callback] (p2rx1) at (3,-6) {P2\\Rx M};
-        \node [callback, draw=gray] (bufferd11) at (0,-9) {Buffer\\D1};
-        \node [callback, draw=gray] (bufferd21) at (3,-9) {Buffer\\D2};
-        \node [callback] (trxd11) at (0,-12) {T\\Rx D1};
-        \node [callback] (trxd21) at (3,-12) {T\\Rx R2};
+.. figure:: tikz_figures/impl-example_cb_graph.png
+   :name: fig-impl-example_cb_graph
 
-        \node [callback] (input2) at (6,0) {Input\\M};
-        \node [callback, draw=gray] (bufferm2) at (6,-3) {Buffer\\M};
-        \node [callback] (p1rx2) at (6,-6) {P1\\Rx M};
-        \node [callback] (p2rx2) at (9,-6) {P2\\Rx M};
-        \node [callback, draw=gray] (bufferd12) at (6,-9) {Buffer\\D1};
-        \node [callback, draw=gray] (bufferd22) at (9,-9) {Buffer\\D2};
-        \node [callback] (trxd12) at (6,-12) {T\\Rx D1};
-        \node [callback] (trxd22) at (9,-12) {T\\Rx R2};
+   Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig-nodegraph-example_parallel_nodes`.
+   "Input" actions represent the publishing of a topic by the data source.
+   "Buffer" actions represent the input of an intercepted topic at the orchestrator, potentially for forwarding to downstream nodes.
+   Message callbacks at ROS nodes are represented as "``<node name>`` Rx ``<topic>``".
 
-        % Causality
-        \draw [draw = uulm_blue_1, very thick]
-            (bufferm1) edge [->] (input1)
-            (p1rx1) edge [->] (bufferm1)
-            (p2rx1) edge [->] (bufferm1)
-            (bufferd11) edge [->] (p1rx1)
-            (bufferd21) edge [->] (p2rx1)
-            (trxd11) edge [->] (bufferd11)
-            (trxd21) edge [->] (bufferd21)
-
-            (bufferm2) edge [->] (input2)
-            (p1rx2) edge [->] (bufferm2)
-            (p2rx2) edge [->] (bufferm2)
-            (bufferd12) edge [->] (p1rx2)
-            (bufferd22) edge [->] (p2rx2)
-            (trxd12) edge [->] (bufferd12)
-            (trxd22) edge [->] (bufferd22);
-
-        % Same Node
-        \draw [draw = uulm_green_1, very thick]
-            (trxd21) edge [->] (trxd11)
-            (trxd12) edge [->, bend left] (trxd11)
-            (trxd12) edge [->] (trxd21)
-            (trxd22) edge [->, bend left] (trxd11)
-            (trxd22) edge [->, bend left] (trxd21)
-            (trxd22) edge [->] (trxd12)            
-            (p1rx2) edge [->, bend left] (p1rx1)
-            (p2rx2) edge [->, bend left] (p2rx1);
-
-        % Same Topic
-        \draw [draw = uulm_orange_1, very thick]
-            (input2) edge [->] (bufferm1)
-            (p1rx2) edge[->] (bufferd11)
-            (p2rx2) edge[->] (bufferd21);
-
-        \matrix [rectangle,draw,anchor=north east] at (11,1) {
-            \node [rectangle,fill=uulm_blue_1,label=right:CAUSALITY] {}; \\
-            \node [rectangle,fill=uulm_green_1,label=right:SAME\_NODE] {}; \\
-            \node [rectangle,fill=uulm_orange_1,label=right:SAME\_TOPIC] {}; \\
-        };
-
-    \end{tikzpicture}
-    \caption[Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.]{Callback graph for two inputs into a ROS graph with two parallel processing paths as shown in :numref:`fig:nodegraph:example_parallel_nodes`.
-    "Input" actions represent the publishing of a topic by the data source.
-    "Buffer" actions represent the input of an intercepted topic at the orchestrator, potentially for forwarding to downstream nodes.
-    Message callbacks at ROS nodes are represented as "``<node name>`` Rx ``<topic>``".
-    }
-    \label{fig:impl:example_cb_graph}
-\end{figure}
-
-To illustrate the effects of specific edge types, the scenario from :numref:`fig:nodegraph:example_parallel_nodes` is considered for two subsequent inputs.
-The resulting callback graph is shown in :numref:`fig:impl:example_cb_graph`.
+To illustrate the effects of specific edge types, the scenario from :numref:`fig-nodegraph-example_parallel_nodes` is considered for two subsequent inputs.
+The resulting callback graph is shown in :numref:`fig-impl-example_cb_graph`.
 Actions corresponding to the first input are shown in the left half of the graph.
 ``CAUSALITY`` connections drawn in blue show connections directly corresponding to the ROS node graph:
 They connect each callback to the previous callback publishing the required input data.
@@ -592,43 +465,51 @@ Node Configuration
 Each node requires a description of its behavior, in particular, which callbacks occur at the node and what the effects of those callbacks are.
 A node configuration consists of a list of callbacks and a list of provided services:
 
-\begin{minted}[linenos, escapeinside=||]{json}
-{
-  "name": "Trajectory Planning Node",
-  "callbacks": [ |\dots| ],
-  "services": [ |\dots| ]
-}
-\end{minted}
+.. code-block:: json
+    :linenos:
+
+    {
+      "name": "Trajectory Planning Node",
+      "callbacks": [ ],
+      "services": [ ]
+    }
 
 Each callback specifies its trigger, possible service calls made during execution, its outputs, and flags regarding closed-loop simulation and online reconfiguration (which is described in detail in :ref:`sec-impl-reconfig`):
 
-\begin{minted}[linenos, escapeinside=||]{json}
-{
-  "trigger": { |\dots| },
-  "outputs": [ |Names of output topics| ],
-  "service_calls": [ |Names of services which may be called| ],
-  "changes_dataprovider_state": false,
-  "may_cause_reconfiguration": false
-}
-\end{minted}
+.. code-block:: json
+    :linenos:
+
+    {
+      "trigger": { },
+      "outputs": ["Names", "of", "output", "topics"],
+      "service_calls": ["Names of services which may be called"],
+      "changes_dataprovider_state": false,
+      "may_cause_reconfiguration": false
+    }
 
 The trigger specifies a timer, an input topic, or multiple input topics in the case of a message-filter callback:
-\begin{minted}[linenos, escapeinside=||]{json}
-{ "type": "timer", "period": 40000000 }
-\end{minted}
 
-\begin{minted}[linenos, escapeinside=||]{json}
-{ "type": "topic", "name": "imu" }
-\end{minted}
+.. code-block:: json
+    :linenos:
 
-\begin{minted}[linenos, escapeinside=||]{json}
-{
-  "type": "approximate_time_sync",
-  "input_topics": ["camera_info", "image"],
-  "slop": 0.1,
-  "queue_size": 4
-}
-\end{minted}
+    { "type": "timer", "period": 40000000 }
+
+
+.. code-block:: json
+    :linenos:
+
+    { "type": "topic", "name": "imu" }
+
+
+.. code-block:: json
+    :linenos:
+
+    {
+      "type": "approximate_time_sync",
+      "input_topics": ["camera_info", "image"],
+      "slop": 0.1,
+      "queue_size": 4
+    }
 
 Launch Configuration
 --------------------
@@ -639,28 +520,31 @@ Each node is identified by a unique name, and the type of node is specified by r
 Connections between nodes are specified using name remappings, which assign a globally unique topic name to the internal names used in the node configuration.
 In this example, an ego-motion estimation node is instanced for the simulated "vhcl1800" vehicle, receiving the proper sensor data input and providing the "/sil_vhcl1800/ego_motion_service" service:
 
-\begin{minted}[linenos, escapeinside=||]{json}
-"sil_vhcl1800_ego_motion_service": {
-  "config_file": ["orchestrator", "ego_motion_node_config.json"],
-  "remappings": {
-    "imu": "/sil_vhcl1800/imu",
-    "ego_motion_service": "/sil_vhcl1800/ego_motion_service"
-  }
-}
-\end{minted}
+.. code-block:: json
+    :linenos:
+
+    "sil_vhcl1800_ego_motion_service": {
+      "config_file": ["orchestrator", "ego_motion_node_config.json"],
+      "remappings": {
+        "imu": "/sil_vhcl1800/imu",
+        "ego_motion_service": "/sil_vhcl1800/ego_motion_service"
+      }
+    }
+
 
 With the corresponding node configuration:
 
-\begin{minted}[linenos, escapeinside=||]{json}
-{
-  "name": "Ego-Motion Service",
-  "callbacks": [{
-      "trigger": {"type": "topic", "name": "imu"},
-      "outputs": []
-    }],
-  "services": ["ego_motion_service"]
-}
-\end{minted}
+.. code-block:: json
+    :linenos:
+
+    {
+      "name": "Ego-Motion Service",
+      "callbacks": [{
+          "trigger": {"type": "topic", "name": "imu"},
+          "outputs": []
+        }],
+      "services": ["ego_motion_service"]
+    }
 
 .. _sec-impl-reconfig:
 
@@ -670,11 +554,10 @@ Dynamic Reconfiguration
 Dynamically reconfiguring components during runtime (see :ref:`sec-bg-reconfig`) presents a challenge to the orchestrator, as the software setup is usually specified in advance in the launch configuration file.
 
 To support this use case in combination with the orchestrator, the following assumptions are made with respect to the reconfiguration process:
-\begin{itemize}
-    \item The reconfiguration process is initiated by a ROS node during the execution of a callback.
-    It is configured beforehand which callback may cause a reconfiguration.
-    \item Reconfiguration is instant and happens between two data inputs.
-\end{itemize}
+
+* The reconfiguration process is initiated by a ROS node during the execution of a callback.
+  It is configured beforehand which callback may cause a reconfiguration.
+* Reconfiguration is instant and happens between two data inputs.
 
 In the following, the ROS node which decides when to reconfigure the system is referred to as the
 "reconfigurator".
@@ -683,38 +566,14 @@ The orchestrator provides a "reconfiguration announcement" ROS service, which th
 The orchestrator then completes the processing of all in-progress and waiting callbacks, without requesting the next data- or time input from the data provider.
 Once all callbacks are complete, the orchestrator then calls the reconfigurator to execute the reconfiguration.
 Once complete, the reconfigurator returns the new system configuration to the orchestrator.
-This process is illustrated in :numref:`fig:impl:reconfig_sequence`.
+This process is illustrated in :numref:`fig-impl-reconfig_sequence`.
 
-\begin{figure}
-    \centering
-    \begin{sequencediagram}
-        \newthread{o}{Orchestrator}
-        \newinst[3]{r}{Reconfigurator}
-        \begin{call}{o}{input data}{r}{status}
-            \postlevel
-            \mess{r}{announce reconfiguration}{o}
-            \postlevel
-        \end{call}
+.. figure:: tikz_figures/impl-reconfig_sequence.png
+   :name: fig-impl-reconfig_sequence
 
-        \postlevel
-
-        \begin{call}{o}{complete timestep}{o}{}
-            \postlevel
-        \end{call}
-
-        \postlevel
-
-        \begin{call}{o}{request reconfiguration}{r}{new node configuration}
-            \begin{call}{r}{reconfiguration}{r}{}
-                \postlevel
-            \end{call}
-        \end{call}
-    \end{sequencediagram}
-    \caption[Sequence diagram of communication between orchestrator and reconfigurator during the dynamic reconfiguration step.]{Communication between orchestrator and reconfigurator during the dynamic reconfiguration step.
-    The first callback at the reconfigurator is a message callback with the ``may_cause_reconfiguration`` flag set.
-    The second callback is the execution of the reconfiguration service call.}
-    \label{fig:impl:reconfig_sequence}
-\end{figure}
+   Communication between orchestrator and reconfigurator during the dynamic reconfiguration step.
+   The first callback at the reconfigurator is a message callback with the ``may_cause_reconfiguration`` flag set.
+   The second callback is the execution of the reconfiguration service call.
 
 After loading the new configuration, the orchestrator needs to restart execution.
 The ROS communication topology might however change significantly during reconfiguration.

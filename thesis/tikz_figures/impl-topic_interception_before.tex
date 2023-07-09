@@ -1,0 +1,15 @@
+\input{pre}
+
+\begin{tikzpicture}
+    % \draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
+    \node (sensor) [rosnode] {S};
+    \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
+    \node (perception1) [rosnode, right of=sensortopic, xshift=2cm, yshift=1cm] {P1};
+    \node (perception2) [rosnode, right of=sensortopic, xshift=2cm, yshift=-1cm] {P2};
+
+    \draw [arrow] (sensor) -- (sensortopic);
+    \draw [arrow] (sensortopic) |- (perception1);
+    \draw [arrow] (sensortopic) |- (perception2);
+\end{tikzpicture}
+
+\input{post}
