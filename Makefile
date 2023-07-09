@@ -18,7 +18,7 @@ clean_tikz_figures: clean_tikz_figure_intermediates
 	rm -f thesis/tikz_figures/*.png
 
 clean_tikz_figure_intermediates:
-	rm -f thesis/tikz_figures/*.pdf thesis/tikz_figures/*.log thesis/tikz_figures/*.aux
+	rm -f thesis/tikz_figures/*.pdf thesis/tikz_figures/*.log thesis/tikz_figures/*.aux thesis/tikz_figures/*.fdb_latexmk thesis/tikz_figures/*.fls thesis/tikz_figures/*.synctex\(busy\)
 
 thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex
 	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
