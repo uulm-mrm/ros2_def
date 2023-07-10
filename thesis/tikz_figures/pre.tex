@@ -4,7 +4,7 @@
 \usetikzlibrary{shapes.geometric, arrows, arrows.meta, positioning, graphs, decorations.markings, patterns.meta}
 \usepackage{pgfgantt}
 \usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
+\pgfplotsset{compat=1.16}
 \usetikzlibrary{pgfplots.groupplots}
 \usepackage{pgf-umlsd} % sequence diagrams
 \usepackage{pgfplotstable}
@@ -72,11 +72,7 @@
 \newcommand{\callbackinvocationidle}[6]{
     \fill[fill=#4_4] ({\xscale*(#1-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#5-\xshift)}, 0.15-#3*\timelinesep);
     \fill[pattern=north east lines, pattern color=#4_1, fill=#4_5] ({\xscale*(#5-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#6-\xshift)}, 0.15-#3*\timelinesep);
-    \fill[pattern={Lines[
-                  distance=2mm,
-                  angle=45,
-                  line width=0.4mm
-                 ]},
+    \fill[pattern=north east lines,
         pattern color=#4_1] ({\xscale*(#5-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#6-\xshift)}, 0.15-#3*\timelinesep);
     \fill[fill=#4_4] ({\xscale*(#6-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#2-\xshift)}, 0.15-#3*\timelinesep);
     \draw[draw=#4_1, thick] ({\xscale*(#1-\xshift)}, -0.15-#3*\timelinesep) rectangle ({\xscale*(#2-\xshift)}, 0.15-#3*\timelinesep);
