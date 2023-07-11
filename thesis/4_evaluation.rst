@@ -506,7 +506,7 @@ Such nodes are not part of this experimental setup, since the specific simulator
 
 .. _sec-eval-real_use_case:
 
-Application to existing Scenario
+Application to Existing Scenario
 ================================
 
 In this section, the effect of using the orchestrator in the use case introduced in :ref:`sec-eval-system_setup` is evaluated.
