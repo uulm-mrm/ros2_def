@@ -29,7 +29,7 @@
     },
     "sil_reconfigurator": {
       "config_file": [
-        "sil_simulator",
+        "orchestrator_dummy_nodes",
         "sil_reconfigurator_node_config.json"
       ]
     },

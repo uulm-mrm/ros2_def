@@ -11,6 +11,11 @@ install(DIRECTORY
 )
 
 install(PROGRAMS
+  orchestrator_dummy_nodes/sil_reconfigurator_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS
   orchestrator_dummy_nodes/service_caller_node.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME service_caller_node
