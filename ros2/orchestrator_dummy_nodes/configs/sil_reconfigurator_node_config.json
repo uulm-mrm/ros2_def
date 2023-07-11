@@ -1,0 +1,13 @@
+{
+  "name": "sil_reconfigurator",
+  "callbacks": [
+    {
+      "trigger": {
+        "type": "timer",
+        "period": 1000000000
+      },
+      "outputs": [],
+      "may_cause_reconfiguration": true
+    }
+  ]
+}
