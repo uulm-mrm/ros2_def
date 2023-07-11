@@ -1,0 +1,60 @@
+\input{pre}
+
+\def\xshift{2.6}
+\def\xscale{6.0}
+
+\begin{tikzpicture}
+    % Timelines
+    \timeline{S}{0}{11.5};
+    \timeline{P1}{1}{11.5};
+    \timeline{P2}{2}{11.5};
+    \timeline{T}{3}{11.5};
+
+    % Message connections S -> P1
+    \foreach \s / \t in {2.708950299/2.710403952, 3.709402534/3.710689772} {
+        \connectingarrow{0}{\s}{1}{\t}
+    }
+
+    % Message connections S -> P2
+    \foreach \s / \t in {2.708950299/2.710574685, 3.709402534/3.710796386} {
+        \connectingarrow{0}{\s}{2}{\t}
+    }
+
+    % Message connections P1 -> T
+    \foreach \s / \t in {3.108509622/3.109602327, 4.081126407/4.272939683} {
+        \connectingarrow{1}{\s}{3}{\t}
+    }
+
+    % Message connections P2 -> T
+    \foreach \s / \t in {3.160473960/3.311708414, 4.068188341/4.069738227} {
+        \connectingarrow{2}{\s}{3}{\t}
+    }
+
+    % P1
+    \foreach \s / \e in {2.710403952/3.108509622, 3.710689772/4.081126407} {
+        \callbackinvocation{\s}{\e}{1}{uulm_blue}
+    }
+
+    % P2
+    \foreach \s / \e in {2.710574685/3.160473960, 3.710796386/4.068188341} {
+        \callbackinvocation{\s}{\e}{2}{uulm_orange}
+    }
+
+    % T callbacks A
+    \foreach \s / \e in {3.109602327/3.310693805, 4.272939683/4.474360843} {
+        \callbackinvocation{\s}{\e}{3}{uulm_blue}
+    }
+
+    % T callbacks B
+    \foreach \s / \e in {3.311708414/3.512883453, 4.069738227/4.271102621} {
+        \callbackinvocation{\s}{\e}{3}{uulm_orange}
+    }
+
+    % Publish events
+    \foreach \x [count=\i] in {2.708950299, 3.709402534} {
+        \datainput{\x};
+        \messageid{\x}{\i};
+    }
+\end{tikzpicture}
+
+\input{post}

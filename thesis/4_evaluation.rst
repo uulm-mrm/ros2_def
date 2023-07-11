@@ -8,10 +8,10 @@ Evaluation
    :local:
 
 In this chapter, the functionality and applicability of the proposed framework will be evaluated.
-In :ref:`sec:eval:verification`, the behavior with and without the orchestrator in the minimal examples presented in :ref:`sec:impl:nondet_sources` is verified.
-:ref:`sec:eval:system_setup` then introduces the experimental setup used for further evaluation, which represents a real use case utilizing an existing autonomous-driving software stack.
-The process of integrating the existing components with the orchestrator is covered in :ref:`sec:eval:system_integration`, followed by an evaluation and discussion of using the orchestrator in the presented use case in :ref:`sec:eval:real_use_case`.
-In :ref:`sec:eval:execution_time`, the impact of using the orchestrator on execution time is explicitly assessed, and approaches for improvement are discussed.
+In :ref:`sec-eval-verification`, the behavior with and without the orchestrator in the minimal examples presented in :ref:`sec:impl:nondet_sources` is verified.
+:ref:`sec-eval-system_setup` then introduces the experimental setup used for further evaluation, which represents a real use case utilizing an existing autonomous-driving software stack.
+The process of integrating the existing components with the orchestrator is covered in :ref:`sec-eval-system_integration`, followed by an evaluation and discussion of using the orchestrator in the presented use case in :ref:`sec-eval-real_use_case`.
+In :ref:`sec-eval-execution_time`, the impact of using the orchestrator on execution time is explicitly assessed, and approaches for improvement are discussed.
 
 .. _sec-eval-verification:
 
@@ -24,156 +24,54 @@ driving software stack were developed.
 In the following, each of the examples containing sources of nondeterministic callback sequences identified in :ref:`sec:impl:nondet_sources`
 is individually evaluated.
 
-\subsection{Lost or Reordered Messages}
+Lost or Reordered Messages
+--------------------------
+
 To verify that the problem of lost messages due to overflowing subscriber queues, as introduced in :ref:`sec:impl:nondet_sources:reordering`, is solved by the orchestrator, a test case was set up:
 A data source :math:`S` publishes messages at a fixed frequency.
 The messages are received by the node under test :math:`P`, which has a fixed queue size (of three messages in this example), and a varying processing time that on average is significantly slower than the period of message publishing.
 After processing, :math:`P` publishes the result on a different topic.
 This behavior might correspond to a simulator running at a fixed frequency, and a computationally expensive processing component such as a perception module, running on a resource-constrained system.
 
-\def\xshift{4.2}
-\def\xscale{3.0}
-\def\timelinesep{1.0}
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        % Timelines
-        \timeline{S}{0}{11.5};
-        \timeline{P}{1}{11.5};
 
-        % Processing callbacks
-        \foreach \s / \e in {4.474290608/5.715565309, 5.716891920/6.722108351, 6.723187145/7.669690360} {
-            \callbackinvocation{\s}{\e}{1}{uulm_blue}
-        }
+.. figure:: tikz_figures/eval-reordering-timeline.png
+    :name: fig-eval-reordering-timeline
 
-        % Message connections
-        \foreach \s / \t in {4.472974560/4.474290608, 5.273226257/5.716891920, 6.274255282/6.723187145} {
-            \connectingarrow{0}{\s}{1}{\t}
-        }
+    Sequence diagram showing dropped messages due to subscriber queue overflow, with a subscriber queue size of 3 at :math:`P`. The corresponding ROS graph is shown in :numref:`fig-nodegraph-example_reordering`.
 
-        % Publish events
-        \foreach \x [count=\i] in {4.472974560, 4.672988453, 4.873052860, 5.073047788, 5.273226257, 5.473818390, 5.673491580, 5.873317536, 6.073313952, 6.274255282, 6.474362402, 6.674294107, 6.874369504, 7.074315923, 7.274281119, 7.473889086} {
-            \datainput{\x};
-            \messageid{\x}{\i};
-        }   
-
-        % \timeannotation{2}{11.5};
-    \end{tikzpicture}
-    \caption[Sequence diagram showing dropped messages due to subscriber queue overflow.]{Sequence diagram showing dropped messages due to subscriber queue overflow, with a subscriber queue size of 3 at :math:`P`. The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_reordering`.}
-    \label{fig:eval:reordering:timeline}
-\end{figure}
-
-:numref:`fig:eval:reordering:timeline` shows the sequence of events when running this test:
+:numref:`fig-eval-reordering-timeline` shows the sequence of events when running this test:
 The first timeline shows the periodic publishing of input messages by :math:`S`.
 The second timeline shows the callback duration of node :math:`P`.
 It can be seen that once the processing of the first message finishes, processing immediately continues for message 5, which is the third-recent message published at that point in time, skipping messages 2, 3, and 4 which were published during processing.
 During the processing of message 5, four further messages are discarded.
 The exact number of skipped messages depends on the callback duration, which in this case is deliberately randomized but is usually highly dependent on external factors such as system load.
 
-\def\xshift{2.2}
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        % Timelines
-        \timeline{S}{0}{11.5};
-        \timeline{P}{1}{11.5};
+.. figure:: tikz_figures/eval-reordering-timeline_orchestrator.png
+    :name: fig-eval-reordering-timeline_orchestrator
 
-        % Processing callbacks
-        \foreach \s / \e in {2.466637997/3.441356869, 3.445367339/4.678723479, 4.684971171/5.909584105} {
-            \callbackinvocation{\s}{\e}{1}{uulm_blue}
-        }
-
-        % Message connections
-        \foreach \s / \t in {2.465173893/2.466637997, 3.443201777/3.445367339, 4.681650055/4.684971171} {
-            \connectingarrow{0}{\s}{1}{\t}
-        }
-
-        % Publish events
-        \foreach \x [count=\i] in {2.465173893, 3.443201777, 4.681650055} {
-            \datainput{\x};
-            \messageid{\x}{\i};
-        }
-    \end{tikzpicture}
-    \caption{Sequence diagram showing a slowdown of the data source to prevent dropping messages by overflowing the subscriber queue.}
-    \label{fig:eval:reordering:timeline_orchestrator}
-\end{figure}
+    Sequence diagram showing a slowdown of the data source to prevent dropping messages by overflowing the subscriber queue.
 
 When using the orchestrator, the message publisher is still configured to the same publishing rate, but waits for the orchestrator before publishing each message.
-:numref:`fig:eval:reordering:timeline_orchestrator` shows that each message is now processed, regardless of callback duration.
+:numref:`fig-eval-reordering-timeline_orchestrator` shows that each message is now processed, regardless of callback duration.
 This necessarily slows down the data source, which can not be avoided without risking dropping messages from the subscription queue at the receiving node.
 
 By only sending messages to a node once the processing of the previous message is completed, reordering of messages by the middleware is also prevented.
 This is not explicitly demonstrated here but follows immediately from the fact that only one message per topic is being transmitted at any point in time.
 
-\FloatBarrier
-\subsection{Inputs From Parallel Processing Chains}\label{sec:eval:verification:parallel_inputs}
+.. _sec-eval-verification-parallel_inputs:
 
-\def\xshift{2.6}
-\def\xscale{6.0}
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        % Timelines
-        \timeline{S}{0}{11.5};
-        \timeline{P1}{1}{11.5};
-        \timeline{P2}{2}{11.5};
-        \timeline{T}{3}{11.5};
+Inputs From Parallel Processing Chains
+--------------------------------------
 
-        % Message connections S -> P1
-        \foreach \s / \t in {2.708950299/2.710403952, 3.709402534/3.710689772} {
-            \connectingarrow{0}{\s}{1}{\t}
-        }
+.. figure:: tikz_figures/eval-parallel_inputs-sequence.png
+    :name: fig-eval-parallel_inputs-sequence
 
-        % Message connections S -> P2
-        \foreach \s / \t in {2.708950299/2.710574685, 3.709402534/3.710796386} {
-            \connectingarrow{0}{\s}{2}{\t}
-        }
-
-        % Message connections P1 -> T
-        \foreach \s / \t in {3.108509622/3.109602327, 4.081126407/4.272939683} {
-            \connectingarrow{1}{\s}{3}{\t}
-        }
-
-        % Message connections P2 -> T
-        \foreach \s / \t in {3.160473960/3.311708414, 4.068188341/4.069738227} {
-            \connectingarrow{2}{\s}{3}{\t}
-        }
-
-        % P1
-        \foreach \s / \e in {2.710403952/3.108509622, 3.710689772/4.081126407} {
-            \callbackinvocation{\s}{\e}{1}{uulm_blue}
-        }
-
-        % P2
-        \foreach \s / \e in {2.710574685/3.160473960, 3.710796386/4.068188341} {
-            \callbackinvocation{\s}{\e}{2}{uulm_orange}
-        }
-
-        % T callbacks A
-        \foreach \s / \e in {3.109602327/3.310693805, 4.272939683/4.474360843} {
-            \callbackinvocation{\s}{\e}{3}{uulm_blue}
-        }
-
-        % T callbacks B
-        \foreach \s / \e in {3.311708414/3.512883453, 4.069738227/4.271102621} {
-            \callbackinvocation{\s}{\e}{3}{uulm_orange}
-        }
-
-        % Publish events
-        \foreach \x [count=\i] in {2.708950299, 3.709402534} {
-            \datainput{\x};
-            \messageid{\x}{\i};
-        }
-    \end{tikzpicture}
-    \caption[Sequence diagram showing the execution of two parallel processing nodes with nondeterministic processing time.]{Sequence diagram showing the execution of two parallel processing nodes :math:`P1` and :math:`P2` with nondeterministic processing time.
+    Sequence diagram showing the execution of two parallel processing nodes :math:`P1` and :math:`P2` with nondeterministic processing time.
     This results in a nondeterministic callback order at :math:`T`, which subscribes to the outputs of both chains.
-    The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_parallel_nodes`.}
-    \label{fig:eval:parallel_inputs:sequence}
-\end{figure}
+    The corresponding ROS graph is shown in :numref:`fig-nodegraph-example_parallel_nodes`.
 
-
-To verify deterministic callback execution at a node with multiple parallel inputs, the example introduced in :ref:`sec:impl:nondet_sources:parallel` with the ROS graph shown in :numref:`fig:nodegraph:example_parallel_nodes` is realized.
-:numref:`fig:eval:parallel_inputs:sequence` shows all callback invocations resulting from
+To verify deterministic callback execution at a node with multiple parallel inputs, the example introduced in :ref:`sec-impl-nondet_sources-parallel` with the ROS graph shown in :numref:`fig-nodegraph-example_parallel_nodes` is realized.
+:numref:`fig-eval-parallel_inputs-sequence` shows all callback invocations resulting from
 two inputs from :math:`S`.
 Without the orchestrator, the combination of nondeterministic transmission latency and variable duration of callback execution at :math:`P1` and :math:`P2` results in a nondeterministic execution order of both callbacks at :math:`T` resulting from one input from :math:`S`.
 
@@ -240,11 +138,11 @@ compared to the first input.
             \messageid{\x}{\i};
         }
     \end{tikzpicture}
-    \caption[Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2`.]{Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2` as an effect of the orchestrator on the behavior shown in :numref:`fig:eval:parallel_inputs:sequence`.}
-    \label{fig:eval:parallel_inputs:sequence_orchestrator}
+    \caption[Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2`.]{Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2` as an effect of the orchestrator on the behavior shown in :numref:`fig-eval-parallel_inputs:sequence`.}
+    \label{fig-eval-parallel_inputs:sequence_orchestrator}
 \end{figure}
 
-Using the orchestrator, the callback order changes, as visualized in :numref:`fig:eval:parallel_inputs:sequence_orchestrator`.
+Using the orchestrator, the callback order changes, as visualized in :numref:`fig-eval-parallel_inputs:sequence_orchestrator`.
 For the first and third data input, :math:`P1` requires more processing time than :math:`P2`.
 This would ordinarily allow the :math:`D2` callback at :math:`T` to execute before the :math:`D1` callback.
 The orchestrator however ensures a deterministic callback order at :math:`T` for every data input from :math:`S`, by buffering the :math:`D2` message until :math:`T` finishes processing :math:`D1`.
@@ -254,8 +152,10 @@ The actual order results from the order in which nodes and callbacks are listed 
 If a node requires a distinct receive order, it must implement appropriate ordering internally, to ensure correct operation without the orchestrator.
 From the point of the orchestrator, consistently ordering :math:`P2` before :math:`P1` would have also been a valid solution.
 
-\FloatBarrier
-\subsection{Multiple Publishers on the Same Topic}\label{sec:eval:verification:multiple_publishers_on_topic}
+.. _sec-eval-verification-multiple_publishers_on_topic:
+
+Multiple Publishers on the Same Topic
+-------------------------------------
 
 \def\xshift{9.0}
 \def\xscale{3.5}
@@ -315,16 +215,16 @@ From the point of the orchestrator, consistently ordering :math:`P2` before :mat
         }
     \end{tikzpicture}
     \caption[Sequence diagram showing serialized callback executions of nodes :math:`P1` and :math:`P2`, which is required to achieve a deterministic callback order.]{Sequence diagram showing serialized callback executions of nodes :math:`P1` and :math:`P2`, which is required to achieve a deterministic callback order at :math:`T` in this example, since :math:`P1` and :math:`P2` use the same output topic.
-    The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_multiple_publishers`.}
-    \label{fig:eval:same_output:sequence_orchestrator}
+    The corresponding ROS graph is shown in :numref:`fig-nodegraph-example_multiple_publishers`.}
+    \label{fig-eval-same_output:sequence_orchestrator}
 \end{figure}
 
-This example extends the previous scenario from :ref:`sec:eval:verification:parallel_inputs` such that both processing nodes publish their result on the same topic, corresponding to the example introduced in :ref:`sec:impl:nondet_sources:multiple_publishers`, with the ROS graph shown in :numref:`fig:nodegraph:example_multiple_publishers`.
-Again, this results in nondeterministic callback order at :math:`T`, with a callback order identical to the previous case shown in :numref:`fig:eval:parallel_inputs:sequence`.
+This example extends the previous scenario from :ref:`sec-eval-verification:parallel_inputs` such that both processing nodes publish their result on the same topic, corresponding to the example introduced in :ref:`sec:impl:nondet_sources:multiple_publishers`, with the ROS graph shown in :numref:`fig-nodegraph-example_multiple_publishers`.
+Again, this results in nondeterministic callback order at :math:`T`, with a callback order identical to the previous case shown in :numref:`fig-eval-parallel_inputs:sequence`.
 In this case, both callback executions at :math:`T` are of the same callback, while previously two distinct callbacks were executed once each.
 
 Because only node *inputs* are intercepted, this scenario requires serializing the callbacks at :math:`P1` and :math:`P2`.
-:numref:`fig:eval:same_output:sequence_orchestrator` shows the resulting callback sequence when using the orchestrator.
+:numref:`fig-eval-same_output:sequence_orchestrator` shows the resulting callback sequence when using the orchestrator.
 By ensuring that processing at :math:`P2` only starts after the output from :math:`P1` is received, reordering of the messages on :math:`D` is prevented.
 Note that while the different colors of the callbacks at :math:`T` correspond to the sources of the corresponding input, both inputs cause the same subscription callback to be executed at the node.
 Generally, the node would not be able to determine the source of the input message.
@@ -332,14 +232,16 @@ Generally, the node would not be able to determine the source of the input messa
 Since the processing time of :math:`P2` is longer than the processing time of the first callback at :math:`T` in this example, the orchestrator causes a larger overhead for this node graph compared to the previous one.
 :math:`P2` starts processing simultaneously to the first :math:`T` callback, causing :math:`T` to be idle between the completion of the first callback and the completion of processing at :math:`P2`.
 It should be noted, however, that even though the total processing time exceeds the input frequency of :math:`S` for input 2, the data source was not required to slow down.
-:numref:`fig:eval:same_output:sequence_orchestrator` shows that :math:`T` is still running while :math:`P1` processes input 3.
+:numref:`fig-eval-same_output:sequence_orchestrator` shows that :math:`T` is still running while :math:`P1` processes input 3.
 This kind of "pipelining" happens implicitly because the callback execution at :math:`P1` has no dependency on the callback at :math:`T`, and by eagerly allowing inputs from :math:`S`.
 In the current implementation, the orchestrator requests the publishing of the next message by the data provider as soon as the processing of the last input on the same topic has started.
 In the case of a time input, the input is requested as soon as no actions remain which are still waiting on an input of a previous time update.
 Both kinds of input may additionally be delayed if the system is pending dynamic reconfiguration, or if a callback is still running that may cause a reconfiguration at the end of the current timestep.
 
-\FloatBarrier
-\subsection{Parallel Service Calls}\label{sec:eval:verification:service_calls}
+.. _sec-eval-verification-service_calls:
+
+Parallel Service Calls
+--------------------
 
 .. figure:: tikz_figures/eval-service-sequence_before.png
    :name: fig-eval-service-sequence_before
@@ -347,9 +249,9 @@ Both kinds of input may additionally be delayed if the system is pending dynamic
    Sequence diagram showing the parallel execution of callbacks at :math:`N1` and :math:`N2`.
    The hatched area within the callback shows the duration of service calls, which are made to a service provided by :math:`SP`, upwards arrows represent responses to service calls.
    The variable timing of the service calls results in a nondeterministic callback order at :math:`SP`.
-   The corresponding ROS graph is shown in :numref:`fig:nodegraph:example_service_calls`.
+   The corresponding ROS graph is shown in :numref:`fig-nodegraph-example_service_calls`.
 
-:numref:`fig:nodegraph:example_service_calls` shows the node setup for this example, which has been identified in :ref:`sec:impl:nondet_sources:service_calls`.
+:numref:`fig-nodegraph-example_service_calls` shows the node setup for this example, which has been identified in :ref:`sec:impl:nondet_sources:service_calls`.
 A single message triggers a callback at three nodes, one of which (:math:`SP`) also provides a ROS service.
 The two other nodes :math:`N1` and :math:`N2` call the provided service during callback execution.
 The resulting order of all three callbacks at :math:`SP` in response to a single message input is nondeterministic, as shown in :numref:`fig-eval-service-sequence_before`.
@@ -363,20 +265,23 @@ Since the orchestrator only controls service calls by controlling the callback t
 The resulting callback sequence is shown in :numref:`fig-eval-service-sequence_orchestrator`.
 By serializing the callbacks at :math:`N1` and :math:`N2`, the order of service callbacks at :math:`SP` is now fixed.
 In this example, it is again apparent that parallel execution of the :math:`N1` and :math:`N2` callbacks might be possible while still maintaining a deterministic callback order at :math:`SP`.
-This limitation is discussed in detail in :ref:`sec:eval:verification:discussion`.
+This limitation is discussed in detail in :ref:`sec-eval-verification-discussion`.
 
-\FloatBarrier
-\subsection{Discussion}\label{sec:eval:verification:discussion}
+.. _sec-eval-verification-discussion:
+
+Discussion
+----------
+
 The ability of the orchestrator to ensure a deterministic callback sequence at all nodes has been shown for the minimal nondeterministic examples which were identified in :ref:`sec:impl:nondet_sources`.
 While all examples show successful deterministic execution, some limitations and possible improvements in parallel callback execution and thereby execution time are apparent and will be discussed in the following.
 
 In the case of concurrent callbacks which publish on the same topic, parallelism could further be improved by extending the topic interception strategy.
 Currently, only the input topics of each node are intercepted by the orchestrator, the output topics are not changed.
 If the output topics of nodes were also remapped to individual topics, all ``SAME_TOPIC`` dependencies would be eliminated.
-In the example from :numref:`fig:eval:parallel_inputs:sequence_orchestrator`, this would again allow the concurrent callbacks :math:`P1` and :math:`P2` to execute in parallel, with each output being individually buffered at the orchestrator.
-The individually and uniquely buffered outputs could then be forwarded to :math:`T` in a deterministic order, effectively resulting in a callback execution behavior as in :ref:`sec:eval:verification:parallel_inputs`.
+In the example from :numref:`fig-eval-parallel_inputs:sequence_orchestrator`, this would again allow the concurrent callbacks :math:`P1` and :math:`P2` to execute in parallel, with each output being individually buffered at the orchestrator.
+The individually and uniquely buffered outputs could then be forwarded to :math:`T` in a deterministic order, effectively resulting in a callback execution behavior as in :ref:`sec-eval-verification:parallel_inputs`.
 
-The last example of concurrent service calls (:ref:`sec:eval:verification:service_calls`) also shows how this method of ensuring deterministic execution comes with a significant runtime penalty.
+The last example of concurrent service calls (:ref:`sec-eval-verification:service_calls`) also shows how this method of ensuring deterministic execution comes with a significant runtime penalty.
 Here, the orchestrator now requires all callbacks to execute sequentially, while previously all callbacks started executing in parallel, with the only point of synchronization being the service provider, depending on available parallel callback execution within the node.
 An important factor determining the impact of this is the proportion of service-call duration to total callback duration for the calling nodes.
 If the service call is expected to take only a small fraction of the entire callback duration, a large improvement in execution time could be gained by allowing parallel execution of the callbacks :math:`N1` and :math:`N2`, which both call the service.
@@ -390,7 +295,7 @@ If an action only inspects the service providers' state without modifying it, th
 Thus, it would suffice to synchronize non-modifying actions with previous modifying actions,
 instead of all previous actions.
 
-In :ref:`sec:eval:verification:parallel_inputs`, it was identified that although the callback order at each node is not deterministic, a different order of callbacks in response to a single input might be expected during normal operation.
+In :ref:`sec-eval-verification:parallel_inputs`, it was identified that although the callback order at each node is not deterministic, a different order of callbacks in response to a single input might be expected during normal operation.
 This does not reduce the applicability of the orchestrator, since nodes that explicitly require a specific callback order must implement measures to ensure that anyways.
 It is however still desirable to keep the system behavior when using the orchestrator as close as possible to the expected or usual system behavior without the orchestrator.
 One proposed future addition is thus allowing nodes to optionally specify an expected callback duration in the corresponding configuration file.
@@ -402,7 +307,7 @@ System Setup
 ============
 
 In the following, the integration of the orchestrator with parts of an already existing autonomous driving software stack is evaluated.
-This section introduces the system setup and example use case, which will be utilized in :ref:`sec:eval:system_integration,sec:eval:real_use_case`.
+This section introduces the system setup and example use case, which will be utilized in :ref:`sec-eval-system_integration,sec-eval-real_use_case`.
 
 \begin{figure}
     \centering
@@ -440,11 +345,11 @@ This section introduces the system setup and example use case, which will be uti
         \draw [arrow] (planning) -- (3.5,1) -| (sim);
     \end{tikzpicture}
     \caption[Node graph of the system setup used within :ref:`sec:eval`.]{Node graph of the system setup used within this chapter. The connections between the simulator and both tracking nodes represent multiple parallel ROS topics. Dashed arrows show potential service calls.}
-    \label{fig:eval:sil_nodegraph}
+    \label{fig-eval-sil_nodegraph}
 \end{figure}
 
 In this use case, the aim is to calculate metrics on the performance of a multi-object tracking module, which tracks vehicles that pass an intersection using infrastructure-mounted sensors.
-The ROS graph of the setup is shown in :numref:`fig:eval:sil_nodegraph`.
+The ROS graph of the setup is shown in :numref:`fig-eval-sil_nodegraph`.
 The software stack consists of this tracking module, as well as components required to autonomously control one of the vehicles passing the intersection in the test scenario.
 A simulator provides measurements in the form of (possibly incomplete) bounding boxes and object class estimations, simulating both the sensor itself as well as an object detection algorithm.
 Alternatively, the same measurements are played back from a ROS bag.
@@ -470,14 +375,17 @@ System Integration
 ==================
 
 To determine the feasibility of integrating the proposed framework into existing software,
-the framework was applied to the scenario for testing a multi-object tracking module introduced in :ref:`sec:eval:system_setup`.
+the framework was applied to the scenario for testing a multi-object tracking module introduced in :ref:`sec-eval-system_setup`.
 In this section, the necessary modifications to each existing component are discussed.
-:ref:`sec:eval:system_integration:simulator,sec:eval:system_integration:bag_player` will cover the integration of both "data provider" components, a simulator, and the ROS bag player, which will contain the orchestrator.
-:ref:`sec:eval:system_integration:ros_nodes` covers the integration of the ROS nodes present in
+:ref:`sec-eval-system_integration:simulator,sec-eval-system_integration:bag_player` will cover the integration of both "data provider" components, a simulator, and the ROS bag player, which will contain the orchestrator.
+:ref:`sec-eval-system_integration:ros_nodes` covers the integration of the ROS nodes present in
 the test scenario.
 
-\clearpage
-\subsection{Simulator}\label{sec:eval:system_integration:simulator}
+.. _sec-eval-system_integration-simulator:
+
+Simulator
+---------
+
 The orchestrator represents an individual component (see :ref:`sec:impl:controlling_callbacks`),
 but is located within the same process as the data provider,
 which in this case is the simulator.
@@ -495,7 +403,11 @@ To enable closed-loop simulation, the simulator must accept some input from the 
 This implies a subscription callback, which must be described in a node configuration file.
 If this callback does not publish any further messages, a status message must be published instead.
 
-\subsection{ROS Bag Player}\label{sec:eval:system_integration:bag_player}
+.. _sec-eval-system_integration-bag_player:
+
+ROS Bag Player
+--------------
+
 ROS already provides a ROS bag player, which could be modified to include the orchestrator.
 Modifying the official ROS bag player would have the advantage of keeping access to the large set of features already implemented, and preserving the known user interface.
 Some aspects of the official player increase the integration effort considerably, however.
@@ -506,9 +418,13 @@ Furthermore, as with the initial architecture considerations of the orchestrator
 Thus, a dedicated ROS bag player is implemented for use with the orchestrator instead of modifying the existing player.
 This does not have the same feature set as the official player but allows for evaluation of this use case with a reasonable implementation effort.
 To integrate the orchestrator, the ROS bag player requires the same adaptation as the simulator, except for the ``wait_until_dataprovider_state_update_allowed`` call which is not applicable without closed-loop execution.
-Besides deterministic execution, a new feature is reliable faster-than-realtime execution, details of which are discussed in :ref:`sec:eval:execution_time`.
+Besides deterministic execution, a new feature is reliable faster-than-realtime execution, details of which are discussed in :ref:`sec-eval-execution_time`.
 
-\subsection{ROS Nodes}\label{sec:eval:system_integration:ros_nodes}
+.. _sec-eval-system_integration-ros_nodes:
+
+ROS Nodes
+---------
+
 The individual ROS nodes of the software stack under test are the primary concern regarding implementation effort, as there is usually a large number of ROS nodes, and new ROS nodes may be created or integrated regularly.
 
 The integration effort of a ROS node depends on how well the node already matches the assumptions made and required by the orchestrator:
@@ -536,7 +452,7 @@ This reduces the relevance of testing inside the orchestrator framework since sp
 It might be possible in some cases to change the node in a way such that the usual mode of execution is compatible with the orchestrator, and thus avoids the problem of two discrete modes, but this is not possible in general.
 In the case of the trajectory planning module, for example, this is not desirable due to the integration of the planning loop with a graphical user interface that is used to interactively change planner parameters and to introspect the current planner state.
 
-\subsubsection{Tracking Module}\label{sec:eval:system_integration:ros_nodes:tracking}
+\subsubsection{Tracking Module}\label{sec-eval-system_integration:ros_nodes:tracking}
 While the tracking module does only process data within ROS subscription callbacks, the input-output behavior is still not straightforward:
 The tracking module employs a sophisticated queueing system, which aims to form batches of inputs from both synchronized and unsynchronized sensors,
 while also supporting dynamic addition and removal of sensors.
@@ -551,7 +467,7 @@ This behavior can however still be handled by the node configuration without req
 The node configuration was modified such that any input may cause an output to be published.
 Then, the processing method was adapted such that a status message is published that explicitly excludes the ``tracks`` output using the ``omitted_outputs`` field when no tracks will be published.
 In some circumstances, specifically following dropped messages, the queueing  additionally results in multiple outputs in a single callback.
-This behavior is described in detail in :ref:`sec:eval:real_use_case:rosbag` and is not currently supported by the orchestrator.
+This behavior is described in detail in :ref:`sec-eval-real_use_case:rosbag` and is not currently supported by the orchestrator.
 
 While this is a pragmatic solution for describing the otherwise hard to statically describe input-output behavior of the tracking module, declaring more output topics than necessary for a callback is usually undesired:
 Subsequent callbacks which actually publish a message on the specified topic need to wait for this callback to complete due to a false ``SAME_TOPIC`` dependency.
@@ -568,7 +484,9 @@ The ego-motion module is the only node in the experimental setup offering a serv
 This does however not require any modification within the node, as service calls are controlled by controlling the originating callbacks.
 It is required however to list the service in the node configuration, to ensure a deterministic order between service calls and topic-input callbacks at the node.
 
-\subsection{Discussion}
+Discussion
+----------
+
 In :ref:`sec:impl:design_goals`, the design goals towards the integration of existing nodes were established as minimizing the required modification to nodes, maintaining functionality without the orchestrator, and allowing for external nodes to be integrated without modifying their source code.
 
 The implemented approach meets these goals to varying degrees.
@@ -576,7 +494,7 @@ The integration of existing components with the orchestrator requires a varying 
 ROS nodes that fully comply with the assumptions made by the orchestrator and always publish every configured output require only a configuration file describing the node's behavior, which also works for external nodes without access to or modification of their source code.
 Nodes that have callbacks without any output and nodes that may omit some or all configured outputs in some callback executions require publishing a status output as described in :ref:`sec:impl:controlling_callbacks:outputs` after a callback is complete.
 Since this only entails publishing an additional message, this modification does not impede the node's functionality in any way when not using the orchestrator.
-Nodes that fully deviate from the assumed callback behavior require appropriate modification before being suitable for use with the orchestrator, as was illustrated with the tracking and planning modules in :ref:`sec:eval:system_integration:ros_nodes`.
+Nodes that fully deviate from the assumed callback behavior require appropriate modification before being suitable for use with the orchestrator, as was illustrated with the tracking and planning modules in :ref:`sec-eval-system_integration:ros_nodes`.
 
 Creating the node configuration file does not present a significant effort for initial integration, but maintaining the configuration to match the actual node behavior is essential.
 Although the orchestrator can detect some mismatches between node behavior and description,
@@ -591,14 +509,18 @@ Such nodes are not part of this experimental setup, since the specific simulator
 Application to existing Scenario
 ================================
 
-In this section, the effect of using the orchestrator in the use case introduced in :ref:`sec:eval:system_setup` is evaluated.
+In this section, the effect of using the orchestrator in the use case introduced in :ref:`sec-eval-system_setup` is evaluated.
 In the following, the ability of the orchestrator to ensure deterministic execution up to the metric-calculation step is demonstrated using both the simulator and recorded input data from a ROS bag, as well as combined with dynamic reconfiguration during test execution.
 
-\subsection{Simulator}\label{sec:eval:real_use_case:sim}
+.. _sec-eval-real_use_case-sim:
+
+Simulator
+---------
+
 When evaluating the tracking module in the previously introduced scenario, the MOTA and MOTP metrics introduced in :ref:`sec:bg:metrics` are calculated.
 To calculate these metrics, the tracking outputs are recorded together with ground truth data from the simulator during a simulation run.
 Those recordings are then loaded and processed offline.
-When running the evaluation procedure multiple times, it can be observed that the resulting values differ for each run, as shown in :numref:`fig:eval:sim:nondet_metrics`.
+When running the evaluation procedure multiple times, it can be observed that the resulting values differ for each run, as shown in :numref:`fig-eval-sim:nondet_metrics`.
 This is due to nondeterministic callback execution during evaluation:
 Both the simulator and the trajectory planning module run independently of each other, and the callback sequence of the multiple inputs to the tracking module is not fixed.
 
@@ -657,8 +579,8 @@ o_6,165,0.757282,0.335777
             \label{plot_motp}
         \end{axis}
     \end{tikzpicture}
-    \caption[Evaluation of the MOTA and MOTP metrics using the experimental setup.]{Evaluation of the MOTA and MOTP metrics in the scenario introduced in :ref:`sec:eval:system_setup` over multiple simulation runs, both with and without the orchestrator.}
-    \label{fig:eval:sim:nondet_metrics}
+    \caption[Evaluation of the MOTA and MOTP metrics using the experimental setup.]{Evaluation of the MOTA and MOTP metrics in the scenario introduced in :ref:`sec-eval-system_setup` over multiple simulation runs, both with and without the orchestrator.}
+    \label{fig-eval-sim:nondet_metrics}
 \end{figure}
 
 When running the simulation using the orchestrator, the variance in the calculated metrics is eliminated.
@@ -669,8 +591,12 @@ This enables additional use cases for testing such as easily comparing the outpu
 Previously, such a comparison would require parsing the recorded results, calculating some similarity measure or distance between the expected and actual results, and applying some threshold to determine equality.
 Now, simply comparing the files without any semantic understanding of the contents is possible.
 
-\subsection{ROS Bag}\label{sec:eval:real_use_case:rosbag}
-In order to test the use case of ROS bag replay, the player implemented in :ref:`sec:eval:system_integration:bag_player` is used.
+.. _sec-eval-real_use_case-rosbag:
+
+ROS Bag
+-------
+
+In order to test the use case of ROS bag replay, the player implemented in :ref:`sec-eval-system_integration:bag_player` is used.
 Although the ROS bag player provides inputs in deterministic order, the characteristics of the input data are different from the simulator.
 During the recording of the ROS bag, the sensor input topics and pre-processing nodes are subject to nondeterministic ROS communication and callback behavior.
 This results in a ROS bag with missing sensor samples (due to dropped messages as well as unexpected behavior of real sensors) and reordered messages (due to nondeterministic transmission of the messages to the ROS bag recorder).
@@ -684,7 +610,7 @@ In order to reuse the existing test setup, a ROS bag was recorded from the outpu
 To simulate the effects described above, the ROS bag is manually modified by randomly dropping messages and randomly reordering recorded messages.
 
 Using the multi-object tracking module was not possible, however, since the high rate of dropped messages causes a callback behavior that can not be modeled by the node configuration as introduced in :ref:`sec:impl:configuration`.
-In addition to the behavior described in :ref:`sec:eval:system_integration:ros_nodes:tracking` of zero or one output for each measurement input, certain combinations of inputs may cause multiple outputs from one input callback.
+In addition to the behavior described in :ref:`sec-eval-system_integration:ros_nodes:tracking` of zero or one output for each measurement input, certain combinations of inputs may cause multiple outputs from one input callback.
 This is due to a sophisticated input queueing approach, that forms batches of inputs with small deviations in measurement time, that only get processed once a batch contains measurements of all sensors.
 In case of missing measurements, a newer batch might be complete while older, incomplete batches still exist.
 The queueing algorithm assumes in that case that the missing measurements of the old batches will not arrive anymore (ruling out message reordering, but allowing dropping messages), and processes the old batches, producing multiple outputs in one callback.
@@ -693,10 +619,10 @@ If a callback publishes additional outputs after it is assumed to have been comp
 
 This queueing also makes the tracking module robust against any message reordering between the ROS bag player and the module itself, resulting in deterministic execution even without the orchestrator and at high playback speed.
 When using a ROS bag with reordered, but without dropped messages, the experimental setup can be verified and performs as expected with a ROS bag as the data source instead of a simulator, which also shows that the orchestrator can successfully be used in combination with existing node-specific measures to ensure deterministic input ordering.
-The further behavior of the orchestrator remains unchanged, meaning nondeterminism in larger systems under test such as the cases demonstrated in :ref:`sec:eval:verification` is prevented.
+The further behavior of the orchestrator remains unchanged, meaning nondeterminism in larger systems under test such as the cases demonstrated in :ref:`sec-eval-verification` is prevented.
 
 Furthermore, when using ROS bags as the data source it may be possible to easily maximize the playback speed without manually choosing a rate that does not overwhelm the processing components causing dropped messages.
-More details on this specific use case will be given in :ref:`sec:eval:execution_time`.
+More details on this specific use case will be given in :ref:`sec-eval-execution_time`.
 
 .. _sec-eval-real_use_case-reconfig:
 
@@ -778,7 +704,7 @@ A real working counterpart would require additional inputs such as the current v
         \end{axis}
     \end{tikzpicture}
     \caption[OSPA distance of tracks versus ground truth during multiple simulation runs.]{\Gls{ospa} distance of tracks versus ground truth during multiple simulation runs. The dashed vertical line marks the timestep in which the runtime reconfiguration occurs.}
-    \label{fig:eval:config:ospa}
+    \label{fig-eval-config:ospa}
 \end{figure}
 
 \begin{figure}
@@ -811,16 +737,16 @@ A real working counterpart would require additional inputs such as the current v
         \end{axis}
     \end{tikzpicture}
     \caption[Absolute difference in OSPA distances between the simulation runs.]{Absolute difference in OSPA distances between the simulation runs. The dashed vertical line marks the timestep in which the runtime reconfiguration occurs.}
-    \label{fig:eval:config:ospa_diff}
+    \label{fig-eval-config:ospa_diff}
 \end{figure}
 
-:numref:`fig:eval:config:ospa` shows the OSPA distance (see :ref:`sec:bg:metrics`) between the tracking result and the ground truth object data from the simulator over multiple simulation runs.
+:numref:`fig-eval-config:ospa` shows the OSPA distance (see :ref:`sec:bg:metrics`) between the tracking result and the ground truth object data from the simulator over multiple simulation runs.
 The OSPA distance was chosen as a metric in this case since it is calculated for every time step instead of as an average over the entire simulation run, as is the case with the MOTA and MOTP metrics used above.
 This allows evaluation of how the metric changes during the simulation run and clearly shows the reconfiguration step.
 It is apparent that the reconfiguration module successfully switched to a lower measurement noise at :math:`t=7s`.
 Importantly, however, the evaluation results of the multiple runs do not completely overlap.
 This is again due to nondeterministic callback execution within the tracking, planning, and simulator modules.
-The differences between the runs, plotted in :numref:`fig:eval:config:ospa_diff`, show that all runs deviate from the first run, with two runs showing the largest difference at the exact time of reconfiguration.
+The differences between the runs, plotted in :numref:`fig-eval-config:ospa_diff`, show that all runs deviate from the first run, with two runs showing the largest difference at the exact time of reconfiguration.
 
 \begin{figure}
     \centering
@@ -841,14 +767,18 @@ The differences between the runs, plotted in :numref:`fig:eval:config:ospa_diff`
         \end{axis}
     \end{tikzpicture}
     \caption[OSPA distance of tracks versus ground truth over time, comparison between simulation run with and without the orchestrator.]{\Gls{ospa} distance of tracks versus ground truth over time, comparison between initial simulation run and simulation while using the orchestrator.}
-    \label{fig:eval:config:ospa_orchestrator}
+    \label{fig-eval-config:ospa_orchestrator}
 \end{figure}
 
-Using the orchestrator, the measured tracking result does differ from the previous simulation runs, as shown in :numref:`fig:eval:config:ospa_orchestrator`.
+Using the orchestrator, the measured tracking result does differ from the previous simulation runs, as shown in :numref:`fig-eval-config:ospa_orchestrator`.
 The output is however deterministic and repeatable, even if a reconfiguration occurs during the simulation.
 Again, this demonstrates the successful application of the orchestrator framework, even in the presence of dynamic reconfiguration at runtime.
 
-\subsection{Discussion}\label{sec:eval:real_use_case:discussion}
+.. _sec-eval-real_use_case-discussion:
+
+Discussion
+----------
+
 In :ref:`sec-eval-real_use_case`, the successful implementation of two design goals was verified:
 First, :ref:`sec-eval-real_use_case-sim` and :ref:`sec-eval-real_use_case-rosbag` demonstrate successful use of the orchestrator with both a simulator and ROS bag as data sources.
 Notably, no additional requirements are placed on the specific ROS bag used, allowing the use of the orchestrator with already existing recorded data.
@@ -869,7 +799,11 @@ Execution-Time Impact
 Due to the required serialization of callbacks and buffering of messages, a general increase in execution time is to be expected when using the orchestrator.
 In the following, this impact is measured for a simulation use case and the individual sources of increased execution time, as well as possible future improvements, are discussed.
 
-\subsection{Analysis}\label{sec:eval:execution_time:analysis}
+.. _sec-eval-execution_time-analysis:
+
+Analysis
+--------
+
 To measure the impact of topic interception, the induced delay of forwarding a message via a ROS node is measured.
 In order to compensate for latency in the measuring node, the difference in latency for directly sending and receiving a message in the same node versus the latency of sending a message and receiving a forwarded message is measured.
 When using a measuring and forwarding node implemented in Python and using the "eProsima Fast DDS" middleware, the latency from publishing to receiving increases from a mean of :math:`0.64` ms to :math:`0.99` ms.
@@ -898,17 +832,17 @@ This induced latency of :math:`0.35` ms on average is considered acceptable and 
         \end{axis}
     \end{tikzpicture}
     \caption[Comparison of execution time for one simulation run.]{Comparison of execution time for one simulation run between not using the orchestrator, using the orchestrator with faster than real-time execution, and using the orchestrator with real-time execution.}
-    \label{fig:eval:execution_time:sim_comparison_barchart}
+    \label{fig-eval-execution_time:sim_comparison_barchart}
 \end{figure}
 
-:numref:`fig:eval:execution_time:sim_comparison_barchart` shows a comparison of execution time for one simulation run of the scenario introduced in :ref:`sec:eval:system_setup`.
+:numref:`fig-eval-execution_time:sim_comparison_barchart` shows a comparison of execution time for one simulation run of the scenario introduced in :ref:`sec-eval-system_setup`.
 The first bar shows the runtime without using the orchestrator, the bottom two bars show the time when using the orchestrator.
 
 The simulator currently offers two modes of execution:
 ``fast`` executes the simulation as fast as possible, while ``real_time`` slows down the simulation to run at real-time speed if the simulation itself would be able to run faster than real-time.
 Using the ``fast`` mode is only appropriate combined with the orchestrator or some other method of synchronization between the simulator and software under test.
 If the simulator is not able to run in real-time, deliberate delays to ensure real-time execution should already be zero.
-Since :numref:`fig:eval:execution_time:sim_comparison_barchart` still shows an increase in runtime for using the ``real_time`` mode compared to the ``fast`` mode, the orchestrator is considered with the ``fast`` execution mode in the following.
+Since :numref:`fig-eval-execution_time:sim_comparison_barchart` still shows an increase in runtime for using the ``real_time`` mode compared to the ``fast`` mode, the orchestrator is considered with the ``fast`` execution mode in the following.
 % time factor in test: 1.43063584
 Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73\% in the ``fast`` case.
 
@@ -931,14 +865,18 @@ This flag is applied to callbacks of a component that may decide dynamically rec
 To ensure that the reconfiguration always occurs at the same point in time with respect to other callback executions at each node, any subsequent data inputs and dataprovider state updates must wait until either the reconfiguration is complete or the callback has finished without requesting reconfiguration.
 This presents an even more severe point of synchronization, since it immediately blocks the next data inputs from the simulator, and not only the start of the next timestep, while still allowing to publish the remaining inputs from the current timestep.
 
-\subsection{Discussion}\label{sec:eval:execution_time:discussion}
+.. _sec-eval-execution_time:discussion:
+
+Discussion
+----------
+
 Using the orchestrator significantly increased execution time in the simulation scenario.
 To reduce the runtime overhead caused by the orchestrator, multiple approaches are viable.
 As significant time is spent executing orchestrator callbacks and API calls, improving the performance of the orchestrator itself would be beneficial.
 A possible approach worth investigating could be parallelizing the execution of orchestrator callbacks.
 Both parallelizing multiple orchestrator callbacks and running those callbacks in parallel to the host node (the simulator or ROS bag player) could be viable.
 In addition to a more efficient implementation of the orchestrator itself, the overhead of serializing callback executions is significant.
-While some of that overhead is inherently required by the serialization to ensure deterministic execution, it has already been shown in :ref:`sec:eval:verification:multiple_publishers_on_topic,sec:eval:verification:service_calls` that parallelism of callback executions can be improved with more granular control over callbacks, their outputs, and service calls made from within those callbacks.
+While some of that overhead is inherently required by the serialization to ensure deterministic execution, it has already been shown in :ref:`sec-eval-verification:multiple_publishers_on_topic,sec-eval-verification:service_calls` that parallelism of callback executions can be improved with more granular control over callbacks, their outputs, and service calls made from within those callbacks.
 
 When using a ROS bag instead of a simulator as the data source, some of the identified problems are less concerning.
 Since a ROS bag player does not have to perform any computation and reading recorded data is not usually a bottleneck for performance, the overhead of the orchestrator API calls is less problematic.
@@ -955,5 +893,5 @@ Playing a ROS bag is necessarily an open-loop configuration without any synchron
 If a speedup is achieved in the end depends on if the remaining overhead from serializing callback invocations outweighs the increased playback rate or not.
 
 The design goal of minimizing the execution time impact is thus only partially achieved.
-As measured in this section and detailed in :ref:`sec:eval:verification:discussion`, the serialization of callbacks and thus the induced latency of executing callbacks is not minimal.
+As measured in this section and detailed in :ref:`sec-eval-verification:discussion`, the serialization of callbacks and thus the induced latency of executing callbacks is not minimal.
 The runtime of the orchestrator component itself has been shown to be significant as well, although this was not the bottleneck in this test scenario.
