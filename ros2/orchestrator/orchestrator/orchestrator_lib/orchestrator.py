@@ -30,7 +30,6 @@ from rclpy.executors import Executor
 
 import networkx as nx
 import matplotlib.pyplot as plt
-import netgraph
 
 import rosgraph_msgs.msg
 
@@ -933,6 +932,15 @@ class Orchestrator:
 
     def plot_graph(self):
 
+        try:
+            import netgraph
+        except ImportError:
+            netgraph = None
+
+        if not netgraph:
+            self.l.warning("Python module \"netgraph\" not installed, callback graph display not available.")
+            return
+
         if self.graph.number_of_nodes() == 0:
             return
 
@@ -1110,7 +1118,8 @@ class Orchestrator:
                 # But this status message would not make sense: If the callback always produced a status output, we
                 # would have found it above, and if it was a substitute for some other output, it would list some
                 # omitted_outputs...
-                raise RuntimeError(f"Status message from {msg.node_name} with debug_id {msg.debug_id} was not expected, and it has no omitted outputs.")
+                raise RuntimeError(
+                    f"Status message from {msg.node_name} with debug_id {msg.debug_id} was not expected, and it has no omitted outputs.")
         else:
             self.l.info(f" Status message was expected, removing status node {status_node_id}.")
             cause_action_id = self.__parent_node(status_node_id)
