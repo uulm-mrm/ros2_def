@@ -72,8 +72,20 @@ def _verify_node_models(node_models):
 
 
 class Orchestrator:
+    """
+    The orchestrator.
+    """
+
     def __init__(self, ros_node: RosNode, executor: Executor, node_config: List[NodeModel],
                  logger: Optional[RcutilsLogger] = None) -> None:
+        """
+        :param ros_node: A ROS node instance for the orchestrator.
+            Should be separate to the hosting node to avoid name conflicts.
+            Used to create subscriptions and publishers for topic interception.
+        :param executor: The executor which should be used to spin the above node while waiting for callbacks.
+        :param node_config: Node models loaded from launch+node configuration files.
+        :param logger: Logger for orchestrator logs. If not provided, default logger of ros_node is used.
+        """
         self.ros_node = ros_node
         self.executor = executor
         self.l = logger or ros_node.get_logger()
@@ -221,7 +233,7 @@ class Orchestrator:
                     list(tsi.input_topics), tsi.queue_size, tsi.slop)
         self.l.info("ROS setup for orchestrator done!")
 
-    def wait_until_dataprovider_state_update_allowed(self):
+    def wait_until_dataprovider_state_update_allowed(self) -> Future:
         """
         Data provider should spin until this future completes before
         modifying its state outside of any callbacks, such as calculating the next timestep in the simulator.
@@ -356,6 +368,12 @@ class Orchestrator:
         self.l.info(" Created all callback actions, proceeding as usual.")
 
     def wait_until_time_publish_allowed(self, t: Time) -> Future:
+        """
+        Get a future that will be complete once the specified timestamp can be published.
+        The caller should spin the executor of the RosNode while waiting, otherwise the future
+        may never be done (and processing might not continue).
+        """
+
         lc(self.l, f"Data source offers clock input for time {t}")
 
         if self.next_input is not None:
@@ -383,6 +401,10 @@ class Orchestrator:
         return f
 
     def wait_until_pending_actions_complete(self):
+        """
+        Blocks until no actions are expected anymore (until the callback graph is empty).
+        Spins the orchestrators' executor.
+        """
         f = Future()
         while not self.__graph_is_empty():
             self.executor.spin_until_future_complete(f, timeout_sec=0.01)
@@ -397,12 +419,12 @@ class Orchestrator:
 
     def reconfigure(self, new_node_config: List[NodeModel]):
         """
-        Reconfiguration workflow:
-        1. Stop providing data (messages/time)
-        2. Wait until reconfiguration is allowed: orchestrator.wait_until_reconfiguration_allowed()
-        3. Apply reconfiguration (stop nodes, start nodes, change communication topology)
-        4. Load new node configs: orchestrator.reconfigure()
-        5. Continue providing data
+        | Reconfiguration workflow:
+        | 1. Stop providing data (messages/time)
+        | 2. Wait until reconfiguration is allowed: :func:`~orchestrator.lib.Orchestrator.wait_until_reconfiguration_allowed`
+        | 3. Apply reconfiguration (stop nodes, start nodes, change communication topology)
+        | 4. Load new node configs: orchestrator.reconfigure()
+        | 5. Continue providing data
         """
         lc(self.l, "Reconfiguring!")
 
@@ -931,6 +953,10 @@ class Orchestrator:
             f"Graph: {self.graph.nodes(data=True)}")
 
     def plot_graph(self):
+        """
+        Display interactive visualization of current callback graph.
+        Requires `netgraph <https://github.com/paulbrodersen/netgraph>`_, which is optional otherwise.
+        """
 
         try:
             import netgraph
