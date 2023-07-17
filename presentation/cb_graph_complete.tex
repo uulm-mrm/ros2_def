@@ -1,0 +1,68 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}[node font=\footnotesize]
+    %\draw[step=1cm,gray,very thin] (0,0) grid (15,-10);
+    \node [callback] (input1) at (0,0) {Input\\M};
+    \node [callback, draw=gray] (bufferm1) at (0,-3) {Buffer\\M};
+    \node [callback] (p1rx1) at (0,-6) {P1\\Rx M};
+    \node [callback] (p2rx1) at (3,-6) {P2\\Rx M};
+    \node [callback, draw=gray] (bufferd11) at (0,-9) {Buffer\\D1};
+    \node [callback, draw=gray] (bufferd21) at (3,-9) {Buffer\\D2};
+    \node [callback] (trxd11) at (0,-12) {T\\Rx D1};
+    \node [callback] (trxd21) at (3,-12) {T\\Rx D2};
+
+    \node [callback] (input2) at (6,0) {Input\\M};
+    \node [callback, draw=gray] (bufferm2) at (6,-3) {Buffer\\M};
+    \node [callback] (p1rx2) at (6,-6) {P1\\Rx M};
+    \node [callback] (p2rx2) at (9,-6) {P2\\Rx M};
+    \node [callback, draw=gray] (bufferd12) at (6,-9) {Buffer\\D1};
+    \node [callback, draw=gray] (bufferd22) at (9,-9) {Buffer\\D2};
+    \node [callback] (trxd12) at (6,-12) {T\\Rx D1};
+    \node [callback] (trxd22) at (9,-12) {T\\Rx D2};
+
+    % Causality
+    \draw [draw = uulm_blue_1, very thick]
+        (bufferm1) edge [->] (input1)
+        (p1rx1) edge [->] (bufferm1)
+        (p2rx1) edge [->] (bufferm1)
+        (bufferd11) edge [->] (p1rx1)
+        (bufferd21) edge [->] (p2rx1)
+        (trxd11) edge [->] (bufferd11)
+        (trxd21) edge [->] (bufferd21)
+
+        (bufferm2) edge [->] (input2)
+        (p1rx2) edge [->] (bufferm2)
+        (p2rx2) edge [->] (bufferm2)
+        (bufferd12) edge [->] (p1rx2)
+        (bufferd22) edge [->] (p2rx2)
+        (trxd12) edge [->] (bufferd12)
+        (trxd22) edge [->] (bufferd22);
+
+    % Same Node
+    \draw [draw = uulm_green_1, very thick]
+        (trxd21) edge [->] (trxd11)
+        (trxd12) edge [->, bend left] (trxd11)
+        (trxd12) edge [->] (trxd21)
+        (trxd22) edge [->, bend left] (trxd11)
+        (trxd22) edge [->, bend left] (trxd21)
+        (trxd22) edge [->] (trxd12)            
+        (p1rx2) edge [->, bend left] (p1rx1)
+        (p2rx2) edge [->, bend left] (p2rx1);
+
+    % Same Topic
+    \draw [draw = uulm_orange_1, very thick]
+        (input2) edge [->] (bufferm1)
+        (p1rx2) edge[->] (bufferd11)
+        (p2rx2) edge[->] (bufferd21);
+
+    \matrix [rectangle,draw,anchor=north east] at (11,1) {
+        \node [rectangle,fill=uulm_blue_1,label=right:CAUSALITY] {}; \\
+        \node [rectangle,fill=uulm_green_1,label=right:SAME\_NODE] {}; \\
+        \node [rectangle,fill=uulm_orange_1,label=right:SAME\_TOPIC] {}; \\
+    };
+
+    % ensures size for incomplete graphs
+    \path (0,0) -- (11,-15);
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

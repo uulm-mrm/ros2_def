@@ -16,12 +16,17 @@ help:
 
 clean_tikz_figures: clean_tikz_figure_intermediates
 	rm -f thesis/tikz_figures/*.png
+	rm -f presentation/*.png
 
 clean_tikz_figure_intermediates:
 	rm -f thesis/tikz_figures/*.pdf thesis/tikz_figures/*.log thesis/tikz_figures/*.aux thesis/tikz_figures/*.fdb_latexmk thesis/tikz_figures/*.fls thesis/tikz_figures/*.synctex\(busy\)
+	rm -f presentation/*.pdf presentation/*.log presentation/*.aux presentation/*.fdb_latexmk presentation/*.fls presentation/*.synctex\(busy\)
 
 thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
 	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
+
+presentation/%.png: presentation/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
+	cd presentation && pdflatex -shell-escape $*.tex
 
 clean: clean_tikz_figures
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -50,7 +55,15 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	thesis/tikz_figures/impl-reconfig_sequence.png \
 	thesis/tikz_figures/eval-reordering-timeline.png \
 	thesis/tikz_figures/eval-reordering-timeline_orchestrator.png \
-	thesis/tikz_figures/eval-parallel_inputs-sequence.png
+	thesis/tikz_figures/eval-parallel_inputs-sequence.png \
+	presentation/launch-config.png \
+	presentation/node-config.png \
+	presentation/nodegraph-example_service_calls-pres.png \
+	presentation/cb_graph_1.png \
+	presentation/cb_graph_2.png \
+	presentation/cb_graph_3.png \
+	presentation/cb_graph_4.png \
+	presentation/cb_graph_complete.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
