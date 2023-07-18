@@ -26,7 +26,7 @@ thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex thesis/tikz_figures/pre.tex
 	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
 
 presentation/%.png: presentation/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
-	cd presentation && pdflatex -shell-escape $*.tex
+	cd presentation && pdflatex -shell-escape $*.tex > /dev/null
 
 clean: clean_tikz_figures
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -63,7 +63,9 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	presentation/cb_graph_2.png \
 	presentation/cb_graph_3.png \
 	presentation/cb_graph_4.png \
-	presentation/cb_graph_complete.png
+	presentation/cb_graph_complete.png \
+	thesis/tikz_figures/eval-parallel_inputs-sequence_orchestrator.png \
+	thesis/tikz_figures/eval-same_output-sequence_orchestrator.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

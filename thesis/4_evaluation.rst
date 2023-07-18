@@ -80,69 +80,12 @@ latency occurs, which causes :math:`T` to process the message on :math:`D1` befo
 Following input 2, :math:`P2` is slightly faster than :math:`P1` resulting in a different callback order
 compared to the first input.
 
+.. figure:: tikz_figures/eval-parallel_inputs-sequence_orchestrator.png
+    :name: fig-eval-parallel_inputs-sequence_orchestrator
 
-\def\xshift{2.8}
-\def\xscale{3.5}
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        % Timelines
-        \timeline{S}{0}{11.5};
-        \timeline{P1}{1}{11.5};
-        \timeline{P2}{2}{11.5};
-        \timeline{T}{3}{11.5};
+    Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2` as an effect of the orchestrator on the behavior shown in :numref:`fig-eval-parallel_inputs-sequence`.
 
-        % Message connections S -> P1
-        \foreach \s / \t in {2.989739063/2.995100707, 3.990143856/3.994808526, 4.990577550/4.996000168} {
-            \connectingarrow{0}{\s}{1}{\t}
-        }
-
-        % Message connections S -> P2
-        \foreach \s / \t in {2.989739063/2.995939516, 3.990143856/3.995178942, 4.990577550/4.997096392} {
-            \connectingarrow{0}{\s}{2}{\t}
-        }
-
-        % Message connections P1 -> T
-        \foreach \s / \t in {3.284122584/3.287048997, 4.275910257/4.279247917, 5.433419724/5.436461745} {
-            \connectingarrow{1}{\s}{3}{\t}
-        }
-
-        % Message connections P2 -> T
-        \foreach \s / \t in {3.266444216/3.491431238, 4.285967486/4.484018241, 5.252872086/5.641027683} {
-            \connectingarrow{2}{\s}{3}{\t}
-        }
-
-        % P1
-        \foreach \s / \e in {2.995100707/3.284122584, 3.994808526/4.275910257, 4.996000168/5.433419724} {
-            \callbackinvocation{\s}{\e}{1}{uulm_blue}
-        }
-
-        % P2
-        \foreach \s / \e in {2.995939516/3.266444216, 3.995178942/4.285967486, 4.997096392/5.252872086} {
-            \callbackinvocation{\s}{\e}{2}{uulm_orange}
-        }
-
-        % T callbacks A
-        \foreach \s / \e in {3.287048997/3.488516435, 4.279247917/4.480807130, 5.436461745/5.637960715} {
-            \callbackinvocation{\s}{\e}{3}{uulm_blue}
-        }
-
-        % T callbacks B
-        \foreach \s / \e in {3.491431238/3.693045765, 4.484018241/4.685469140, 5.641027683/5.842429041} {
-            \callbackinvocation{\s}{\e}{3}{uulm_orange}
-        }
-
-        % Publish events
-        \foreach \x [count=\i] in {2.989739063, 3.990143856, 4.990577550} {
-            \datainput{\x};
-            \messageid{\x}{\i};
-        }
-    \end{tikzpicture}
-    \caption[Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2`.]{Sequence diagram showing a deterministic callback order at :math:`T` despite nondeterministic callback durations at :math:`P1` and :math:`P2` as an effect of the orchestrator on the behavior shown in :numref:`fig-eval-parallel_inputs:sequence`.}
-    \label{fig-eval-parallel_inputs:sequence_orchestrator}
-\end{figure}
-
-Using the orchestrator, the callback order changes, as visualized in :numref:`fig-eval-parallel_inputs:sequence_orchestrator`.
+Using the orchestrator, the callback order changes, as visualized in :numref:`fig-eval-parallel_inputs-sequence_orchestrator`.
 For the first and third data input, :math:`P1` requires more processing time than :math:`P2`.
 This would ordinarily allow the :math:`D2` callback at :math:`T` to execute before the :math:`D1` callback.
 The orchestrator however ensures a deterministic callback order at :math:`T` for every data input from :math:`S`, by buffering the :math:`D2` message until :math:`T` finishes processing :math:`D1`.
@@ -157,74 +100,18 @@ From the point of the orchestrator, consistently ordering :math:`P2` before :mat
 Multiple Publishers on the Same Topic
 -------------------------------------
 
-\def\xshift{9.0}
-\def\xscale{3.5}
-\begin{figure}[h]
-    \centering
-    \begin{tikzpicture}
-        % Timelines
-        \timeline{S}{0}{11.5};
-        \timeline{P1}{1}{11.5};
-        \timeline{P2}{2}{11.5};
-        \timeline{T}{3}{11.5};
+.. figure:: tikz_figures/eval-same_output-sequence_orchestrator.png
+    :name: fig-eval-same_output-sequence_orchestrator
 
-        % S -> P1
-        \foreach \s / \e in {9.083803676/9.089759276, 10.084325316/10.088845419, 11.084700822/11.089589537} {
-            \connectingarrow{0}{\s}{1}{\e}
-        }
+    Sequence diagram showing serialized callback executions of nodes :math:`P1` and :math:`P2`, which is required to achieve a deterministic callback order at :math:`T` in this example, since :math:`P1` and :math:`P2` use the same output topic.
+    The corresponding ROS graph is shown in :numref:`fig-nodegraph-example_multiple_publishers`.
 
-        % P1 -> T
-        \foreach \s / \e in {9.342956161/9.346333677, 10.546876890/10.550012168, 11.415952459/11.419019166} {
-            \connectingarrow{1}{\s}{3}{\e}
-        }
-
-        % P2 -> T
-        \foreach \s / \e in {9.628776904/9.631653622, 11.009939621/11.013125831, 11.691255863/11.694560206} {
-            \connectingarrow{2}{\s}{3}{\e}
-        }
-
-        % S -> P2
-        \foreach \s / \e in {9.083803676/9.346628742, 10.084325316/10.550319789, 11.084700822/11.419394500} {
-            \connectingarrow{0}{\s}{2}{\e}
-        }
-
-        % P1
-        \foreach \s / \e in {9.089759276/9.342956161, 10.088845419/10.546876890, 11.089589537/11.415952459} {
-            \callbackinvocation{\s}{\e}{1}{uulm_blue}
-        }
-
-        % P2
-        \foreach \s / \e in {9.346628742/9.628776904, 10.550319789/11.009939621, 11.419394500/11.691255863} {
-            \callbackinvocation{\s}{\e}{2}{uulm_orange}
-        }
-
-        % T callbacks A
-        \foreach \s / \e in {9.346333677/9.547935381, 10.550012168/10.751362743, 11.419019166/11.620475027} {
-            \callbackinvocation{\s}{\e}{3}{uulm_blue}
-        }
-
-        % T callbacks B
-        \foreach \s / \e in {9.631653622/9.833220960, 11.013125831/11.214068479, 11.694560206/11.896025151} {
-            \callbackinvocation{\s}{\e}{3}{uulm_orange}
-        }
-
-        % Publish events
-        \foreach \x [count=\i] in {9.083803676, 10.084325316, 11.084700822} {
-            \datainput{\x};
-            \messageid{\x}{\i};
-        }
-    \end{tikzpicture}
-    \caption[Sequence diagram showing serialized callback executions of nodes :math:`P1` and :math:`P2`, which is required to achieve a deterministic callback order.]{Sequence diagram showing serialized callback executions of nodes :math:`P1` and :math:`P2`, which is required to achieve a deterministic callback order at :math:`T` in this example, since :math:`P1` and :math:`P2` use the same output topic.
-    The corresponding ROS graph is shown in :numref:`fig-nodegraph-example_multiple_publishers`.}
-    \label{fig-eval-same_output:sequence_orchestrator}
-\end{figure}
-
-This example extends the previous scenario from :ref:`sec-eval-verification:parallel_inputs` such that both processing nodes publish their result on the same topic, corresponding to the example introduced in :ref:`sec:impl:nondet_sources:multiple_publishers`, with the ROS graph shown in :numref:`fig-nodegraph-example_multiple_publishers`.
-Again, this results in nondeterministic callback order at :math:`T`, with a callback order identical to the previous case shown in :numref:`fig-eval-parallel_inputs:sequence`.
+This example extends the previous scenario from :ref:`sec-eval-verification-parallel_inputs` such that both processing nodes publish their result on the same topic, corresponding to the example introduced in :ref:`sec-impl-nondet_sources-multiple_publishers`, with the ROS graph shown in :numref:`fig-nodegraph-example_multiple_publishers`.
+Again, this results in nondeterministic callback order at :math:`T`, with a callback order identical to the previous case shown in :numref:`fig-eval-parallel_inputs-sequence`.
 In this case, both callback executions at :math:`T` are of the same callback, while previously two distinct callbacks were executed once each.
 
 Because only node *inputs* are intercepted, this scenario requires serializing the callbacks at :math:`P1` and :math:`P2`.
-:numref:`fig-eval-same_output:sequence_orchestrator` shows the resulting callback sequence when using the orchestrator.
+:numref:`fig-eval-same_output-sequence_orchestrator` shows the resulting callback sequence when using the orchestrator.
 By ensuring that processing at :math:`P2` only starts after the output from :math:`P1` is received, reordering of the messages on :math:`D` is prevented.
 Note that while the different colors of the callbacks at :math:`T` correspond to the sources of the corresponding input, both inputs cause the same subscription callback to be executed at the node.
 Generally, the node would not be able to determine the source of the input message.
@@ -232,7 +119,7 @@ Generally, the node would not be able to determine the source of the input messa
 Since the processing time of :math:`P2` is longer than the processing time of the first callback at :math:`T` in this example, the orchestrator causes a larger overhead for this node graph compared to the previous one.
 :math:`P2` starts processing simultaneously to the first :math:`T` callback, causing :math:`T` to be idle between the completion of the first callback and the completion of processing at :math:`P2`.
 It should be noted, however, that even though the total processing time exceeds the input frequency of :math:`S` for input 2, the data source was not required to slow down.
-:numref:`fig-eval-same_output:sequence_orchestrator` shows that :math:`T` is still running while :math:`P1` processes input 3.
+:numref:`fig-eval-same_output-sequence_orchestrator` shows that :math:`T` is still running while :math:`P1` processes input 3.
 This kind of "pipelining" happens implicitly because the callback execution at :math:`P1` has no dependency on the callback at :math:`T`, and by eagerly allowing inputs from :math:`S`.
 In the current implementation, the orchestrator requests the publishing of the next message by the data provider as soon as the processing of the last input on the same topic has started.
 In the case of a time input, the input is requested as soon as no actions remain which are still waiting on an input of a previous time update.
@@ -278,10 +165,10 @@ While all examples show successful deterministic execution, some limitations and
 In the case of concurrent callbacks which publish on the same topic, parallelism could further be improved by extending the topic interception strategy.
 Currently, only the input topics of each node are intercepted by the orchestrator, the output topics are not changed.
 If the output topics of nodes were also remapped to individual topics, all ``SAME_TOPIC`` dependencies would be eliminated.
-In the example from :numref:`fig-eval-parallel_inputs:sequence_orchestrator`, this would again allow the concurrent callbacks :math:`P1` and :math:`P2` to execute in parallel, with each output being individually buffered at the orchestrator.
-The individually and uniquely buffered outputs could then be forwarded to :math:`T` in a deterministic order, effectively resulting in a callback execution behavior as in :ref:`sec-eval-verification:parallel_inputs`.
+In the example from :numref:`fig-eval-parallel_inputs-sequence_orchestrator`, this would again allow the concurrent callbacks :math:`P1` and :math:`P2` to execute in parallel, with each output being individually buffered at the orchestrator.
+The individually and uniquely buffered outputs could then be forwarded to :math:`T` in a deterministic order, effectively resulting in a callback execution behavior as in :ref:`sec-eval-verification-parallel_inputs`.
 
-The last example of concurrent service calls (:ref:`sec-eval-verification:service_calls`) also shows how this method of ensuring deterministic execution comes with a significant runtime penalty.
+The last example of concurrent service calls (:ref:`sec-eval-verification-service_calls`) also shows how this method of ensuring deterministic execution comes with a significant runtime penalty.
 Here, the orchestrator now requires all callbacks to execute sequentially, while previously all callbacks started executing in parallel, with the only point of synchronization being the service provider, depending on available parallel callback execution within the node.
 An important factor determining the impact of this is the proportion of service-call duration to total callback duration for the calling nodes.
 If the service call is expected to take only a small fraction of the entire callback duration, a large improvement in execution time could be gained by allowing parallel execution of the callbacks :math:`N1` and :math:`N2`, which both call the service.
@@ -295,7 +182,7 @@ If an action only inspects the service providers' state without modifying it, th
 Thus, it would suffice to synchronize non-modifying actions with previous modifying actions,
 instead of all previous actions.
 
-In :ref:`sec-eval-verification:parallel_inputs`, it was identified that although the callback order at each node is not deterministic, a different order of callbacks in response to a single input might be expected during normal operation.
+In :ref:`sec-eval-verification-parallel_inputs`, it was identified that although the callback order at each node is not deterministic, a different order of callbacks in response to a single input might be expected during normal operation.
 This does not reduce the applicability of the orchestrator, since nodes that explicitly require a specific callback order must implement measures to ensure that anyways.
 It is however still desirable to keep the system behavior when using the orchestrator as close as possible to the expected or usual system behavior without the orchestrator.
 One proposed future addition is thus allowing nodes to optionally specify an expected callback duration in the corresponding configuration file.
@@ -876,7 +763,7 @@ As significant time is spent executing orchestrator callbacks and API calls, imp
 A possible approach worth investigating could be parallelizing the execution of orchestrator callbacks.
 Both parallelizing multiple orchestrator callbacks and running those callbacks in parallel to the host node (the simulator or ROS bag player) could be viable.
 In addition to a more efficient implementation of the orchestrator itself, the overhead of serializing callback executions is significant.
-While some of that overhead is inherently required by the serialization to ensure deterministic execution, it has already been shown in :ref:`sec-eval-verification:multiple_publishers_on_topic,sec-eval-verification:service_calls` that parallelism of callback executions can be improved with more granular control over callbacks, their outputs, and service calls made from within those callbacks.
+While some of that overhead is inherently required by the serialization to ensure deterministic execution, it has already been shown in :ref:`sec-eval-verification-multiple_publishers_on_topic,sec-eval-verification-service_calls` that parallelism of callback executions can be improved with more granular control over callbacks, their outputs, and service calls made from within those callbacks.
 
 When using a ROS bag instead of a simulator as the data source, some of the identified problems are less concerning.
 Since a ROS bag player does not have to perform any computation and reading recorded data is not usually a bottleneck for performance, the overhead of the orchestrator API calls is less problematic.
@@ -893,5 +780,5 @@ Playing a ROS bag is necessarily an open-loop configuration without any synchron
 If a speedup is achieved in the end depends on if the remaining overhead from serializing callback invocations outweighs the increased playback rate or not.
 
 The design goal of minimizing the execution time impact is thus only partially achieved.
-As measured in this section and detailed in :ref:`sec-eval-verification:discussion`, the serialization of callbacks and thus the induced latency of executing callbacks is not minimal.
+As measured in this section and detailed in :ref:`sec-eval-verification-discussion`, the serialization of callbacks and thus the induced latency of executing callbacks is not minimal.
 The runtime of the orchestrator component itself has been shown to be significant as well, although this was not the bottleneck in this test scenario.
