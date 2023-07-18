@@ -22,7 +22,7 @@ clean_tikz_figure_intermediates:
 	rm -f thesis/tikz_figures/*.pdf thesis/tikz_figures/*.log thesis/tikz_figures/*.aux thesis/tikz_figures/*.fdb_latexmk thesis/tikz_figures/*.fls thesis/tikz_figures/*.synctex\(busy\) thesis/tikz_figures/*.dvi thesis/tikz_figures/*.ps
 	rm -f presentation/*.pdf presentation/*.log presentation/*.aux presentation/*.fdb_latexmk presentation/*.fls presentation/*.synctex\(busy\)
 
-thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex thesis/tikz_figures/data.csv thesis/tikz_figures/data_orchestrator.csv
+thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
 	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
 	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
 
