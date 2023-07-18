@@ -82,7 +82,7 @@ published.
 While ROS does not make any claims regarding message ordering, it is assumed that the reliable QoS setting eliminates message reordering.
 Nonetheless, message reordering, should it occur, is later also addressed by the same mechanism as possible queue overflow.
 
-.. _sec:impl-nondet_sources-parallel:
+.. _sec-impl-nondet_sources-parallel:
 
 Inputs From Parallel Processing Chains
 --------------------------------------
@@ -393,7 +393,7 @@ Some elements have been excluded from this graph for brevity:
 The callbacks at node :math:`T` do not have any output, which requires them to publish a status message.
 The reception of this status message is usually represented in the graph analogous to the buffer nodes.
 
-.. \section{Interface/API/Behavior/Execution}\label{sec:impl:algorithm}
+.. \section{Interface/API/Behavior/Execution}\label{sec-impl-algorithm}
 .. \todo{algorithm description for events}
 
 .. Topic input:

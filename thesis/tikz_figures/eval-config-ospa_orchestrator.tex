@@ -1,0 +1,20 @@
+\input{pre}
+
+\begin{tikzpicture}
+    \begin{axis}[
+        %title=OSPA Distance,
+        cycle list name=uulm,
+        xlabel={$t [s]$},
+        ylabel={OSPA Distance $[m]$},
+        ymin=0.25,
+        ymax=1.9,
+        no markers,
+        legend entries={{Without Orchestrator},{With Orchestrator}}
+        ]
+        \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_1.json.csv};
+        \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_o_1.json.csv};
+        \addplot[thick, samples=50, smooth, dashed] coordinates {(7,0)(7,3)};
+    \end{axis}
+\end{tikzpicture}
+
+\input{post}

@@ -67,7 +67,12 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	presentation/cb_graph_complete.png \
 	thesis/tikz_figures/eval-parallel_inputs-sequence_orchestrator.png \
 	thesis/tikz_figures/eval-same_output-sequence_orchestrator.png \
-	thesis/tikz_figures/eval-sim-nondet_metrics.png
+	thesis/tikz_figures/eval-sim-nondet_metrics.png \
+	thesis/tikz_figures/eval-config-ospa.png \
+	thesis/tikz_figures/eval-config-ospa_diff.png \
+	thesis/tikz_figures/eval-config-ospa_orchestrator.png \
+	thesis/tikz_figures/eval-execution_time-sim_comparison_barchart.png \
+	thesis/tikz_figures/eval-sil_nodegraph.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

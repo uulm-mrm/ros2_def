@@ -8,7 +8,7 @@ Evaluation
    :local:
 
 In this chapter, the functionality and applicability of the proposed framework will be evaluated.
-In :ref:`sec-eval-verification`, the behavior with and without the orchestrator in the minimal examples presented in :ref:`sec:impl:nondet_sources` is verified.
+In :ref:`sec-eval-verification`, the behavior with and without the orchestrator in the minimal examples presented in :ref:`sec-impl-nondet_sources` is verified.
 :ref:`sec-eval-system_setup` then introduces the experimental setup used for further evaluation, which represents a real use case utilizing an existing autonomous-driving software stack.
 The process of integrating the existing components with the orchestrator is covered in :ref:`sec-eval-system_integration`, followed by an evaluation and discussion of using the orchestrator in the presented use case in :ref:`sec-eval-real_use_case`.
 In :ref:`sec-eval-execution_time`, the impact of using the orchestrator on execution time is explicitly assessed, and approaches for improvement are discussed.
@@ -21,13 +21,13 @@ Verification of Functionality
 In order to verify the functionality of the orchestrator, without depending on existing ROS node implementations,
 individual test cases for specific sources of nondeterminism as well as a combined mockup of an autonomous
 driving software stack were developed.
-In the following, each of the examples containing sources of nondeterministic callback sequences identified in :ref:`sec:impl:nondet_sources`
+In the following, each of the examples containing sources of nondeterministic callback sequences identified in :ref:`sec-impl-nondet_sources`
 is individually evaluated.
 
 Lost or Reordered Messages
 --------------------------
 
-To verify that the problem of lost messages due to overflowing subscriber queues, as introduced in :ref:`sec:impl:nondet_sources:reordering`, is solved by the orchestrator, a test case was set up:
+To verify that the problem of lost messages due to overflowing subscriber queues, as introduced in :ref:`sec-impl-nondet_sources-reordering`, is solved by the orchestrator, a test case was set up:
 A data source :math:`S` publishes messages at a fixed frequency.
 The messages are received by the node under test :math:`P`, which has a fixed queue size (of three messages in this example), and a varying processing time that on average is significantly slower than the period of message publishing.
 After processing, :math:`P` publishes the result on a different topic.
@@ -128,7 +128,7 @@ Both kinds of input may additionally be delayed if the system is pending dynamic
 .. _sec-eval-verification-service_calls:
 
 Parallel Service Calls
---------------------
+----------------------
 
 .. figure:: tikz_figures/eval-service-sequence_before.png
    :name: fig-eval-service-sequence_before
@@ -138,7 +138,7 @@ Parallel Service Calls
    The variable timing of the service calls results in a nondeterministic callback order at :math:`SP`.
    The corresponding ROS graph is shown in :numref:`fig-nodegraph-example_service_calls`.
 
-:numref:`fig-nodegraph-example_service_calls` shows the node setup for this example, which has been identified in :ref:`sec:impl:nondet_sources:service_calls`.
+:numref:`fig-nodegraph-example_service_calls` shows the node setup for this example, which has been identified in :ref:`sec-impl-nondet_sources-service_calls`.
 A single message triggers a callback at three nodes, one of which (:math:`SP`) also provides a ROS service.
 The two other nodes :math:`N1` and :math:`N2` call the provided service during callback execution.
 The resulting order of all three callbacks at :math:`SP` in response to a single message input is nondeterministic, as shown in :numref:`fig-eval-service-sequence_before`.
@@ -159,7 +159,7 @@ This limitation is discussed in detail in :ref:`sec-eval-verification-discussion
 Discussion
 ----------
 
-The ability of the orchestrator to ensure a deterministic callback sequence at all nodes has been shown for the minimal nondeterministic examples which were identified in :ref:`sec:impl:nondet_sources`.
+The ability of the orchestrator to ensure a deterministic callback sequence at all nodes has been shown for the minimal nondeterministic examples which were identified in :ref:`sec-impl-nondet_sources`.
 While all examples show successful deterministic execution, some limitations and possible improvements in parallel callback execution and thereby execution time are apparent and will be discussed in the following.
 
 In the case of concurrent callbacks which publish on the same topic, parallelism could further be improved by extending the topic interception strategy.
@@ -194,46 +194,12 @@ System Setup
 ============
 
 In the following, the integration of the orchestrator with parts of an already existing autonomous driving software stack is evaluated.
-This section introduces the system setup and example use case, which will be utilized in :ref:`sec-eval-system_integration,sec-eval-real_use_case`.
+This section introduces the system setup and example use case, which will be utilized in :ref:`sec-eval-system_integration`, :ref:`sec-eval-real_use_case`.
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}[
-        % https://tex.stackexchange.com/a/125468/143051
-        buswidth1/.style={decoration={
-            markings,
-            mark= at position 0.85 with {\node[font=\normalsize] {/};\node[below=1pt,xshift=2pt] {\scriptsize #1};}
-        }, postaction={decorate}},
-        buswidth2/.style={decoration={
-            markings,
-            mark= at position 0.5 with {\node[font=\normalsize] {/};\node[below=1pt,xshift=3pt] {\scriptsize #1};}
-        }, postaction={decorate}},
-        align=center,
-        font={\small}
-    ]
-        % \draw[step=1cm,gray,very thin] (-5,-5) grid (5,1);
-        \node (sim) at (0,0) [rosnode] {Simulator};
-        \node (tracking_local) at (3.5,-5) [rosnode] {Vehicle\\Tracking};
-        \node (planning) at (3.5,0) [rosnode] {Trajectory\\Planning};
-        \node (egomotion) at (3.5,-2.5) [rosnode] {Egomotion};
-        \node (tracking_external) at (-3.5,0) [rosnode] {External\\Tracking};
-        \node (recorder_tracking) at (-7,0) [rosnode] {Tracking\\Recorder};
-        \node (recorder_gt) at (-3.5,-2.5) [rosnode] {Ground Truth\\Recorder};
+.. figure:: tikz_figures/eval-sil_nodegraph.png
+    :name: fig-eval-sil_nodegraph
 
-        \draw [arrow, buswidth2={12}] (sim) -- (tracking_external);
-        \draw [arrow] (tracking_external) -- (recorder_tracking);
-        \draw [arrow] (sim.240) |- (recorder_gt);
-
-        \draw [arrow, buswidth1={5}] (sim) |- (tracking_local);
-        \draw [arrow] (sim.300) |- (egomotion);
-        \draw [arrow] (sim) -- (planning);
-        \draw [arrow, dashed] (planning) -- (egomotion);
-        \draw [arrow, dashed] (tracking_local) -- (egomotion);
-        \draw [arrow] (planning) -- (3.5,1) -| (sim);
-    \end{tikzpicture}
-    \caption[Node graph of the system setup used within :ref:`sec:eval`.]{Node graph of the system setup used within this chapter. The connections between the simulator and both tracking nodes represent multiple parallel ROS topics. Dashed arrows show potential service calls.}
-    \label{fig-eval-sil_nodegraph}
-\end{figure}
+    Node graph of the system setup used within this chapter. The connections between the simulator and both tracking nodes represent multiple parallel ROS topics. Dashed arrows show potential service calls.
 
 In this use case, the aim is to calculate metrics on the performance of a multi-object tracking module, which tracks vehicles that pass an intersection using infrastructure-mounted sensors.
 The ROS graph of the setup is shown in :numref:`fig-eval-sil_nodegraph`.
@@ -264,8 +230,8 @@ System Integration
 To determine the feasibility of integrating the proposed framework into existing software,
 the framework was applied to the scenario for testing a multi-object tracking module introduced in :ref:`sec-eval-system_setup`.
 In this section, the necessary modifications to each existing component are discussed.
-:ref:`sec-eval-system_integration:simulator,sec-eval-system_integration:bag_player` will cover the integration of both "data provider" components, a simulator, and the ROS bag player, which will contain the orchestrator.
-:ref:`sec-eval-system_integration:ros_nodes` covers the integration of the ROS nodes present in
+:ref:`sec-eval-system_integration-simulator`, :ref:`sec-eval-system_integration-bag_player` will cover the integration of both "data provider" components, a simulator, and the ROS bag player, which will contain the orchestrator.
+:ref:`sec-eval-system_integration-ros_nodes` covers the integration of the ROS nodes present in
 the test scenario.
 
 .. _sec-eval-system_integration-simulator:
@@ -273,7 +239,7 @@ the test scenario.
 Simulator
 ---------
 
-The orchestrator represents an individual component (see :ref:`sec:impl:controlling_callbacks`),
+The orchestrator represents an individual component (see :ref:`sec-impl-controlling_callbacks`),
 but is located within the same process as the data provider,
 which in this case is the simulator.
 
@@ -316,10 +282,12 @@ The individual ROS nodes of the software stack under test are the primary concer
 
 The integration effort of a ROS node depends on how well the node already matches the assumptions made and required by the orchestrator:
 The orchestrator assumes that all processing in a node happens in a subscription or timer callback, and that each callback publishes at most one message on each configured output topic.
-For callbacks without any outputs or callbacks that sporadically omit outputs, a status message must be published instead (see :ref:`sec:impl:controlling_callbacks:outputs`).
+For callbacks without any outputs or callbacks that sporadically omit outputs, a status message must be published instead (see :ref:`sec-impl-controlling_callbacks-outputs`).
 
 
-\subsubsection{Planning Module}
+Planning Module
+---------------
+
 The integration effort of the trajectory planning and control module is significant because the module violates the assumption that all processing happens in timer and subscription callbacks.
 
 The planning module contains two planning loops:
@@ -329,7 +297,7 @@ Handling incoming ROS messages happens asynchronously with the planning steps in
 
 While this architecture may have some advantages for runtime performance, it prevents external control via the orchestrator.
 This represents an inherent limitation for the orchestrator.
-Publishing of messages from outside a ROS callback is not able to be supported in any way, since it can not be anticipated in advance, making it impossible to integrate into the callback graph and synchronize it with other callbacks (see :ref:`sec:impl:callback_graphs`).
+Publishing of messages from outside a ROS callback is not able to be supported in any way, since it can not be anticipated in advance, making it impossible to integrate into the callback graph and synchronize it with other callbacks (see :ref:`sec-impl-callback_graphs`).
 In order to ensure compatibility with the orchestrator, an optional mode has been introduced in which both planning loops are replaced with ROS timers.
 
 This does make the planning module compatible with the orchestrator, but introduces a problem that should have explicitly been avoided by the specific software architecture chosen:
@@ -339,7 +307,11 @@ This reduces the relevance of testing inside the orchestrator framework since sp
 It might be possible in some cases to change the node in a way such that the usual mode of execution is compatible with the orchestrator, and thus avoids the problem of two discrete modes, but this is not possible in general.
 In the case of the trajectory planning module, for example, this is not desirable due to the integration of the planning loop with a graphical user interface that is used to interactively change planner parameters and to introspect the current planner state.
 
-\subsubsection{Tracking Module}\label{sec-eval-system_integration:ros_nodes:tracking}
+.. _sec-eval-system_integration-ros_nodes-tracking:
+
+Tracking Module
+---------------
+
 While the tracking module does only process data within ROS subscription callbacks, the input-output behavior is still not straightforward:
 The tracking module employs a sophisticated queueing system, which aims to form batches of inputs from both synchronized and unsynchronized sensors,
 while also supporting dynamic addition and removal of sensors.
@@ -354,7 +326,7 @@ This behavior can however still be handled by the node configuration without req
 The node configuration was modified such that any input may cause an output to be published.
 Then, the processing method was adapted such that a status message is published that explicitly excludes the ``tracks`` output using the ``omitted_outputs`` field when no tracks will be published.
 In some circumstances, specifically following dropped messages, the queueing  additionally results in multiple outputs in a single callback.
-This behavior is described in detail in :ref:`sec-eval-real_use_case:rosbag` and is not currently supported by the orchestrator.
+This behavior is described in detail in :ref:`sec-eval-real_use_case-rosbag` and is not currently supported by the orchestrator.
 
 While this is a pragmatic solution for describing the otherwise hard to statically describe input-output behavior of the tracking module, declaring more output topics than necessary for a callback is usually undesired:
 Subsequent callbacks which actually publish a message on the specified topic need to wait for this callback to complete due to a false ``SAME_TOPIC`` dependency.
@@ -363,7 +335,9 @@ Those actions are then again false dependencies for subsequent actions, not only
 These false dependencies might reduce the number of callbacks able to execute in parallel and might force callback executions to be delayed more than necessary to ensure deterministic execution.
 Once a status message is received which specifies that the output message will not be published, the additional actions are removed, which then allows the execution of dependent actions.
 
-\subsubsection{Recorder Node and Ego-Motion Estimation}
+Recorder Node and Ego-Motion Estimation
+---------------------------------------
+
 Both the nodes for recording the output of the tracking module and the ego-motion estimation match the assumptions made by the orchestrator and require very little integration effort, although some modification was necessary.
 Both nodes only have topic input callbacks that would usually not cause any message to be published, requiring the publishing of a status message to inform the orchestrator of callback completion.
 
@@ -374,14 +348,14 @@ It is required however to list the service in the node configuration, to ensure 
 Discussion
 ----------
 
-In :ref:`sec:impl:design_goals`, the design goals towards the integration of existing nodes were established as minimizing the required modification to nodes, maintaining functionality without the orchestrator, and allowing for external nodes to be integrated without modifying their source code.
+In :ref:`sec-impl-design_goals`, the design goals towards the integration of existing nodes were established as minimizing the required modification to nodes, maintaining functionality without the orchestrator, and allowing for external nodes to be integrated without modifying their source code.
 
 The implemented approach meets these goals to varying degrees.
 The integration of existing components with the orchestrator requires a varying amount of effort, depending primarily on how well the component matches assumptions made by the orchestrator.
 ROS nodes that fully comply with the assumptions made by the orchestrator and always publish every configured output require only a configuration file describing the node's behavior, which also works for external nodes without access to or modification of their source code.
-Nodes that have callbacks without any output and nodes that may omit some or all configured outputs in some callback executions require publishing a status output as described in :ref:`sec:impl:controlling_callbacks:outputs` after a callback is complete.
+Nodes that have callbacks without any output and nodes that may omit some or all configured outputs in some callback executions require publishing a status output as described in :ref:`sec-impl-controlling_callbacks-outputs` after a callback is complete.
 Since this only entails publishing an additional message, this modification does not impede the node's functionality in any way when not using the orchestrator.
-Nodes that fully deviate from the assumed callback behavior require appropriate modification before being suitable for use with the orchestrator, as was illustrated with the tracking and planning modules in :ref:`sec-eval-system_integration:ros_nodes`.
+Nodes that fully deviate from the assumed callback behavior require appropriate modification before being suitable for use with the orchestrator, as was illustrated with the tracking and planning modules in :ref:`sec-eval-system_integration-ros_nodes`.
 
 Creating the node configuration file does not present a significant effort for initial integration, but maintaining the configuration to match the actual node behavior is essential.
 Although the orchestrator can detect some mismatches between node behavior and description,
@@ -404,7 +378,7 @@ In the following, the ability of the orchestrator to ensure deterministic execut
 Simulator
 ---------
 
-When evaluating the tracking module in the previously introduced scenario, the MOTA and MOTP metrics introduced in :ref:`sec:bg:metrics` are calculated.
+When evaluating the tracking module in the previously introduced scenario, the MOTA and MOTP metrics introduced in :ref:`sec-bg-metrics` are calculated.
 To calculate these metrics, the tracking outputs are recorded together with ground truth data from the simulator during a simulation run.
 Those recordings are then loaded and processed offline.
 When running the evaluation procedure multiple times, it can be observed that the resulting values differ for each run, as shown in :numref:`fig-eval-sim-nondet_metrics`.
@@ -429,7 +403,7 @@ Now, simply comparing the files without any semantic understanding of the conten
 ROS Bag
 -------
 
-In order to test the use case of ROS bag replay, the player implemented in :ref:`sec-eval-system_integration:bag_player` is used.
+In order to test the use case of ROS bag replay, the player implemented in :ref:`sec-eval-system_integration-bag_player` is used.
 Although the ROS bag player provides inputs in deterministic order, the characteristics of the input data are different from the simulator.
 During the recording of the ROS bag, the sensor input topics and pre-processing nodes are subject to nondeterministic ROS communication and callback behavior.
 This results in a ROS bag with missing sensor samples (due to dropped messages as well as unexpected behavior of real sensors) and reordered messages (due to nondeterministic transmission of the messages to the ROS bag recorder).
@@ -442,8 +416,8 @@ Specifically, the orchestrator does not require information such as expected pub
 In order to reuse the existing test setup, a ROS bag was recorded from the outputs of the simulator.
 To simulate the effects described above, the ROS bag is manually modified by randomly dropping messages and randomly reordering recorded messages.
 
-Using the multi-object tracking module was not possible, however, since the high rate of dropped messages causes a callback behavior that can not be modeled by the node configuration as introduced in :ref:`sec:impl:configuration`.
-In addition to the behavior described in :ref:`sec-eval-system_integration:ros_nodes:tracking` of zero or one output for each measurement input, certain combinations of inputs may cause multiple outputs from one input callback.
+Using the multi-object tracking module was not possible, however, since the high rate of dropped messages causes a callback behavior that can not be modeled by the node configuration as introduced in :ref:`sec-impl-configuration`.
+In addition to the behavior described in :ref:`sec-eval-system_integration-ros_nodes-tracking` of zero or one output for each measurement input, certain combinations of inputs may cause multiple outputs from one input callback.
 This is due to a sophisticated input queueing approach, that forms batches of inputs with small deviations in measurement time, that only get processed once a batch contains measurements of all sensors.
 In case of missing measurements, a newer batch might be complete while older, incomplete batches still exist.
 The queueing algorithm assumes in that case that the missing measurements of the old batches will not arrive anymore (ruling out message reordering, but allowing dropping messages), and processes the old batches, producing multiple outputs in one callback.
@@ -470,140 +444,49 @@ In this example, the reconfiguration reduces simulated measurement noise, which 
 The mock reconfigurator always chooses to reconfigure after a set time.
 A real working counterpart would require additional inputs such as the current vehicle environment, which are omitted here.
 
-\begin{listing}
-    \begin{minted}{json}
-{
-  "name": "sil_reconfigurator",
-  "callbacks": [
+.. code-block:: json
+    :caption: Node configuration for the reconfiguration node mockup.
+    :name: listing:eval:reconfig:node_config
+    :linenos:
+
     {
-      "trigger": {
-        "type": "timer",
-        "period": 1000000000
-      },
-      "outputs": [],
-      "may_cause_reconfiguration": true
-    }
-  ]
-}
-    \end{minted}
-    \caption{Node configuration for the reconfiguration node mockup.}
-    \label{listing:eval:reconfig:node_config}
-\end{listing}
-
-\pgfplotstableread[col sep = comma]{data/_reconfig_nd_1.json.csv}{\tablenda}
-\pgfplotstableread[col sep = comma]{data/_reconfig_nd_2.json.csv}{\tablendb}
-\pgfplotstableread[col sep = comma]{data/_reconfig_nd_3.json.csv}{\tablendc}
-\pgfplotstableread[col sep = comma]{data/_reconfig_nd_4.json.csv}{\tablendd}
-
-\pgfplotstablecreatecol[
-  copy column from table={\tablenda}{[index] 1},
-  ]{data1}{\tablenda}
-\pgfplotstablecreatecol[
-  copy column from table={\tablendb}{[index] 1},
-  ]{data2}{\tablenda}
-\pgfplotstablecreatecol[
-  copy column from table={\tablendc}{[index] 1},
-  ]{data3}{\tablenda}
-\pgfplotstablecreatecol[
-  copy column from table={\tablendd}{[index] 1},
-  ]{data4}{\tablenda}
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[
-            %title=OSPA Distance,
-            cycle list name=uulm,
-            xlabel={$t [s]$},
-            ylabel={OSPA Distance $[m]$},
-            ymin=0.25,
-            ymax=1.9,
-            no markers
-            ]
-            \addlegendimage{empty legend};
-            \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_1.json.csv};
-            \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_2.json.csv};
-            \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_3.json.csv};
-            \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_4.json.csv};
-
-            \addlegendentry{\hspace{-.6cm}\textbf{Run ID}}
-            \addlegendentry{$\#1$}
-            \addlegendentry{$\#2$}
-            \addlegendentry{$\#3$}
-            \addlegendentry{$\#4$}
-
-            % Vertical line
-            \addplot[thick, samples=50, smooth, dashed] coordinates {(7,0)(7,3)};
-        \end{axis}
-    \end{tikzpicture}
-    \caption[OSPA distance of tracks versus ground truth during multiple simulation runs.]{\Gls{ospa} distance of tracks versus ground truth during multiple simulation runs. The dashed vertical line marks the timestep in which the runtime reconfiguration occurs.}
-    \label{fig-eval-config:ospa}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[
-            cycle list name=uulm,
-            xlabel={$t [s]$},
-            ylabel={OSPA Distance $[m]$},
-            no markers,
-            ymin=-0.025,
-            ymax=0.23,
-            yticklabel style={
-                /pgf/number format/fixed
-                %/pgf/number format/precision=5,
-                %/pgf/number format/fixed zerofill
+        "name": "sil_reconfigurator",
+        "callbacks": [
+            {
+            "trigger": {
+                "type": "timer",
+                "period": 1000000000
             },
-            ]
-            \addlegendimage{empty legend};
-            \addplot table[x index=0, y expr=abs(\thisrow{data1}-\thisrow{data2})]{\tablenda};
-            \addplot table[x index=0, y expr=abs(\thisrow{data1}-\thisrow{data3})]{\tablenda};
-            \addplot table[x index=0, y expr=abs(\thisrow{data1}-\thisrow{data4})]{\tablenda};
+            "outputs": [],
+            "may_cause_reconfiguration": true
+            }
+        ]
+    }
 
-            \addlegendentry{\hspace{-.6cm}\textbf{Run ID}}
-            \addlegendentry{$|\#1-\#2|$}
-            \addlegendentry{$|\#1-\#3|$}
-            \addlegendentry{$|\#1-\#4|$}
+.. figure:: tikz_figures/eval-config-ospa.png
+    :name: fig-eval-config-ospa
 
-            \addplot[thick, samples=50, smooth, dashed] coordinates {(7,-1)(7,1)};
-        \end{axis}
-    \end{tikzpicture}
-    \caption[Absolute difference in OSPA distances between the simulation runs.]{Absolute difference in OSPA distances between the simulation runs. The dashed vertical line marks the timestep in which the runtime reconfiguration occurs.}
-    \label{fig-eval-config:ospa_diff}
-\end{figure}
+    OSPA distance of tracks versus ground truth during multiple simulation runs. The dashed vertical line marks the timestep in which the runtime reconfiguration occurs.
 
-:numref:`fig-eval-config:ospa` shows the OSPA distance (see :ref:`sec:bg:metrics`) between the tracking result and the ground truth object data from the simulator over multiple simulation runs.
+.. figure:: tikz_figures/eval-config-ospa_diff.png
+    :name: fig-eval-config-ospa_diff
+
+    Absolute difference in OSPA distances between the simulation runs. The dashed vertical line marks the timestep in which the runtime reconfiguration occurs.
+
+:numref:`fig-eval-config-ospa` shows the OSPA distance (see :ref:`sec-bg-metrics`) between the tracking result and the ground truth object data from the simulator over multiple simulation runs.
 The OSPA distance was chosen as a metric in this case since it is calculated for every time step instead of as an average over the entire simulation run, as is the case with the MOTA and MOTP metrics used above.
 This allows evaluation of how the metric changes during the simulation run and clearly shows the reconfiguration step.
 It is apparent that the reconfiguration module successfully switched to a lower measurement noise at :math:`t=7s`.
 Importantly, however, the evaluation results of the multiple runs do not completely overlap.
 This is again due to nondeterministic callback execution within the tracking, planning, and simulator modules.
-The differences between the runs, plotted in :numref:`fig-eval-config:ospa_diff`, show that all runs deviate from the first run, with two runs showing the largest difference at the exact time of reconfiguration.
+The differences between the runs, plotted in :numref:`fig-eval-config-ospa_diff`, show that all runs deviate from the first run, with two runs showing the largest difference at the exact time of reconfiguration.
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[
-            %title=OSPA Distance,
-            cycle list name=uulm,
-            xlabel={$t [s]$},
-            ylabel={OSPA Distance $[m]$},
-            ymin=0.25,
-            ymax=1.9,
-            no markers,
-            legend entries={{Without Orchestrator},{With Orchestrator}}
-            ]
-            \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_1.json.csv};
-            \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_o_1.json.csv};
-            \addplot[thick, samples=50, smooth, dashed] coordinates {(7,0)(7,3)};
-        \end{axis}
-    \end{tikzpicture}
-    \caption[OSPA distance of tracks versus ground truth over time, comparison between simulation run with and without the orchestrator.]{\Gls{ospa} distance of tracks versus ground truth over time, comparison between initial simulation run and simulation while using the orchestrator.}
-    \label{fig-eval-config:ospa_orchestrator}
-\end{figure}
+.. figure:: tikz_figures/eval-config-ospa_orchestrator.png
+    :name: fig-eval-config-ospa_orchestrator
 
-Using the orchestrator, the measured tracking result does differ from the previous simulation runs, as shown in :numref:`fig-eval-config:ospa_orchestrator`.
+    OSPA distance of tracks versus ground truth over time, comparison between initial simulation run and simulation while using the orchestrator.
+
+Using the orchestrator, the measured tracking result does differ from the previous simulation runs, as shown in :numref:`fig-eval-config-ospa_orchestrator`.
 The output is however deterministic and repeatable, even if a reconfiguration occurs during the simulation.
 Again, this demonstrates the successful application of the orchestrator framework, even in the presence of dynamic reconfiguration at runtime.
 
@@ -642,40 +525,19 @@ In order to compensate for latency in the measuring node, the difference in late
 When using a measuring and forwarding node implemented in Python and using the "eProsima Fast DDS" middleware, the latency from publishing to receiving increases from a mean of :math:`0.64` ms to :math:`0.99` ms.
 This induced latency of :math:`0.35` ms on average is considered acceptable and justifies the design choice of controlling callbacks by intercepting the corresponding message inputs.
 
-\begin{figure}[t]
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[
-            xbar,
-            xmin=0,
-            enlarge y limits={abs=0.5},
-            enlarge x limits={0.15,upper},
-            height=5cm,
-            width=12cm,
-            yticklabels={{\texttt{real\_time},\\orchestrator},{\texttt{fast},\\orchestrator},\texttt{real\_time}},
-            yticklabel style={align=right},
-            ytick=data,
-            nodes near coords, nodes near coords align={horizontal},
-            xlabel={Execution time $[s]$}
-        ]
-            \addplot[uulm_blue_1,fill=uulm_blue_4] coordinates {
-                                (63.5866667,0)
-                                (57.0966667,1)
-                                (32.94,2)};
-        \end{axis}
-    \end{tikzpicture}
-    \caption[Comparison of execution time for one simulation run.]{Comparison of execution time for one simulation run between not using the orchestrator, using the orchestrator with faster than real-time execution, and using the orchestrator with real-time execution.}
-    \label{fig-eval-execution_time:sim_comparison_barchart}
-\end{figure}
+.. figure:: tikz_figures/eval-execution_time-sim_comparison_barchart.png
+    :name: fig-eval-execution_time-sim_comparison_barchart
 
-:numref:`fig-eval-execution_time:sim_comparison_barchart` shows a comparison of execution time for one simulation run of the scenario introduced in :ref:`sec-eval-system_setup`.
+    Comparison of execution time for one simulation run between not using the orchestrator, using the orchestrator with faster than real-time execution, and using the orchestrator with real-time execution.
+
+:numref:`fig-eval-execution_time-sim_comparison_barchart` shows a comparison of execution time for one simulation run of the scenario introduced in :ref:`sec-eval-system_setup`.
 The first bar shows the runtime without using the orchestrator, the bottom two bars show the time when using the orchestrator.
 
 The simulator currently offers two modes of execution:
 ``fast`` executes the simulation as fast as possible, while ``real_time`` slows down the simulation to run at real-time speed if the simulation itself would be able to run faster than real-time.
 Using the ``fast`` mode is only appropriate combined with the orchestrator or some other method of synchronization between the simulator and software under test.
 If the simulator is not able to run in real-time, deliberate delays to ensure real-time execution should already be zero.
-Since :numref:`fig-eval-execution_time:sim_comparison_barchart` still shows an increase in runtime for using the ``real_time`` mode compared to the ``fast`` mode, the orchestrator is considered with the ``fast`` execution mode in the following.
+Since :numref:`fig-eval-execution_time-sim_comparison_barchart` still shows an increase in runtime for using the ``real_time`` mode compared to the ``fast`` mode, the orchestrator is considered with the ``fast`` execution mode in the following.
 % time factor in test: 1.43063584
 Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73\% in the ``fast`` case.
 
@@ -694,11 +556,11 @@ This is realized by the ``changes_dataprovider_state`` flag for the correspondin
 For any simulator, the "dataprovider state update" corresponds to executing a simulation timestep, which results in an effective slowdown of each simulation timestep to the execution time of the longest path resulting in some input to the simulator.
 
 The other available flag for callbacks, ``may_cause_reconfiguration``, presents a similar point of global synchronization:
-This flag is applied to callbacks of a component that may decide dynamically reconfigure the ROS system, as described in :ref:`sec:bg:reconfig`, based on the current system state (such as vehicle environment, in the autonomous driving use case).
+This flag is applied to callbacks of a component that may decide dynamically reconfigure the ROS system, as described in :ref:`sec-bg-reconfig`, based on the current system state (such as vehicle environment, in the autonomous driving use case).
 To ensure that the reconfiguration always occurs at the same point in time with respect to other callback executions at each node, any subsequent data inputs and dataprovider state updates must wait until either the reconfiguration is complete or the callback has finished without requesting reconfiguration.
 This presents an even more severe point of synchronization, since it immediately blocks the next data inputs from the simulator, and not only the start of the next timestep, while still allowing to publish the remaining inputs from the current timestep.
 
-.. _sec-eval-execution_time:discussion:
+.. _sec-eval-execution_time-discussion:
 
 Discussion
 ----------
@@ -709,7 +571,7 @@ As significant time is spent executing orchestrator callbacks and API calls, imp
 A possible approach worth investigating could be parallelizing the execution of orchestrator callbacks.
 Both parallelizing multiple orchestrator callbacks and running those callbacks in parallel to the host node (the simulator or ROS bag player) could be viable.
 In addition to a more efficient implementation of the orchestrator itself, the overhead of serializing callback executions is significant.
-While some of that overhead is inherently required by the serialization to ensure deterministic execution, it has already been shown in :ref:`sec-eval-verification-multiple_publishers_on_topic,sec-eval-verification-service_calls` that parallelism of callback executions can be improved with more granular control over callbacks, their outputs, and service calls made from within those callbacks.
+While some of that overhead is inherently required by the serialization to ensure deterministic execution, it has already been shown in :ref:`sec-eval-verification-multiple_publishers_on_topic`, :ref:`sec-eval-verification-service_calls` that parallelism of callback executions can be improved with more granular control over callbacks, their outputs, and service calls made from within those callbacks.
 
 When using a ROS bag instead of a simulator as the data source, some of the identified problems are less concerning.
 Since a ROS bag player does not have to perform any computation and reading recorded data is not usually a bottleneck for performance, the overhead of the orchestrator API calls is less problematic.

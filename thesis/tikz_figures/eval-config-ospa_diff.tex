@@ -1,0 +1,49 @@
+\input{pre}
+
+\pgfplotstableread[col sep = comma]{data/_reconfig_nd_1.json.csv}{\tablenda}
+\pgfplotstableread[col sep = comma]{data/_reconfig_nd_2.json.csv}{\tablendb}
+\pgfplotstableread[col sep = comma]{data/_reconfig_nd_3.json.csv}{\tablendc}
+\pgfplotstableread[col sep = comma]{data/_reconfig_nd_4.json.csv}{\tablendd}
+
+\pgfplotstablecreatecol[
+  copy column from table={\tablenda}{[index] 1},
+  ]{data1}{\tablenda}
+\pgfplotstablecreatecol[
+  copy column from table={\tablendb}{[index] 1},
+  ]{data2}{\tablenda}
+\pgfplotstablecreatecol[
+  copy column from table={\tablendc}{[index] 1},
+  ]{data3}{\tablenda}
+\pgfplotstablecreatecol[
+  copy column from table={\tablendd}{[index] 1},
+  ]{data4}{\tablenda}
+
+\begin{tikzpicture}
+    \begin{axis}[
+        cycle list name=uulm,
+        xlabel={$t [s]$},
+        ylabel={OSPA Distance $[m]$},
+        no markers,
+        ymin=-0.025,
+        ymax=0.23,
+        yticklabel style={
+            /pgf/number format/fixed
+            %/pgf/number format/precision=5,
+            %/pgf/number format/fixed zerofill
+        },
+        ]
+        \addlegendimage{empty legend};
+        \addplot table[x index=0, y expr=abs(\thisrow{data1}-\thisrow{data2})]{\tablenda};
+        \addplot table[x index=0, y expr=abs(\thisrow{data1}-\thisrow{data3})]{\tablenda};
+        \addplot table[x index=0, y expr=abs(\thisrow{data1}-\thisrow{data4})]{\tablenda};
+
+        \addlegendentry{\hspace{-.6cm}\textbf{Run ID}}
+        \addlegendentry{$|\#1-\#2|$}
+        \addlegendentry{$|\#1-\#3|$}
+        \addlegendentry{$|\#1-\#4|$}
+
+        \addplot[thick, samples=50, smooth, dashed] coordinates {(7,-1)(7,1)};
+    \end{axis}
+\end{tikzpicture}
+
+\input{post}
