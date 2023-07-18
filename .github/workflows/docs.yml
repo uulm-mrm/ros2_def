@@ -10,9 +10,6 @@ jobs:
         run: pip install --upgrade sphinx~=7.0
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
       - name: Build Docs
         run: |
           cd ${{ github.workspace }}
