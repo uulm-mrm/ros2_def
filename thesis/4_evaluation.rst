@@ -407,68 +407,14 @@ Simulator
 When evaluating the tracking module in the previously introduced scenario, the MOTA and MOTP metrics introduced in :ref:`sec:bg:metrics` are calculated.
 To calculate these metrics, the tracking outputs are recorded together with ground truth data from the simulator during a simulation run.
 Those recordings are then loaded and processed offline.
-When running the evaluation procedure multiple times, it can be observed that the resulting values differ for each run, as shown in :numref:`fig-eval-sim:nondet_metrics`.
+When running the evaluation procedure multiple times, it can be observed that the resulting values differ for each run, as shown in :numref:`fig-eval-sim-nondet_metrics`.
 This is due to nondeterministic callback execution during evaluation:
 Both the simulator and the trajectory planning module run independently of each other, and the callback sequence of the multiple inputs to the tracking module is not fixed.
 
-\begin{filecontents*}{data.csv}
-name,num_frames,mota,motp
-nd_3,175,0.7714285714285715,0.3296371941675045
-nd_4,176,0.7693181818181818,0.3273043101111033
-nd_5,178,0.7705286839145107,0.3209015937590458
-nd_6,175,0.7700228832951945,0.3298583555342147
-nd_7,176,0.770193401592719,0.328963843118783
-nd_8,180,0.7708565072302558,0.33951099153421244
-\end{filecontents*}
+.. figure:: tikz_figures/eval-sim-nondet_metrics.png
+    :name: fig-eval-sim-nondet_metrics
 
-\begin{filecontents*}{data_orchestrator.csv}
-name,num_frames,mota,motp
-o_1,165,0.757282,0.335777
-o_2,165,0.757282,0.335777
-o_3,165,0.757282,0.335777
-o_4,165,0.757282,0.335777
-o_5,165,0.757282,0.335777
-o_6,165,0.757282,0.335777
-\end{filecontents*}
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{axis}[
-            axis y line*=left,
-            xlabel={Simulation run},
-            ymin=0.754,
-            ymax=0.781,
-            ytick distance=0.005,
-            ylabel={\ref{plot_mota} MOTA},
-            yticklabel style={/pgf/number format/.cd,fixed,fixed zerofill,precision=3},
-        ]
-            \addplot[uulm_blue_1,mark=*,dashed] table [x expr=\coordindex+1, y=mota, col sep=comma] {data.csv};
-            \addplot[uulm_blue_1,mark=*] table [x expr=\coordindex+1, y=mota, col sep=comma] {data_orchestrator.csv};
-            \label{plot_mota}
-        \end{axis}
-
-        \begin{axis}[
-            axis y line*=right,
-            axis x line=none,
-            ytick distance=0.005,
-            ylabel={\ref{plot_motp} MOTP},
-            ymin=0.3175,
-            ymax=0.3425,
-            yticklabel style={/pgf/number format/.cd,fixed,fixed zerofill,precision=3},
-            legend pos=north west,
-            legend entries={With Orchestrator,Without Orchestrator}
-        ]
-            \addlegendimage{solid,black}
-            \addlegendimage{dashed,black}
-            \addplot[uulm_orange_1,mark=*,dashed] table [x expr=\coordindex+1, y=motp, col sep=comma] {data.csv};
-            \addplot[uulm_orange_1,mark=*] table [x expr=\coordindex+1, y=motp, col sep=comma] {data_orchestrator.csv};
-            \label{plot_motp}
-        \end{axis}
-    \end{tikzpicture}
-    \caption[Evaluation of the MOTA and MOTP metrics using the experimental setup.]{Evaluation of the MOTA and MOTP metrics in the scenario introduced in :ref:`sec-eval-system_setup` over multiple simulation runs, both with and without the orchestrator.}
-    \label{fig-eval-sim:nondet_metrics}
-\end{figure}
+    Evaluation of the MOTA and MOTP metrics in the scenario introduced in :ref:`sec-eval-system_setup` over multiple simulation runs, both with and without the orchestrator.
 
 When running the simulation using the orchestrator, the variance in the calculated metrics is eliminated.
 This shows that in this example the orchestrator successfully enabled the use case of repeatable execution of test cases for evaluating a software module inside a more complex system.

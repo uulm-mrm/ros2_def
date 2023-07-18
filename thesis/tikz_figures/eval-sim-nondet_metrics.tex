@@ -1,0 +1,37 @@
+\input{pre}
+
+\begin{tikzpicture}
+    \begin{axis}[
+        axis y line*=left,
+        xlabel={Simulation run},
+        ymin=0.754,
+        ymax=0.781,
+        ytick distance=0.005,
+        ylabel={\ref{plot_mota} MOTA},
+        yticklabel style={/pgf/number format/.cd,fixed,fixed zerofill,precision=3},
+    ]
+        \addplot[uulm_blue_1,mark=*,dashed] table [x expr=\coordindex+1, y=mota, col sep=comma] {data.csv};
+        \addplot[uulm_blue_1,mark=*] table [x expr=\coordindex+1, y=mota, col sep=comma] {data_orchestrator.csv};
+        \label{plot_mota}
+    \end{axis}
+
+    \begin{axis}[
+        axis y line*=right,
+        axis x line=none,
+        ytick distance=0.005,
+        ylabel={\ref{plot_motp} MOTP},
+        ymin=0.3175,
+        ymax=0.3425,
+        yticklabel style={/pgf/number format/.cd,fixed,fixed zerofill,precision=3},
+        legend pos=north west,
+        legend entries={With Orchestrator,Without Orchestrator}
+    ]
+        \addlegendimage{solid,black}
+        \addlegendimage{dashed,black}
+        \addplot[uulm_orange_1,mark=*,dashed] table [x expr=\coordindex+1, y=motp, col sep=comma] {data.csv};
+        \addplot[uulm_orange_1,mark=*] table [x expr=\coordindex+1, y=motp, col sep=comma] {data_orchestrator.csv};
+        \label{plot_motp}
+    \end{axis}
+\end{tikzpicture}
+
+\input{post}

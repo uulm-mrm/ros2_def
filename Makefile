@@ -19,10 +19,11 @@ clean_tikz_figures: clean_tikz_figure_intermediates
 	rm -f presentation/*.png
 
 clean_tikz_figure_intermediates:
-	rm -f thesis/tikz_figures/*.pdf thesis/tikz_figures/*.log thesis/tikz_figures/*.aux thesis/tikz_figures/*.fdb_latexmk thesis/tikz_figures/*.fls thesis/tikz_figures/*.synctex\(busy\)
+	rm -f thesis/tikz_figures/*.pdf thesis/tikz_figures/*.log thesis/tikz_figures/*.aux thesis/tikz_figures/*.fdb_latexmk thesis/tikz_figures/*.fls thesis/tikz_figures/*.synctex\(busy\) thesis/tikz_figures/*.dvi thesis/tikz_figures/*.ps
 	rm -f presentation/*.pdf presentation/*.log presentation/*.aux presentation/*.fdb_latexmk presentation/*.fls presentation/*.synctex\(busy\)
 
-thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
+thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex thesis/tikz_figures/data.csv thesis/tikz_figures/data_orchestrator.csv
+	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
 	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
 
 presentation/%.png: presentation/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
@@ -65,7 +66,8 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	presentation/cb_graph_4.png \
 	presentation/cb_graph_complete.png \
 	thesis/tikz_figures/eval-parallel_inputs-sequence_orchestrator.png \
-	thesis/tikz_figures/eval-same_output-sequence_orchestrator.png
+	thesis/tikz_figures/eval-same_output-sequence_orchestrator.png \
+	thesis/tikz_figures/eval-sim-nondet_metrics.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
