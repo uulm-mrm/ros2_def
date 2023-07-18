@@ -2,6 +2,9 @@ Enabling Reproducibility in ROS 2 by Ensuring Sequence Deterministic Callback Ex
 =======================================================================================
 
 .. toctree::
+   :maxdepth: 2
+   :numbered:
+
    1_introduction
    2_background
    3_implementation

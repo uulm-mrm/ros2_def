@@ -4,6 +4,9 @@
 Background
 **********
 
+.. contents::
+   :local:
+
 This chapter introduces ROS and motivates the additional use case of dynamically reconfiguring ROS systems.
 Additionally, background on robotics software testing methodology is given, which will form the context and intended use of the method proposed in :ref:`sec-impl`.
 

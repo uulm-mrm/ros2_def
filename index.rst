@@ -8,7 +8,6 @@ Welcome to Orchestrator's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :numbered:
    :caption: Contents:
 
    Thesis <thesis/main>
