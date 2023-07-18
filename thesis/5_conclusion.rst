@@ -1,7 +1,8 @@
 .. _sec-conclusion:
 
+**********
 Conclusion
-==========
+**********
 
 In this thesis, a method for repeatable execution of system tests for software stacks built using ROS was developed, implemented, and tested.
 The orchestrator achieves this without modifying lower levels of the ROS client library stack or middleware, by controlling callback invocations at the ROS topic level which are the source of observed nondeterminism in the execution of ROS software stacks.

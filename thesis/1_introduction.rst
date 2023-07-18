@@ -1,5 +1,6 @@
+************
 Introduction
-============
+************
 
 The growing complexity of robotics software stacks necessitates the use of frameworks that allow the separation of individual components and explicit communication between them.
 In the research community, in particular, open-source frameworks have prevailed over proprietary middleware or custom full-stack implementations.
