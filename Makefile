@@ -8,6 +8,8 @@ SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
 
+PDFLATEX_FLAGS = -interaction=batchmode -shell-escape
+
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -23,11 +25,11 @@ clean_tikz_figure_intermediates:
 	rm -f presentation/*.pdf presentation/*.log presentation/*.aux presentation/*.fdb_latexmk presentation/*.fls presentation/*.synctex\(busy\)
 
 thesis/tikz_figures/%.png: thesis/tikz_figures/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
-	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
-	cd thesis/tikz_figures && pdflatex -shell-escape $*.tex > /dev/null
+	cd thesis/tikz_figures && pdflatex $(PDFLATEX_FLAGS) $*.tex > /dev/null
+	cd thesis/tikz_figures && pdflatex $(PDFLATEX_FLAGS) $*.tex > /dev/null
 
 presentation/%.png: presentation/%.tex thesis/tikz_figures/pre.tex thesis/tikz_figures/post.tex
-	cd presentation && pdflatex -shell-escape $*.tex > /dev/null
+	cd presentation && pdflatex $(PDFLATEX_FLAGS) $*.tex > /dev/null
 
 clean: clean_tikz_figures
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -72,7 +74,8 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	thesis/tikz_figures/eval-config-ospa_diff.png \
 	thesis/tikz_figures/eval-config-ospa_orchestrator.png \
 	thesis/tikz_figures/eval-execution_time-sim_comparison_barchart.png \
-	thesis/tikz_figures/eval-sil_nodegraph.png
+	thesis/tikz_figures/eval-sil_nodegraph.png \
+	presentation/eval-execution_time-sim_comparison_barchart.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
