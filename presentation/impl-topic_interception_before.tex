@@ -1,0 +1,16 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}
+    % \draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
+    \node (sensor) [rosnode] {S};
+    \node (sensortopic) at (2,0) [topic] {M};
+
+    \node (perception1) at (8,1) [rosnode] {P1};
+    \node (perception2) at (8,-1) [rosnode] {P2};
+
+    \draw [arrow] (sensor) -- (sensortopic);
+    \draw [arrow] (sensortopic) |- (perception1);
+    \draw [arrow] (sensortopic) |- (perception2);
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

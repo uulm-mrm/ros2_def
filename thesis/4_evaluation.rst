@@ -216,11 +216,9 @@ The planning module receives information about the vehicle state from the simula
 Both the planning and local tracking modules may call the ego-motion service provided by the corresponding node while executing any callback.
 The other vehicles present in the scenario are fully controlled by the simulator.
 
-\begin{minipage}{\linewidth}
 The simulation is run until the controlled vehicle reaches a predefined area.
 When using recorded measurement data from a ROS bag, the scenario ends once every recorded measurement has been processed.
 The recorded results of the tracking module and the recorded ground truth data are then used to calculate application-specific metrics to assess the performance of the multi-object tracking algorithm.
-\end{minipage}
 
 .. _sec-eval-system_integration:
 
@@ -522,8 +520,8 @@ Analysis
 
 To measure the impact of topic interception, the induced delay of forwarding a message via a ROS node is measured.
 In order to compensate for latency in the measuring node, the difference in latency for directly sending and receiving a message in the same node versus the latency of sending a message and receiving a forwarded message is measured.
-When using a measuring and forwarding node implemented in Python and using the "eProsima Fast DDS" middleware, the latency from publishing to receiving increases from a mean of :math:`0.64` ms to :math:`0.99` ms.
-This induced latency of :math:`0.35` ms on average is considered acceptable and justifies the design choice of controlling callbacks by intercepting the corresponding message inputs.
+When using a measuring and forwarding node implemented in Python and using the "eProsima Fast DDS" middleware, the latency from publishing to receiving increases from a mean of 0.64 ms to 0.99 ms.
+This induced latency of 0.35 ms on average is considered acceptable and justifies the design choice of controlling callbacks by intercepting the corresponding message inputs.
 
 .. figure:: tikz_figures/eval-execution_time-sim_comparison_barchart.png
     :name: fig-eval-execution_time-sim_comparison_barchart
@@ -538,13 +536,12 @@ The simulator currently offers two modes of execution:
 Using the ``fast`` mode is only appropriate combined with the orchestrator or some other method of synchronization between the simulator and software under test.
 If the simulator is not able to run in real-time, deliberate delays to ensure real-time execution should already be zero.
 Since :numref:`fig-eval-execution_time-sim_comparison_barchart` still shows an increase in runtime for using the ``real_time`` mode compared to the ``fast`` mode, the orchestrator is considered with the ``fast`` execution mode in the following.
-% time factor in test: 1.43063584
-Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73\% in the ``fast`` case.
+Nonetheless, it is apparent that the orchestrator causes a significant runtime impact as the execution time is increased by about 73% in the ``fast`` case.
 
-Evaluating the orchestrator itself for execution time, it can be found that during a simulation run, the callback for intercepted message inputs runs on average :math:`0.6` ms, and the callback for status messages runs :math:`0.9` ms.
-The API functions for waiting until publishing a time or data input execute in :math:`0.9` ms and :math:`0.5` ms.
-This sums up to more than :math:`12.3` seconds spent executing interception and status callbacks, which in this scenario happens within the simulator.
-The simulator furthermore spends about :math:`5` seconds executing orchestrator API calls.
+Evaluating the orchestrator itself for execution time, it can be found that during a simulation run, the callback for intercepted message inputs runs on average 0.6 ms, and the callback for status messages runs 0.9 ms.
+The API functions for waiting until publishing a time or data input execute in 0.9 ms and 0.5 ms.
+This sums up to more than 12.3 seconds spent executing interception and status callbacks, which in this scenario happens within the simulator.
+The simulator furthermore spends about 5 seconds executing orchestrator API calls.
 
 The remaining increase in execution time is explained by serializing the execution of dependent callbacks.
 The vehicle tracking and planning components may both call the ego-motion service, which prevents parallel execution.
