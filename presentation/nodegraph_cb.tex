@@ -1,0 +1,37 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}
+    %\draw[step=1cm,gray,very thin] (0,-4) grid (10,4);
+    \node (sensor) [rosnode] {S};
+    \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
+
+    \node (mbuffer) [above left = 0.5cm of sensortopic, circle, dashed, draw=gray] {buffer};
+    \draw [arrow, gray] (mbuffer) -- (sensortopic);
+
+    \node (perception1) [rosnode, right of=sensortopic, xshift=1cm, yshift=1cm] {P1};
+    \node (p1topic) [topic, right of=perception1, xshift=1cm] {D1};
+
+    \node (p1buffer) [above = 0.5cm of p1topic, circle, dashed, draw=gray] {buffer};
+    \draw [arrow, gray] (p1buffer) -- (p1topic);
+
+    \node (perception2) [rosnode, right of=sensortopic, xshift=1cm, yshift=-1cm] {P2};
+    \node (p2topic) [topic, right of=perception2, xshift=1cm] {D2};
+
+    \node (p2buffer) [below = 0.5cm of p2topic, circle, dashed, draw=gray] {buffer};
+    \draw [arrow, gray] (p2buffer) -- (p2topic);
+
+    \node (tracking) [rosnode, right of=p1topic, xshift=1cm, yshift=-1cm] {T};
+
+
+    \draw [arrow] (sensor) -- (sensortopic); % chktex 8
+    \draw [arrow] (sensortopic) |- (perception1);
+    \draw [arrow] (sensortopic) |- (perception2);
+
+    \draw [arrow] (perception1) -- (p1topic); % chktex 8
+    \draw [arrow] (perception2) -- (p2topic); % chktex 8
+
+    \draw [arrow] (p1topic) -| (tracking);
+    \draw [arrow] (p2topic) -| (tracking);
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

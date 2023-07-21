@@ -3,20 +3,20 @@
 \begin{tikzpicture}[node font=\footnotesize]
     %\draw[step=1cm,gray,very thin] (0,0) grid (15,-10);
     \node [callback] (input1) at (0,0) {Input\\M};
-    \node [callback, draw=gray] (bufferm1) at (0,-3) {Buffer\\M};
+    \node [callback, draw=gray, dashed] (bufferm1) at (0,-3) {Buffer\\M};
     \node [callback] (p1rx1) at (0,-6) {P1\\Rx M};
     \node [callback] (p2rx1) at (3,-6) {P2\\Rx M};
-    \node [callback, draw=gray] (bufferd11) at (0,-9) {Buffer\\D1};
-    \node [callback, draw=gray] (bufferd21) at (3,-9) {Buffer\\D2};
+    \node [callback, draw=gray, dashed] (bufferd11) at (0,-9) {Buffer\\D1};
+    \node [callback, draw=gray, dashed] (bufferd21) at (3,-9) {Buffer\\D2};
     \node [callback] (trxd11) at (0,-12) {T\\Rx D1};
     \node [callback] (trxd21) at (3,-12) {T\\Rx D2};
 
     \node [callback] (input2) at (6,0) {Input\\M};
-    \node [callback, draw=gray] (bufferm2) at (6,-3) {Buffer\\M};
+    \node [callback, draw=gray, dashed] (bufferm2) at (6,-3) {Buffer\\M};
     \node [callback] (p1rx2) at (6,-6) {P1\\Rx M};
     \node [callback] (p2rx2) at (9,-6) {P2\\Rx M};
-    \node [callback, draw=gray] (bufferd12) at (6,-9) {Buffer\\D1};
-    \node [callback, draw=gray] (bufferd22) at (9,-9) {Buffer\\D2};
+    \node [callback, draw=gray, dashed] (bufferd12) at (6,-9) {Buffer\\D1};
+    \node [callback, draw=gray, dashed] (bufferd22) at (9,-9) {Buffer\\D2};
     \node [callback] (trxd12) at (6,-12) {T\\Rx D1};
     \node [callback] (trxd22) at (9,-12) {T\\Rx D2};
 
