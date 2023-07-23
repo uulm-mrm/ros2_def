@@ -17,22 +17,22 @@
 
     % Message connections N1 -> SP
     \foreach \s / \t in {2.994818625/3.105586950, 3.994420082/4.308609834} {
-        \connectingarrow{1}{\s}{3}{\t};
+        \connectingarrowlowerstart{1}{\s}{3}{\t};
     }
 
     % Message connections SP -> N1
     \foreach \s / \t in {3.306603107/3.308302070, 4.509625945/4.511254511} {
-        \connectingarrow{3}{\s}{1}{\t}
+        \connectingarrowlowerstart{3}{\s}{1}{\t}
     }
 
     % Message connections N2 -> SP
     \foreach \s / \t in {3.011678583/3.307828193, 3.972481495/4.105901069} {
-        \connectingarrow{2}{\s}{3}{\t};
+        \connectingarrowlowerstart{2}{\s}{3}{\t};
     }
 
     % Message connections SP -> N2
     \foreach \s / \t in {3.508879427/3.511158009, 4.307407818/4.308959688} {
-        \connectingarrow{3}{\s}{2}{\t}
+        \connectingarrowlowerstart{3}{\s}{2}{\t}
     }
 
     % Message connections S -> N2

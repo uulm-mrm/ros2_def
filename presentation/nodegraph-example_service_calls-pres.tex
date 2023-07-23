@@ -5,11 +5,11 @@
     \node (s)  [rosnode, left of=it, xshift=-1cm] {S};
     \node (n1) [rosnode, right of=it, xshift=1cm, yshift=1.5cm] {N1};
     \node (n2) [rosnode, right of=it, xshift=1cm, yshift=-1.5cm] {N2};
-    \draw[arrow] (it) |- (n1);
-    \draw[arrow] (it) |- (n2);
+    \draw[arrow, uulm_blue_1] (it) |- (n1);
+    \draw[arrow, uulm_orange_1] (it) |- (n2);
 
     \node (sn) [rosnode, right of=it, xshift=1cm] {SP};
-    \draw[arrow] (it) -- (sn);
+    \draw[arrow, uulm_red_1] (it) -- (sn);
 
     \draw[arrow] (s) -- (it);
 

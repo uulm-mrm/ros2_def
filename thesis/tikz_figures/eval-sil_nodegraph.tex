@@ -8,7 +8,7 @@
     }, postaction={decorate}},
     buswidth2/.style={decoration={
         markings,
-        mark= at position 0.5 with {\node[font=\normalsize] {/};\node[below=1pt,xshift=3pt] {\scriptsize #1};}
+        mark= at position 0.4 with {\node[font=\normalsize] {/};\node[below=1pt,xshift=3pt] {\scriptsize #1};}
     }, postaction={decorate}},
     align=center,
     font={\small}
@@ -18,7 +18,7 @@
     \node (tracking_local) at (3.5,-5) [rosnode] {Vehicle\\Tracking};
     \node (planning) at (3.5,0) [rosnode] {Trajectory\\Planning};
     \node (egomotion) at (3.5,-2.5) [rosnode] {Egomotion};
-    \node (tracking_external) at (-3.5,0) [rosnode] {External\\Tracking};
+    \node (tracking_external) at (-3.5,0) [rosnode] {Infrastructure\\Tracking};
     \node (recorder_tracking) at (-7,0) [rosnode] {Tracking\\Recorder};
     \node (recorder_gt) at (-3.5,-2.5) [rosnode] {Ground Truth\\Recorder};
 

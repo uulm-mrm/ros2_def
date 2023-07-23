@@ -90,6 +90,15 @@
 }
 
 % #1: from level, #2: from time, #3: to level, #4: to time
+\newcommand{\connectingarrowlowerstart}[4]{
+    \ifnum #3 > #1
+        \draw[-Latex, very thick, uulm_brown_1] ({\xscale*(#2-\xshift)}, -#1*\timelinesep-0.15) -- ({\xscale*(#4-\xshift)}, -#3*\timelinesep+0.15);
+    \else
+        \draw[-Latex, very thick, uulm_brown_1] ({\xscale*(#2-\xshift)}, -#1*\timelinesep-0.15) -- ({\xscale*(#4-\xshift)}, -#3*\timelinesep-0.15);
+    \fi
+}
+
+% #1: from level, #2: from time, #3: to level, #4: to time
 \newcommand{\connectingarrowwithcorners}[4]{
     \draw[-Latex, very thick, uulm_brown_1] ({\xscale*(#2-\xshift)}, -#1*\timelinesep) 
         -- ({\xscale*(#2-\xshift)}, {(-#1-0.382)*\timelinesep})

@@ -144,9 +144,9 @@ MOTA provides a measure for how well the tracking algorithm performs with respec
 
 Both metrics are calculated over an entire sequence, instead of individual frames.
 
-An additional metric for multi-object tracking applications is the \gls{ospa} metric as defined in [Schuhmacher2008]_.
+An additional metric for multi-object tracking applications is the Optimal Subpattern Assignment (OSPA) metric as defined in [Schuhmacher2008]_.
 This metric directly measures the distance between two sets of states with different cardinality, and can thus be calculated for each timestep instead of over an entire sequence.
-The \gls{ospa} metric of order :math:`p` is defined for two sets :math:`X = \{ x_1, \dots, x_m \}` and :math:`Y = \{y_1, \dots, y_n\}` and a distance measure :math:`d^{(c)}(x,y)` with cutoff at :math:`c` as
+The OSPA metric of order :math:`p` is defined for two sets :math:`X = \{ x_1, \dots, x_m \}` and :math:`Y = \{y_1, \dots, y_n\}` and a distance measure :math:`d^{(c)}(x,y)` with cutoff at :math:`c` as
 
 .. math::
 

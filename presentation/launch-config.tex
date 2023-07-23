@@ -3,16 +3,16 @@
 \begin{tikzpicture}
     %\draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
 
-    \node (tpnode) at (0,0) [rosnode] {TP};
+    \node (tpnode) at (0,0) [rosnode] {planning};
 
-    \node (intopic) at (-2,0) [topic] {tracks};
-    \node (outtopic) at (2,0) [topic] {/v1/traj...};
+    \node (intopic) at (-2.5,0) [topic] {tracks};
+    \node (outtopic) at (3,0) [topic] {/v1/trajectory};
 
     \node (callsource) at (0, 2) [rosnode, dashed] {};
     \node (providedservice) at (0, 1.1) {trajectory\_service};
 
     \node (calledservice) at (0,-1) {/v1/ego\_motion};
-    \node (calltarget) at (0, -2) [rosnode] {EM};
+    \node (calltarget) at (0, -2) [rosnode] {ego\_motion};
 
     \draw [thick, dashed] (callsource) -- (providedservice);
     \draw [arrow, dashed] (providedservice) -- (tpnode);
