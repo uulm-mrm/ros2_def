@@ -17,7 +17,7 @@
     },
     "ttb2file": {
       "config_file": [
-        "orchestrator",
+        "tracking",
         "objects2file_node_config.json"
       ],
       "remappings": {
