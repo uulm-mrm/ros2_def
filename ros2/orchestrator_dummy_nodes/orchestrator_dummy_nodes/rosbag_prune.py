@@ -21,7 +21,7 @@ def create_writer(uri: str, converter_options: rosbag2_py.ConverterOptions, stor
 
 
 def main():
-    bag_uri = "/home/gja38/aduulm_sandbox_sil/rosbag2_2023_05_12-13_11_59"
+    bag_uri = "/home/gja38/aduulm_sandbox_sil/rosbags/rosbag2_2023_05_12-13_11_59"
     prune_probability = 0.1
     timestamp_stddev_ns = 600000
     timestamp_max_offset_ns = 2000000

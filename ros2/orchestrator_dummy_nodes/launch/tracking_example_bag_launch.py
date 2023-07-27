@@ -26,7 +26,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "bag_uri",
-            default_value=TextSubstitution(text="/home/gja38/aduulm_sandbox_sil/rosbag2_2023_05_12-13_11_59_converted"),
+            default_value=TextSubstitution(text="/home/gja38/aduulm_sandbox_sil/rosbags/rosbag2_2023_05_12-13_11_59_converted"),
             description="Bag file path"
         ),
 
