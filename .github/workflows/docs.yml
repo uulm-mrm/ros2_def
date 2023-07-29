@@ -13,7 +13,7 @@ jobs:
       - name: Build
         run: |
           cd ${{ github.workspace }}
-          make html
+          make -j$(nproc) html
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
