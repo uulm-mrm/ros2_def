@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Install latex and pip
-        run: sudo apt update && sudo apt install -y texlive texlive-pictures python3-pip make ghostscript
+        run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript
       - name: Install sphinx
         run: pip install --upgrade sphinx~=7.0
       - name: Check out repository code
