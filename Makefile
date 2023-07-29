@@ -14,7 +14,7 @@ PDFLATEX_FLAGS = -interaction=batchmode -shell-escape
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile clean html_clean clean_tikz_figure_intermediates clean_tikz_figures figures
+.PHONY: help Makefile clean html_clean clean_tikz_figure_intermediates clean_tikz_figures html_figures presentation_figures
 
 clean_tikz_figures: clean_tikz_figure_intermediates
 	rm -f thesis/tikz_figures/*.png
@@ -40,7 +40,7 @@ html_clean:
 	$(MAKE) html
 	$(MAKE) clean_tikz_figure_intermediates
 
-figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
+html_figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	thesis/tikz_figures/nodegraph-example_reordering.png \
 	thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	thesis/tikz_figures/nodegraph-example_parallel_nodes.png \
@@ -59,14 +59,6 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	thesis/tikz_figures/eval-reordering-timeline.png \
 	thesis/tikz_figures/eval-reordering-timeline_orchestrator.png \
 	thesis/tikz_figures/eval-parallel_inputs-sequence.png \
-	presentation/launch-config.png \
-	presentation/node-config.png \
-	presentation/nodegraph-example_service_calls-pres.png \
-	presentation/cb_graph_1.png \
-	presentation/cb_graph_2.png \
-	presentation/cb_graph_3.png \
-	presentation/cb_graph_4.png \
-	presentation/cb_graph_complete.png \
 	thesis/tikz_figures/eval-parallel_inputs-sequence_orchestrator.png \
 	thesis/tikz_figures/eval-same_output-sequence_orchestrator.png \
 	thesis/tikz_figures/eval-sim-nondet_metrics.png \
@@ -74,13 +66,23 @@ figures: thesis/tikz_figures/impl-problem_description-example_nodegraph.png \
 	thesis/tikz_figures/eval-config-ospa_diff.png \
 	thesis/tikz_figures/eval-config-ospa_orchestrator.png \
 	thesis/tikz_figures/eval-execution_time-sim_comparison_barchart.png \
-	thesis/tikz_figures/eval-sil_nodegraph.png \
+	thesis/tikz_figures/eval-sil_nodegraph.png
+
+presentation_figures: html_figures \
 	presentation/eval-execution_time-sim_comparison_barchart.png \
 	presentation/impl-topic_interception_before.png \
 	presentation/nodegraph_cb.png \
-	presentation/impl-callbacks-orchestrator_design.png
+	presentation/impl-callbacks-orchestrator_design.png \
+	presentation/launch-config.png \
+	presentation/node-config.png \
+	presentation/nodegraph-example_service_calls-pres.png \
+	presentation/cb_graph_1.png \
+	presentation/cb_graph_2.png \
+	presentation/cb_graph_3.png \
+	presentation/cb_graph_4.png \
+	presentation/cb_graph_complete.png
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile figures
+%: Makefile html_figures
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

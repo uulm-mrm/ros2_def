@@ -11,8 +11,8 @@ Welcome to Orchestrator's documentation!
    :caption: Contents:
 
    Thesis <thesis/main>
-
-
+   user_docs/index
+   dev_docs/index
 
 Indices and tables
 ==================
