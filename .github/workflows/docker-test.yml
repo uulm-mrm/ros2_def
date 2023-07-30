@@ -6,4 +6,8 @@ jobs:
     container: ros:iron
     steps:
       - name: Test
-        run: python3 -c "import std_msgs; print(std_msgs.__file__)"
+        run: |
+          env
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          env
+          python3 -c "import std_msgs; print(std_msgs.__file__)"
