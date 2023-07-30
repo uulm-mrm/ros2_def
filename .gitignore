@@ -1,3 +1,7 @@
 _build
 .vscode
 .venv
+./orchestrator/
+build/
+install/
+log/
