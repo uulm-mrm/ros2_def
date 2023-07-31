@@ -24,3 +24,20 @@ Actions are able to be executed if their state is ``Ready`` (implying the requir
 Processing is done exhaustively, meaning that the graph is repeatedly iterated over until no action has been executed within one iteration.
 
 
+Timer Handling
+==============
+
+Timers are triggered by messages on ``/clock``, just as they would be during a simulation run.
+This requires all nodes using timers to set the ``use_sim_time`` parameter to ``True``.
+When the data source announces a clock-publish, the corresponding timer callbacks are created in the CB graph.
+The actions are set to ``READY`` once the corresponding clock message actually arrives at the orchestrator.
+Clock messages are not buffered, since they can be recreated trivially from the known timer execution time.
+
+Clock messages are only forwarded to nodes when they trigger a timer callback.
+This implies that using ``self.get_clock().now()`` or similar during callback execution or elsewhere always returns the time of the most recent timer callback.
+This is consistent with the model that nodes only execute during callbacks, and that all callbacks complete in zero time.
+
+Unexpected behavior may occur although if non-timer callbacks exist which access the current node time.
+Usually, clock-messages could be received between the last timer callback and this callback, updating the node time.
+It would not be wise to rely on assumptions such as that the node time has already advanced to the current simulation time when an input from that simulation timestep is received, since the clock message may not always arrive before the input.
+If this is a problem, the time handling may need to be changed to forward every clock message (which presents a challenge since the clock-receive callback has no observable feedback from outside the node).
