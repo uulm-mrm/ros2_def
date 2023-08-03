@@ -29,12 +29,12 @@ jobs:
       - name: Build orchestrator dependencies
         run: |
           . /opt/ros/$ROS_DISTRO/setup.sh
-          cd ${{ github.workspace }}
+          cd $GITHUB_WORKSPACE
           colcon build --packages-up-to orchestrator --packages-skip orchestrator
       - name: Build docs
         run: |
           . /opt/ros/$ROS_DISTRO/setup.sh
-          cd ${{ github.workspace }}
+          cd $GITHUB_WORKSPACE
           . ./install/setup.sh
           cd docs
           make -j$(nproc) html
@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: github-pages
-          path: ${{ github.workspace }}/_build/html
+          path: $GITHUB_WORKSPACE/docs/_build/html
 
   deploy:
     environment:
