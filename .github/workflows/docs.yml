@@ -3,17 +3,20 @@ on: [push]
 jobs:
   Build:
     runs-on: ubuntu-22.04
+    container: ros:iron
     steps:
       - name: Install latex and pip
         run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript
       - name: Install sphinx
         run: pip install --upgrade sphinx~=7.0
-      - name: Check out repository code
-        uses: actions/checkout@v3
+    
       - name: Adjust imagemagick security policy to allow PDF -> PNG conversion
         run: sudo sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - name: Build
         run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
           cd ${{ github.workspace }}
           make -j$(nproc) html
       - name: Upload Artifacts
