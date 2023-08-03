@@ -38,9 +38,6 @@ jobs:
           . ./install/setup.sh
           cd docs
           make -j$(nproc) html
-          ls -lah _build
-          ls -lah _build/html
-          pwd
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
@@ -60,4 +57,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/upload-pages-artifact@v2
