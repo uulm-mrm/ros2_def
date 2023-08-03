@@ -1,0 +1,20 @@
+\input{pre}
+
+\begin{tikzpicture}
+    \node (it) [topic] {M};
+    \node (s)  [rosnode, left of=it, xshift=-2cm] {S};
+    \node (n1) [rosnode, right of=it, xshift=3cm, yshift=2cm] {N1};
+    \node (n2) [rosnode, right of=it, xshift=3cm, yshift=-2cm] {N2};
+    \draw[arrow] (it) |- (n1);
+    \draw[arrow] (it) |- (n2);
+
+    \node (sn) [rosnode, right of=it, xshift=3cm] {SP};
+    \draw[arrow] (it) -- (sn);
+
+    \draw[arrow] (s) -- (it);
+
+    \draw[arrow, dashed] (n1) -- (sn);
+    \draw[arrow, dashed] (n2) -- (sn);
+\end{tikzpicture}
+
+\input{post}

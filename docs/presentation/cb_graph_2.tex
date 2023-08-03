@@ -1,0 +1,34 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}[node font=\footnotesize]
+    %\draw[step=1cm,gray,very thin] (0,0) grid (15,-10);
+    \node [callback] (input1) at (0,0) {Input\\M};
+    \node [callback, draw=gray, dashed] (bufferm1) at (0,-3) {Buffer\\M};
+    \node [callback] (p1rx1) at (0,-6) {P1\\Rx M};
+    \node [callback] (p2rx1) at (3,-6) {P2\\Rx M};
+    \node [callback, draw=gray, dashed] (bufferd11) at (0,-9) {Buffer\\D1};
+    \node [callback, draw=gray, dashed] (bufferd21) at (3,-9) {Buffer\\D2};
+    \node [callback] (trxd11) at (0,-12) {T\\Rx D1};
+    \node [callback] (trxd21) at (3,-12) {T\\Rx D2};
+
+    % Causality
+    \draw [draw = uulm_blue_1, very thick]
+        (bufferm1) edge [->] (input1)
+        (p1rx1) edge [->] (bufferm1)
+        (p2rx1) edge [->] (bufferm1)
+        (bufferd11) edge [->] (p1rx1)
+        (bufferd21) edge [->] (p2rx1)
+        (trxd11) edge [->] (bufferd11)
+        (trxd21) edge [->] (bufferd21);
+
+    \matrix [rectangle,draw,anchor=north east] at (11,1) {
+        \node [rectangle,fill=uulm_blue_1,label=right:CAUSALITY] {}; \\
+        \node [rectangle,fill=uulm_green_1,label=right:SAME\_NODE] {}; \\
+        \node [rectangle,fill=uulm_orange_1,label=right:SAME\_TOPIC] {}; \\
+    };
+
+    % ensures size for incomplete graphs
+    \path (0,0) -- (11,-15);
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

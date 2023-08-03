@@ -1,0 +1,27 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}
+    %\draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
+
+    \node (tpnode) at (0,0) [rosnode] {planning};
+
+    \node (intopic) at (-2.5,0) [topic] {tracks};
+    \node (outtopic) at (3,0) [topic] {/v1/trajectory};
+
+    \node (callsource) at (0, 2) [rosnode, dashed] {};
+    \node (providedservice) at (0, 1.1) {trajectory\_service};
+
+    \node (calledservice) at (0,-1) {/v1/ego\_motion};
+    \node (calltarget) at (0, -2) [rosnode] {ego\_motion};
+
+    \draw [thick, dashed] (callsource) -- (providedservice);
+    \draw [arrow, dashed] (providedservice) -- (tpnode);
+
+    \draw [thick, dashed] (tpnode) -- (calledservice);
+    \draw [arrow, dashed] (calledservice) -- (calltarget);
+
+    \draw [arrow] (intopic) -- (tpnode);
+    \draw [arrow] (tpnode) -- (outtopic);
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

@@ -1,0 +1,37 @@
+\input{pre}
+
+\begin{tikzpicture}[
+    % https://tex.stackexchange.com/a/125468/143051
+    buswidth1/.style={decoration={
+        markings,
+        mark= at position 0.85 with {\node[font=\normalsize] {/};\node[below=1pt,xshift=2pt] {\scriptsize #1};}
+    }, postaction={decorate}},
+    buswidth2/.style={decoration={
+        markings,
+        mark= at position 0.4 with {\node[font=\normalsize] {/};\node[below=1pt,xshift=3pt] {\scriptsize #1};}
+    }, postaction={decorate}},
+    align=center,
+    font={\small}
+]
+    % \draw[step=1cm,gray,very thin] (-5,-5) grid (5,1);
+    \node (sim) at (0,0) [rosnode] {Simulator};
+    \node (tracking_local) at (3.5,-5) [rosnode] {Vehicle\\Tracking};
+    \node (planning) at (3.5,0) [rosnode] {Trajectory\\Planning};
+    \node (egomotion) at (3.5,-2.5) [rosnode] {Egomotion};
+    \node (tracking_external) at (-3.5,0) [rosnode] {Infrastructure\\Tracking};
+    \node (recorder_tracking) at (-7,0) [rosnode] {Tracking\\Recorder};
+    \node (recorder_gt) at (-3.5,-2.5) [rosnode] {Ground Truth\\Recorder};
+
+    \draw [arrow, buswidth2={12}] (sim) -- (tracking_external);
+    \draw [arrow] (tracking_external) -- (recorder_tracking);
+    \draw [arrow] (sim.240) |- (recorder_gt);
+
+    \draw [arrow, buswidth1={5}] (sim) |- (tracking_local);
+    \draw [arrow] (sim.300) |- (egomotion);
+    \draw [arrow] (sim) -- (planning);
+    \draw [arrow, dashed] (planning) -- (egomotion);
+    \draw [arrow, dashed] (tracking_local) -- (egomotion);
+    \draw [arrow] (planning) -- (3.5,1) -| (sim);
+\end{tikzpicture}
+
+\input{post}

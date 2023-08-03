@@ -1,0 +1,18 @@
+\input{pre}
+
+\begin{tikzpicture}
+    %\draw[step=1cm,gray,very thin] (0,-2) grid (10,2);
+    \node (sensor) at (0,0) [rosnode] {S};
+    \node (p1topic) at (2,1) [topic] {D1};
+    \node (p2topic) at (2,-1) [topic] {D2};
+
+    \node (tracking) at (4,0) [rosnode] {T};
+
+    \draw [arrow] (sensor) |- (p1topic);
+    \draw [arrow] (sensor) |- (p2topic);
+
+    \draw [arrow] (p1topic) -| (tracking);
+    \draw [arrow] (p2topic) -| (tracking);
+\end{tikzpicture}
+
+\input{post}

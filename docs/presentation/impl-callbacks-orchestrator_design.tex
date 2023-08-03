@@ -1,0 +1,20 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}[rounded corners, thick]
+    %\draw[step=1cm,gray,very thin] (0,-4) grid (11,5);
+    \draw [uulm_blue] (1.5,0.5) node [rosnode] {ROS Node 1};
+    \draw [uulm_blue] (5.5,0.5) node [rosnode] {ROS Node 2};
+    \draw [uulm_blue] (9.5,0.5) node [rosnode] {ROS Node 3};
+
+    \draw [uulm_grey] (4,-1) rectangle (7,-2.5);
+    \draw (5.5, -2) node {Orchestrator};
+
+    \draw [Latex-Latex] (4,-1.5) -| (1.5,0);
+    \draw [Latex-Latex] (7,-1.5) -| (9.5,0);
+    \draw [Latex-Latex] (5.5,-1) -- (5.5,0);
+
+    \draw [Latex-Latex, dashed] (4,-1.5) -- (7,-1.5);
+    \draw [-Latex, dashed] (5.5,-1.5) -- (5.5,-1);
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

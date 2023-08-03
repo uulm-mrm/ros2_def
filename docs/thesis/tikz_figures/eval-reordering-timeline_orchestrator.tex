@@ -1,0 +1,28 @@
+\input{pre}
+
+\def\xshift{2.2}
+\def\xscale{3.0}
+
+\begin{tikzpicture}
+    % Timelines
+    \timeline{S}{0}{11.5};
+    \timeline{P}{1}{11.5};
+
+    % Processing callbacks
+    \foreach \s / \e in {2.466637997/3.441356869, 3.445367339/4.678723479, 4.684971171/5.909584105} {
+        \callbackinvocation{\s}{\e}{1}{uulm_blue}
+    }
+
+    % Message connections
+    \foreach \s / \t in {2.465173893/2.466637997, 3.443201777/3.445367339, 4.681650055/4.684971171} {
+        \connectingarrow{0}{\s}{1}{\t}
+    }
+
+    % Publish events
+    \foreach \x [count=\i] in {2.465173893, 3.443201777, 4.681650055} {
+        \datainput{\x};
+        \messageid{\x}{\i};
+    }
+\end{tikzpicture}
+
+\input{post}

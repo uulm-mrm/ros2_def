@@ -1,0 +1,24 @@
+\input{pre}
+
+\begin{tikzpicture}[
+    % https://tex.stackexchange.com/a/125468/143051
+    buswidth/.style={decoration={
+        markings,
+        mark= at position 0.5 with {\node[font=\normalsize] {/};\node[below=1pt] {\tiny #1};}
+    }, postaction={decorate}}
+]
+    % \draw[step=1cm,gray,very thin] (0,-5) grid (10,5);
+    \node (sim) at (0,0) [rosnode] {Simulator};
+    \node (tracking) at (5,0) [rosnode] {Tracking};
+    \node (planning) at (10,0) [rosnode] {Planning};
+    \node (eval) at (7.5,-2) [rosnode] {Evaluation};
+
+    \draw [arrow,buswidth={}] (sim) -- node [above=1.5mm] {Detections} (tracking);
+    \draw [arrow] (tracking) |- (eval);
+    \draw [arrow] (tracking) -- node [above] {Tracks} (planning);
+    \draw [arrow] (planning) |- (eval);
+    \draw [arrow] (sim) -- (0,-3) -| node [pos=0.25, below] {Ground Truth} (eval);
+    \draw [arrow] (planning) -- (10, 1) -| node [pos=0.25, above] {Control Signals} (sim);
+\end{tikzpicture}
+
+\input{post}

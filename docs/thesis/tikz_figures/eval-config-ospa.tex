@@ -1,0 +1,30 @@
+\input{pre}
+
+\begin{tikzpicture}
+    \begin{axis}[
+        %title=OSPA Distance,
+        cycle list name=uulm,
+        xlabel={$t [s]$},
+        ylabel={OSPA Distance $[m]$},
+        ymin=0.25,
+        ymax=1.9,
+        no markers
+        ]
+        \addlegendimage{empty legend};
+        \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_1.json.csv};
+        \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_2.json.csv};
+        \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_3.json.csv};
+        \addplot table[col sep=comma, header=false, x index=0, y index=1]{data/_reconfig_nd_4.json.csv};
+
+        \addlegendentry{\hspace{-.6cm}\textbf{Run ID}}
+        \addlegendentry{$\#1$}
+        \addlegendentry{$\#2$}
+        \addlegendentry{$\#3$}
+        \addlegendentry{$\#4$}
+
+        % Vertical line
+        \addplot[thick, samples=50, smooth, dashed] coordinates {(7,0)(7,3)};
+    \end{axis}
+\end{tikzpicture}
+
+\input{post}

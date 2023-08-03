@@ -1,0 +1,25 @@
+\input{pre}
+
+\begin{tikzpicture}
+    \node (sensor) [rosnode] {S};
+    \node (sensortopic) [topic, right of=sensor, xshift=1cm] {M};
+
+    \node (perception1) [rosnode, right of=sensortopic, xshift=1cm, yshift=1cm] {P1};
+    \node (p1topic) [topic, right of=perception1, xshift=1cm, yshift=-1cm] {D};
+
+    \node (perception2) [rosnode, right of=sensortopic, xshift=1cm, yshift=-1cm] {P2};
+
+    \node (tracking) [rosnode, right of=p1topic, xshift=1cm] {T};
+
+
+    \draw [arrow] (sensor) -- (sensortopic); % chktex 8
+    \draw [arrow] (sensortopic) |- (perception1);
+    \draw [arrow] (sensortopic) |- (perception2);
+
+    \draw [arrow] (perception1) -| (p1topic); % chktex 8
+    \draw [arrow] (perception2) -| (p1topic); % chktex 8
+
+    \draw [arrow] (p1topic) -- (tracking);
+\end{tikzpicture}
+
+\input{post}

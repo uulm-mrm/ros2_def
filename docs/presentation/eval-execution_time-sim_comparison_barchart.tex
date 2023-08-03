@@ -1,0 +1,23 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}
+    \begin{axis}[
+        xbar,
+        xmin=0,
+        enlarge y limits={abs=0.5},
+        enlarge x limits={0.15,upper},
+        height=3.5cm,
+        width=12cm,
+        yticklabels={{\texttt{fast},\\orchestrator},\texttt{real\_time}},
+        yticklabel style={align=right},
+        ytick=data,
+        nodes near coords, nodes near coords align={horizontal},
+        xlabel={Execution time $[s]$}
+    ]
+        \addplot[uulm_blue_1,fill=uulm_blue_4] coordinates {
+                            (57.0966667,1)
+                            (32.94,2)};
+    \end{axis}
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

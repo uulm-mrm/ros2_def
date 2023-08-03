@@ -1,0 +1,20 @@
+\input{../thesis/tikz_figures/pre}
+
+\begin{tikzpicture}
+    \node (it) [topic] {M};
+    \node (s)  [rosnode, left of=it, xshift=-1cm] {S};
+    \node (n1) [rosnode, right of=it, xshift=1cm, yshift=1.5cm] {N1};
+    \node (n2) [rosnode, right of=it, xshift=1cm, yshift=-1.5cm] {N2};
+    \draw[arrow, uulm_blue_1] (it) |- (n1);
+    \draw[arrow, uulm_orange_1] (it) |- (n2);
+
+    \node (sn) [rosnode, right of=it, xshift=1cm] {SP};
+    \draw[arrow, uulm_red_1] (it) -- (sn);
+
+    \draw[arrow] (s) -- (it);
+
+    \draw[arrow, dashed] (n1) -- (sn);
+    \draw[arrow, dashed] (n2) -- (sn);
+\end{tikzpicture}
+
+\input{../thesis/tikz_figures/post}

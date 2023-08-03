@@ -1,0 +1,82 @@
+\input{pre}
+
+\def\xshift{88.05}
+\def\xscale{5.0}
+
+\begin{tikzpicture}
+    % Timelines
+    \timeline{S}{0}{11.5};
+    \timeline{N1}{1}{11.5};
+    \timeline{N2}{2}{11.5};
+    \timeline{SP}{3}{11.5};        
+
+    % Message connections S -> N1
+    \foreach \s / \t in {88.121494205/88.134215281, 89.180127517/89.184218275} {
+        \connectingarrow{0}{\s}{1}{\t}
+    }
+
+    % Message connections N1 -> SP
+    \foreach \s in {88.246147198, 89.287170045} {
+        \connectingarrowlowerstart{1}{\s}{3}{\s}
+    }
+
+    % Message connections SP -> N1
+    \foreach \s in {88.447030736, 89.488723451} {
+        \connectingarrowlowerstart{3}{\s}{1}{\s}
+    }
+
+    % Message connections N2 -> SP
+    \foreach \s in {88.669793698, 89.699241124} {
+        \connectingarrowlowerstart{2}{\s}{3}{\s}
+    }
+
+    % Message connections SP -> N2
+    \foreach \s in {88.870660979, 89.900704579} {
+        \connectingarrowlowerstart{3}{\s}{2}{\s}
+    }
+
+    % Message connections S -> N2
+    \foreach \s / \t in {88.121494205/88.567736609, 89.180127517/89.596266248} {
+        \connectingarrow{0}{\s}{2}{\t}
+    }
+
+    % Message connections S -> SP
+    \foreach \s / \t in {88.121494205/88.976891167, 89.180127517/90.007667525} {
+        \connectingarrow{0}{\s}{3}{\t}
+    }
+
+    % N1
+    \foreach \s / \e / \is / \ie in {88.134215281/88.550073492/88.246147198/88.447030736, 89.184218275/89.593010249/89.287170045/89.488723451} {
+        %\callbackinvocation{\s}{\e}{1}{uulm_blue}
+        \callbackinvocationidle{\s}{\e}{1}{uulm_blue}{\is}{\ie};
+    }
+
+    % N2
+    \foreach \s / \e / \is / \ie in {88.567736609/88.974497892/88.669793698/88.87066097, 89.596266248/90.004936093/89.699241124/89.900704579} {
+        %\callbackinvocation{\s}{\e}{2}{uulm_orange}
+        \callbackinvocationidle{\s}{\e}{2}{uulm_orange}{\is}{\ie};
+    }
+
+    % SP 1
+    \foreach \s / \e in {88.246147198/88.447030736, 89.287170045/89.488723451} {
+        \callbackinvocation{\s}{\e}{3}{uulm_blue}
+    }
+
+    % SP 2
+    \foreach \s / \e in {88.669793698/88.870660979, 89.699241124/89.900704579} {
+        \callbackinvocation{\s}{\e}{3}{uulm_orange}
+    }
+
+    % SP Update
+    \foreach \s / \e in {88.976891167/89.177840443, 90.007667525/90.209047344} {
+        \callbackinvocation{\s}{\e}{3}{uulm_red}
+    }
+
+    % Publish events
+    \foreach \x [count=\i] in {88.121494205, 89.180127517} {
+        \datainput{\x};
+        \messageid{\x}{\i};
+    }
+\end{tikzpicture}
+
+\input{post}
