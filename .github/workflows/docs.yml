@@ -33,6 +33,7 @@ jobs:
           . /opt/ros/$ROS_DISTRO/setup.sh
           cd ${{ github.workspace }}
           . ./install/setup.sh
+          cd docs
           make -j$(nproc) html
       - name: Upload Artifact
         uses: actions/upload-artifact@v3

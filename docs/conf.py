@@ -17,7 +17,7 @@ author = 'Jonas Otto'
 
 extensions = ['sphinx.ext.autodoc']
 autoclass_content = 'both'
-sys.path.insert(0, 'orchestrator/ros2/orchestrator')
+sys.path.insert(0, '../ros2/orchestrator')
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
