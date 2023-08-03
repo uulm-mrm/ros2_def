@@ -45,7 +45,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: github-pages
-          path: $GITHUB_WORKSPACE/docs/_build/html
+          path: ${{ env.GITHUB_WORKSPACE }}/docs/_build/html
 
   deploy:
     environment:
