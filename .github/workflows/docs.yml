@@ -19,7 +19,7 @@ jobs:
     container: ros:iron
     steps:
       - name: Install latex and pip
-        run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript
+        run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript imagemagick
       - name: Install sphinx
         run: pip install --upgrade sphinx~=7.0
       - name: Adjust imagemagick security policy to allow PDF -> PNG conversion
