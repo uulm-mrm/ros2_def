@@ -1,7 +1,17 @@
-name: Docs Build
-on: [push]
+name: Deploy Docs to Pages
+
+on:
+  push:
+    branches: [$default-branch]
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  Build:
+  build:
     runs-on: ubuntu-22.04
     container: ros:iron
     steps:
@@ -9,18 +19,38 @@ jobs:
         run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript
       - name: Install sphinx
         run: pip install --upgrade sphinx~=7.0
-    
       - name: Adjust imagemagick security policy to allow PDF -> PNG conversion
         run: sudo sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Build
+      - name: Build orchestrator dependencies
         run: |
           . /opt/ros/$ROS_DISTRO/setup.sh
           cd ${{ github.workspace }}
+          colcon build --packages-up-to orchestrator --packages-skip orchestrator
+      - name: Build docs
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd ${{ github.workspace }}
+          . ./install/setup.sh
           make -j$(nproc) html
-      - name: Upload Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: docs
+          name: github-pages
           path: ${{ github.workspace }}/_build/html
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-22.04
+    needs: build
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

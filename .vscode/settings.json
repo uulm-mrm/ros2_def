@@ -45,5 +45,6 @@
     },
     "editor.stickyScroll.enabled": true,
     "terminal.integrated.scrollback": 10000,
-    "python.analysis.stubPath": ".vscode/stubs"
+    "python.analysis.stubPath": ".vscode/stubs",
+    "cmake.configureOnOpen": false
 }
