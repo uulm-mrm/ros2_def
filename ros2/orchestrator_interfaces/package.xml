@@ -3,9 +3,10 @@
 <package format="3">
   <name>orchestrator_interfaces</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="jonas@jonasotto.com">gja38</maintainer>
-  <license>TODO: License declaration</license>
+  <description>ROS Interface definitions for the orchestrator.</description>
+  <author email="jonas@jonasotto.com">Jonas Otto</author>
+  <maintainer email="jonas@jonasotto.com">Jonas Otto</maintainer>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>geometry_msgs</depend>

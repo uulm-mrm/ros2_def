@@ -4,8 +4,9 @@
     <name>orchestrator</name>
     <version>0.0.0</version>
     <description>Library for sequence-deterministic ROS node execution</description>
-    <maintainer email="edwin.otto@uni-ulm.de">Jonas Otto</maintainer>
-    <license>WTFPL</license>
+    <author email="jonas@jonasotto.com">Jonas Otto</author>
+    <maintainer email="jonas@jonasotto.com">Jonas Otto</maintainer>
+    <license>Apache-2.0</license>
 
     <buildtool_depend>ament_cmake</buildtool_depend>
 

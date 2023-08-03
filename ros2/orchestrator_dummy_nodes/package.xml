@@ -3,9 +3,10 @@
 <package format="3">
     <name>orchestrator_dummy_nodes</name>
     <version>0.0.0</version>
-    <description>TODO: Package description</description>
-    <maintainer email="gja38@todo.todo">gja38</maintainer>
-    <license>TODO: License declaration</license>
+    <description>Mock nodes and utilities for testing the orchestrator.</description>
+    <author email="jonas@jonasotto.com">Jonas Otto</author>
+    <maintainer email="jonas@jonasotto.com">Jonas Otto</maintainer>
+    <license>Apache-2.0</license>
 
     <depend>orchestrator</depend>
     <depend>aduulm_cmake_tools</depend>
