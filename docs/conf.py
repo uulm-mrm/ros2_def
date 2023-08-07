@@ -8,7 +8,7 @@ import sys
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Orchestrator'
+project = 'ROS 2 DEF'
 copyright = '2023, Jonas Otto'
 author = 'Jonas Otto'
 
