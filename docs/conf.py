@@ -15,9 +15,15 @@ author = 'Jonas Otto'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx-jsonschema']
 autoclass_content = 'both'
 sys.path.insert(0, '../ros2/orchestrator')
+
+jsonschema_options = {
+    'lift_definitions': True,
+    'auto_reference': True,
+    'lift_description': True,
+}
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

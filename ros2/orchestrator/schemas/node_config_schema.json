@@ -43,73 +43,13 @@
                             "type": "string"
                         },
                         {
-                            "title": "Internal input topic name",
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "const": "topic"
-                                },
-                                "name": {
-                                    "type": "string"
-                                }
-                            },
-                            "required": [
-                                "type",
-                                "name"
-                            ],
-                            "additionalProperties": false
+                            "$ref": "#/$defs/trigger_topic"
                         },
                         {
-                            "title": "Timer",
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "const": "timer"
-                                },
-                                "period": {
-                                    "title": "Timer period in nanoseconds",
-                                    "type": "integer",
-                                    "exclusiveMinimum": 0
-                                }
-                            },
-                            "required": [
-                                "type",
-                                "period"
-                            ],
-                            "additionalProperties": false
+                            "$ref": "#/$defs/trigger_timer"
                         },
                         {
-                            "title": "ApproximateTimeSynchronizer",
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "const": "approximate_time_sync"
-                                },
-                                "input_topics": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "minItems": 2,
-                                    "uniqueItems": true
-                                },
-                                "slop": {
-                                    "type": "number"
-                                },
-                                "queue_size": {
-                                    "type": "integer"
-                                }
-                            },
-                            "required": [
-                                "type",
-                                "input_topics",
-                                "slop",
-                                "queue_size"
-                            ],
-                            "additionalProperties": false
+                            "$ref": "#/$defs/trigger_timesync"
                         }
                     ]
                 },
@@ -137,6 +77,75 @@
             "required": [
                 "trigger",
                 "outputs"
+            ],
+            "additionalProperties": false
+        },
+        "trigger_topic": {
+            "title": "Internal input topic name",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "topic"
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "type",
+                "name"
+            ],
+            "additionalProperties": false
+        },
+        "trigger_timer": {
+            "title": "Timer",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "timer"
+                },
+                "period": {
+                    "title": "Timer period in nanoseconds",
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                }
+            },
+            "required": [
+                "type",
+                "period"
+            ],
+            "additionalProperties": false
+        },
+        "trigger_timesync": {
+            "title": "ApproximateTimeSynchronizer",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "approximate_time_sync"
+                },
+                "input_topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 2,
+                    "uniqueItems": true
+                },
+                "slop": {
+                    "type": "number"
+                },
+                "queue_size": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "type",
+                "input_topics",
+                "slop",
+                "queue_size"
             ],
             "additionalProperties": false
         }

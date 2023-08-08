@@ -8,3 +8,4 @@ User Docs
    :maxdepth: 2
 
    adapting_data_sources
+   adapting_nodes

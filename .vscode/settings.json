@@ -30,13 +30,13 @@
             "fileMatch": [
                 "/*_launch_config.json"
             ],
-            "url": "./src/orchestrator/schemas/launch_config_schema.json"
+            "url": "./ros2/orchestrator/schemas/launch_config_schema.json"
         },
         {
             "fileMatch": [
                 "/*_node_config.json"
             ],
-            "url": "./src/orchestrator/schemas/node_config_schema.json"
+            "url": "./ros2/orchestrator/schemas/node_config_schema.json"
         }
     ],
     "python.analysis.diagnosticSeverityOverrides": {
