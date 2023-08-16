@@ -53,16 +53,6 @@
       "remappings": {
         "obj_topic": "/sil/cars"
       }
-    },
-    "sil_vhcl1800_tracking_vhcl1800": {
-      "config_file": [
-        "orchestrator",
-        "tracking_ul1800_node_config.json"
-      ],
-      "remappings": {
-        "ego_motion_service": "/sil_vhcl1800/ego_motion_service",
-        "tracks": "/sil_vhcl1800/tracks"
-      }
     }
   }
 }

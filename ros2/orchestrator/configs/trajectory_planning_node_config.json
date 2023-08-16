@@ -2,10 +2,6 @@
   "name": "Trajectory Planning Node",
   "callbacks": [
     {
-      "trigger": "trajectory",
-      "outputs": []
-    },
-    {
       "trigger": "/vehicle_hal/vehicle_state",
       "outputs": []
     },
@@ -14,15 +10,7 @@
       "outputs": []
     },
     {
-      "trigger": "/camera/front_left_stereo/ir_pc_det_list",
-      "outputs": []
-    },
-    {
       "trigger": "/trajectory_target_speed",
-      "outputs": []
-    },
-    {
-      "trigger": "/sil/cars",
       "outputs": []
     },
     {

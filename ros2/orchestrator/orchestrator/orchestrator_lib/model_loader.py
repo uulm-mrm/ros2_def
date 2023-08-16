@@ -4,7 +4,7 @@ from .node_model_from_file import ConfigFileNodeModel
 
 from orchestrator.orchestrator_lib.node_model import NodeModel
 
-from ament_index_python.packages import get_package_share_path
+from ament_index_python.packages import get_package_share_path, PackageNotFoundError
 
 import json
 from jsonschema import validate
@@ -25,7 +25,10 @@ def load_node_config_schema():
 
 
 def load_node_config(package: str, name: str, schema):
-    path = get_package_share_path(package) / "configs" / name
+    try:
+        path = get_package_share_path(package) / "configs" / name
+    except PackageNotFoundError:
+        raise RuntimeError(f"Could not load node config {name}, because package {package} was not found!")
     with open(path) as f:
         node_config = json.load(f)
     validate(instance=node_config, schema=schema)
@@ -47,7 +50,12 @@ def load_models(launch_config, node_config_schema) -> List[NodeModel]:
         remappings: Dict[str, str] = node.get("remappings", {})
         package, filename = node["config_file"]
         state_sequence = node.get("state_sequence", None)
-        config = load_node_config(package, filename, node_config_schema)
+        try:
+            config = load_node_config(package, filename, node_config_schema)
+        except Exception as e:
+            raise RuntimeError(
+                f"Error while trying to load the node config for \"{name}\" from {filename} in package {package}: {e}")
+
         model = ConfigFileNodeModel(config, name, remappings, state_sequence)
         models.append(model)
 
