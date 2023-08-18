@@ -1059,8 +1059,7 @@ class Orchestrator:
 
             # Complete the action which sent this message
             cause_action_id: Optional[GraphNodeId] = None
-            causing_action: Union[None, CallbackAction,
-                                  DataProviderInputAction] = None
+            causing_action: Union[None, CallbackAction, DataProviderInputAction] = None
 
             cause_action_id = self.__find_running_action(topic_name)
             causing_action = cast(Union[CallbackAction, DataProviderInputAction],
@@ -1168,7 +1167,10 @@ class Orchestrator:
                     self.l.debug(f"  deleting buffer node {buffer_id} recursively")
                     self.__remove_node_recursive(buffer_id)
 
-        assert cause_action_id is not None
+        if cause_action_id is None:
+            self.diagnose_invalid_status(msg)
+            raise RuntimeError(self.diagnose_invalid_status(msg))
+
         assert causing_action is not None
 
         in_degree = self.__in_degree_by_type(cause_action_id, EdgeType.CAUSALITY)
@@ -1180,3 +1182,17 @@ class Orchestrator:
             self.graph.remove_node(cause_action_id)
 
         self.__process()
+
+    def diagnose_invalid_status(self, msg: Status) -> str:
+        """
+        Produce error message in case a status message is received without causing action
+        """
+        error_msg = f"Received status message from node {msg.node_name} (debug-id {msg.debug_id}), " \
+                    "but did not find a cause for it."
+        try:
+            self.__node_model_by_name(msg.node_name)
+        except KeyError:
+            node_names = [n.get_name() for n in self.node_models]
+            error_msg += f" Node model with that name is not available. Known nodes are: {node_names}"
+
+        return error_msg
