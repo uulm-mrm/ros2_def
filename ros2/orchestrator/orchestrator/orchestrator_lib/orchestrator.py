@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set
 from typing_extensions import TypeAlias
@@ -77,7 +78,7 @@ class Orchestrator:
     """
 
     def __init__(self, ros_node: RosNode, executor: Executor, node_config: List[NodeModel],
-                 logger: Optional[RcutilsLogger] = None) -> None:
+                 logger: Optional[RcutilsLogger] = None, timing_analysis: bool = True) -> None:
         """
         :param ros_node: A ROS node instance for the orchestrator.
             Should be separate to the hosting node to avoid name conflicts.
@@ -85,10 +86,12 @@ class Orchestrator:
         :param executor: The executor which should be used to spin the above node while waiting for callbacks.
         :param node_config: Node models loaded from launch+node configuration files.
         :param logger: Logger for orchestrator logs. If not provided, default logger of ros_node is used.
+        :param timing_analysis: Log time from wait_until... API call to future resolution.
         """
         self.ros_node = ros_node
         self.executor = executor
         self.l = logger or ros_node.get_logger()
+        self.timing_analysis: bool = timing_analysis
 
         self.node_models: List[NodeModel] = node_config
         _verify_node_models(self.node_models)
@@ -97,9 +100,11 @@ class Orchestrator:
 
         # Offered input by the data source, which can be requested by completing the contained future
         self.next_input: Union[FutureInput, FutureTimestep, None] = None
+        self.next_input_timestamp: Optional[datetime.datetime] = None
 
         # Handle to notify data provider that all callbacks which modify the data providers state are complete
         self.dataprovider_state_update_future: Optional[Future] = None
+        self.dataprovider_state_update_future_timestamp: Optional[datetime.datetime] = None
 
         # The current time of the data source. This should be set once all actions for this time have been added,
         #  altough they might not be done yet.
@@ -242,6 +247,7 @@ class Orchestrator:
         future = Future()
         assert self.dataprovider_state_update_future is None
         self.dataprovider_state_update_future = future
+        self.dataprovider_state_update_future_timestamp = datetime.datetime.now()
         if not self.__has_nodes_that_change_provider_state():
             self.l.info("  There are no actions which modify provider state. Immediately allowing.")
             self.dataprovider_state_update_future.set_result(None)
@@ -286,6 +292,8 @@ class Orchestrator:
             return future
 
         self.next_input = FutureInput(topic, future)
+        if self.timing_analysis:
+            self.next_input_timestamp = datetime.datetime.now()
 
         if self.__ready_for_next_input():
             self.l.info("  Orchestrator is ready, immediately requesting data...")
@@ -391,6 +399,8 @@ class Orchestrator:
 
         f = Future()
         self.next_input = FutureTimestep(t, f)
+        if self.timing_analysis:
+            self.next_input_timestamp = datetime.datetime.now()
 
         if self.__ready_for_next_input():
             self.l.info("  Immediately requesting time...")
@@ -559,6 +569,9 @@ class Orchestrator:
             next = self.next_input
             self.next_input = None
             self.l.info(f"Requesting data on topic {next.topic} for current time {self.simulator_time}")
+            if self.timing_analysis:
+                delta = datetime.datetime.now() - self.next_input_timestamp
+                self.l.info(f"Topic input was delayed by {delta}")
             assert self.simulator_time is not None
             input_node_id = self.__add_topic_input(self.simulator_time, next.topic)
             input_node_data: DataProviderInputAction = self.graph.nodes[input_node_id]["data"]
@@ -570,6 +583,9 @@ class Orchestrator:
             next = self.next_input
             self.next_input = None
             self.l.info(f"Requesting clock input for time {next.time}")
+            if self.timing_analysis:
+                delta = datetime.datetime.now() - self.next_input_timestamp
+                self.l.info(f"Clock input was delayed by {delta}")
             self.__add_pending_timers_until(next.time)
             self.simulator_time = next.time
             next.future.set_result(None)
@@ -831,6 +847,9 @@ class Orchestrator:
         if self.dataprovider_state_update_future is not None:
             if not self.__has_nodes_that_change_provider_state():
                 self.l.info("  No actions which change provider state anymore, allowing data provider state update.")
+                if self.timing_analysis:
+                    delta = datetime.datetime.now() - self.dataprovider_state_update_future_timestamp
+                    self.l.info(f"  Data provider state update was delayed by {delta}")
                 self.dataprovider_state_update_future.set_result(())
                 self.dataprovider_state_update_future = None
             else:
