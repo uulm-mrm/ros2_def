@@ -2,7 +2,7 @@
   "nodes": {
     "sil_vhcl1800_ego_motion_service": {
       "config_file": [
-        "orchestrator",
+        "imu_processing",
         "ego_motion_node_config.json"
       ],
       "remappings": {
