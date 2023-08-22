@@ -1212,6 +1212,18 @@ class Orchestrator:
             self.__node_model_by_name(msg.node_name)
         except KeyError:
             node_names = [n.get_name() for n in self.node_models]
-            error_msg += f" Node model with that name is not available. Known nodes are: {node_names}"
+            error_msg += f" Node model with that name is not available. Known nodes are: {node_names}."
+
+        try:
+            model = self.__node_model_by_name(msg.node_name)
+        except KeyError:
+            pass
+        else:
+            expected_outputs = [output.output_topic for input in
+                                model.get_possible_inputs() for output in model.effects_for_input(input) if
+                                isinstance(output, TopicPublish)]
+            for topic in msg.omitted_outputs:
+                if topic not in expected_outputs:
+                    error_msg += f" Omitted output \"{topic}\" is not a possible output of the node."
 
         return error_msg
