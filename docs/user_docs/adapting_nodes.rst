@@ -2,6 +2,9 @@
 Adapting Nodes
 **************
 
+Node Requirements
+=================
+
 Ensure the node meets the required execution behavior:
 
 * All execution must happen in ROS callbacks.
@@ -15,8 +18,32 @@ Ensure the node meets the required execution behavior:
 * Inputs and outputs must be causally related, in a way that is describeable by the config file, see below.
   Callbacks may omit one or multiple outputs in some invocations, see the status message.
 
+.. _user_docs-status-outputs:
+
+Status Outputs
+==============
+
 .. warning::
   TODO: Status outputs
+
+.. _user_docs-omitted-outputs:
+
+Omitted Outputs
+---------------
+
+Status messages may list ``omitted_outputs``.
+This is a list of topic outputs which would usually occur during the current callback, but will not occur in this specific callback invocation.
+It must contain remapped topic names, not internal names.
+The actual topic name is available from ROS publishers:
+
+.. code-block:: cpp
+
+  status_msg.omitted_outputs
+    .push_back(this->publisher->get_topic_name());
+
+.. code-block:: python
+
+  status_msg.omitted_outputs = [self.publisher.topic_name]
 
 JSON Node Behavior Description
 ==============================
