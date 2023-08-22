@@ -74,7 +74,7 @@ class ReconfiguratorNode(Node):
         assert resp_a.success
 
         self.get_logger().info("Reconfiguration done. Replying to orchestrator.")
-        response.new_launch_config_package = "orchestrator"
+        response.new_launch_config_package = "platform_sil"
         response.new_launch_config_filename = "sil_reconfig_launch_config.json"
         return response
 
