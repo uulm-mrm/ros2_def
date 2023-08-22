@@ -34,7 +34,7 @@ Omitted Outputs
 Status messages may list ``omitted_outputs``.
 This is a list of topic outputs which would usually occur during the current callback, but will not occur in this specific callback invocation.
 It must contain remapped topic names, not internal names.
-The actual topic name is available from ROS publishers:
+The actual topic name is available from ROS publishers in ``rclcpp`` (:external+rclcpp:cpp:func:`rclcpp::PublisherBase::get_topic_name <rclcpp::PublisherBase::get_topic_name>`) and ``rclpy`` (:external+rclpy:py:attr:`rclpy.publisher.Publisher.topic_name`):
 
 .. code-block:: cpp
 

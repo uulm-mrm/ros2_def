@@ -15,7 +15,11 @@ author = 'Jonas Otto'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx-jsonschema']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx-jsonschema',
+    'sphinx.ext.intersphinx',
+]
 autoclass_content = 'both'
 sys.path.insert(0, '../ros2/orchestrator')
 
@@ -25,10 +29,15 @@ jsonschema_options = {
     'lift_description': True,
 }
 
+intersphinx_mapping = {
+    "rclcpp": ("http://docs.ros.org/en/rolling/p/rclcpp", None),
+    "rclpy": ("http://docs.ros.org/en/rolling/p/rclpy/", None)
+}
+intersphinx_disabled_reftypes = ["*"]
+
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 numfig = True
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
