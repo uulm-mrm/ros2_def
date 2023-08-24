@@ -12,6 +12,7 @@
 
     <depend>aduulm_cmake_tools</depend>
     <depend>orchestrator_interfaces</depend>
+    <depend>python3-typing-extensions</depend>
 
     <test_depend>python3-pytest</test_depend>
 
