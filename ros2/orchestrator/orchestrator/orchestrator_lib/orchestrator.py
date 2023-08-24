@@ -276,7 +276,8 @@ class Orchestrator:
         If it is a Status message, it must not be published after it was given to dataprovider_publish!
         Other types of messages must be published normally after this function is called.
         """
-        if isinstance(message, Status):
+        if topic.removeprefix("/") == self.status_subscription.topic_name.removeprefix("/"):
+            assert isinstance(message, Status)
             self.__status_callback(message)
             return
         if topic not in self.interception_subs.keys():
