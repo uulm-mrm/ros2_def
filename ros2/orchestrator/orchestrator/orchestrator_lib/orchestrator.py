@@ -440,7 +440,7 @@ class Orchestrator:
 
         return f
 
-    def wait_until_pending_actions_complete(self):
+    def wait_until_pending_actions_complete(self) -> Future:
         """
         Blocks until no actions are expected anymore (until the callback graph is empty).
         """
