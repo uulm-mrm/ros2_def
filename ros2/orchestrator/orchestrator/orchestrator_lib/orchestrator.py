@@ -271,9 +271,16 @@ class Orchestrator:
         return future
 
     def dataprovider_publish(self, topic, message):
-        """Gives a message to the orchestrator before it will actually be published"""
+        """
+        Gives a message to the orchestrator before it will actually be published.
+        If it is a Status message, it must not be published after it was given to dataprovider_publish!
+        Other types of messages must be published normally after this function is called.
+        """
+        if isinstance(message, Status):
+            self.__status_callback(message)
+            return
         if topic not in self.interception_subs.keys():
-            self.l.debug("Got a message on topic {topic} but we are not subscribed to this input. Ignoring.")
+            self.l.info("Got a message on topic {topic} but we are not subscribed to this input. Ignoring.")
             return
         self.__interception_subscription_callback(topic, message)
         # Ignore next input from this topic, since it will be published now
