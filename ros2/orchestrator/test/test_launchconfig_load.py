@@ -4,18 +4,18 @@ from orchestrator.orchestrator_lib.model_loader import load_launch_config, load_
 
 
 def test_load_tracking_example():
-    test_package = "orchestrator_dummy_nodes"
+    test_package = "orchestrator"
 
     launch_schema = load_launch_config_schema()
     launch_config = load_launch_config(
         test_package,
-        "tracking_example_launch_config.json",
+        "unittest_tracking_example_launch_config.json",
         launch_schema)
 
     model_config_schema = load_node_config_schema()
     models = load_models(launch_config, model_config_schema)
 
-    assert len(models) == 7
+    assert len(models) == 8
 
     tracking_index = None
     for i, model in enumerate(models):

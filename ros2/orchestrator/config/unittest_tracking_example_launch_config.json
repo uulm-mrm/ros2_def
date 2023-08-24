@@ -1,0 +1,87 @@
+{
+  "nodes": {
+    "detector_radar": {
+      "config_file": [
+        "orchestrator",
+        "unittest_tracking_node_config.json"
+      ],
+      "remappings": {
+        "input": "meas/radar",
+        "output": "detections/radar"
+      }
+    },
+    "detector_camera": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "detector_node_config.json"
+      ],
+      "remappings": {
+        "input": "meas/camera",
+        "output": "detections/camera"
+      }
+    },
+    "detector_lidar": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "detector_node_config.json"
+      ],
+      "remappings": {
+        "input": "meas/lidar",
+        "output": "detections/lidar"
+      }
+    },
+    "tracking": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "tracking_node_config.json"
+      ],
+      "remappings": {
+        "input_radar": "detections/radar",
+        "input_lidar": "detections/lidar",
+        "input_camera": "detections/camera",
+        "tracks": "tracks"
+      }
+    },
+    "gridmap": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "detector_node_config.json"
+      ],
+      "remappings": {
+        "input": "meas/radar",
+        "output": "occupancy_grid"
+      }
+    },
+    "plausibility": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "plausibility_node_config.json"
+      ],
+      "remappings": {
+        "tracks_in": "tracks",
+        "gridmap": "occupancy_grid",
+        "tracks_out": "plausible_tracks",
+        "tracks_out_gridmap": "gridmap_tracks"
+      }
+    },
+    "planning": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "planning_node_config.json"
+      ],
+      "remappings": {
+        "output": "trajectory"
+      }
+    },
+    "egomotion_provider": {
+      "config_file": [
+        "orchestrator_dummy_nodes",
+        "service_provider_node_config.json"
+      ],
+      "remappings": {
+        "input": "meas/camera",
+        "service": "egomotion"
+      }
+    }
+  }
+}

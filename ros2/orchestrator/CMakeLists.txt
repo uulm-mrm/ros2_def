@@ -2,14 +2,22 @@ cmake_minimum_required(VERSION 3.10)
 project(orchestrator)
 
 find_package(aduulm_cmake_tools)
-aduulm_init_ros2_package()
+if (aduulm_cmake_tools_FOUND)
+    aduulm_init_ros2_package()
+else ()
+    find_package(ament_cmake REQUIRED)
+endif ()
 
 install(DIRECTORY
-  schemas
-  configs
-  DESTINATION share/${PROJECT_NAME}
+        schemas
+        config
+        DESTINATION share/${PROJECT_NAME}
 )
 
-aduulm_install_ros2_python_code("orchestrator")
-
-aduulm_create_ros2_package()
+if (aduulm_cmake_tools_FOUND)
+    aduulm_install_ros2_python_code("orchestrator")
+    aduulm_create_ros2_package()
+else ()
+    ament_python_install_package("orchestrator")
+    ament_package()
+endif ()

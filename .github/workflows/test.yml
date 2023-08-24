@@ -1,0 +1,27 @@
+name: Deploy Docs to Pages
+
+on:
+  push:
+    branches:
+      - $default-branch
+      # TODO: set develop as default
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    container: ros:iron
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Build orchestrator
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          colcon build --packages-up-to orchestrator
+      - name: Run tests
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          . ./install/setup.sh
+          pytest ros2/orchestrator
