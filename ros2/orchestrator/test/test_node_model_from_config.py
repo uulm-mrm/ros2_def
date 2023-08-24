@@ -15,7 +15,7 @@ def assert_tracking_model_correct(model: NodeModel):
 
 def test_model_load():
     test_package = "orchestrator"
-    test_node_config = "tracking_node_config.json"
+    test_node_config = "unittest_tracking_node_config.json"
 
     node_schema = load_node_config_schema()
     node_config = load_node_config(
