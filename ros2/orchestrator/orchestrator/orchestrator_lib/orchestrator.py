@@ -228,13 +228,14 @@ class Orchestrator:
                         if effect.output_topic not in self.interception_subs:
                             self.l.info(
                                 f"  Subscribing to output topic: {effect.output_topic}")
+                            TopicType = wait_for_topic(effect.output_topic, self.l, self.ros_node, self.executor)
                             sub = self.ros_node.create_subscription(
-                                wait_for_topic(effect.output_topic, self.l, self.ros_node, self.executor),
+                                TopicType,
                                 effect.output_topic,
                                 lambda msg,
                                        topic_name=effect.output_topic: self.__interception_subscription_callback(
                                     topic_name, msg),
-                                10)
+                                10, raw=(TopicType != rosgraph_msgs.msg.Clock))
                             self.interception_subs[effect.output_topic] = sub
                             wait_for_node_pub(
                                 effect.output_topic, node_model.get_name(), self.l, self.ros_node, self.executor)
