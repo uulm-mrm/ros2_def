@@ -280,7 +280,7 @@ class Orchestrator:
             self.__status_callback(message)
             return
         if topic not in self.interception_subs.keys():
-            self.l.info("Got a message on topic {topic} but we are not subscribed to this input. Ignoring.")
+            self.l.info(f"Got a message on topic {topic} but we are not subscribed to this input. Ignoring.")
             return
         self.__interception_subscription_callback(topic, message)
         # Ignore next input from this topic, since it will be published now
