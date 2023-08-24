@@ -9,3 +9,4 @@ User Docs
 
    adapting_data_sources
    adapting_nodes
+   launch_config
