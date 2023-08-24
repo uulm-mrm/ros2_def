@@ -1,0 +1,19 @@
+{
+    "name": "plausibility_node",
+    "callbacks": [
+        {
+            "name": "Tracks processing callback",
+            "trigger": "tracks_in",
+            "outputs": [
+                "tracks_out"
+            ]
+        },
+        {
+            "name": "Gridmap processing callback",
+            "trigger": "gridmap",
+            "outputs": [
+                "tracks_out_gridmap"
+            ]
+        }
+    ]
+}

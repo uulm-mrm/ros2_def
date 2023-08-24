@@ -2,8 +2,8 @@
   "nodes": {
     "detector_radar": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "detector_node_config.json"
+        "orchestrator",
+        "unittest_detector_node_config.json"
       ],
       "remappings": {
         "input": "meas/radar",
@@ -12,8 +12,8 @@
     },
     "detector_camera": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "detector_node_config.json"
+        "orchestrator",
+        "unittest_detector_node_config.json"
       ],
       "remappings": {
         "input": "meas/camera",
@@ -22,8 +22,8 @@
     },
     "detector_lidar": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "detector_node_config.json"
+        "orchestrator",
+        "unittest_detector_node_config.json"
       ],
       "remappings": {
         "input": "meas/lidar",
@@ -44,8 +44,8 @@
     },
     "gridmap": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "detector_node_config.json"
+        "orchestrator",
+        "unittest_detector_node_config.json"
       ],
       "remappings": {
         "input": "meas/radar",
@@ -54,8 +54,8 @@
     },
     "plausibility": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "plausibility_node_config.json"
+        "orchestrator",
+        "unittest_plausibility_node_config.json"
       ],
       "remappings": {
         "tracks_in": "tracks",
@@ -66,8 +66,8 @@
     },
     "planning": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "planning_node_config.json"
+        "orchestrator",
+        "planning_node_config.json.json"
       ],
       "remappings": {
         "output": "trajectory"
@@ -75,8 +75,8 @@
     },
     "egomotion_provider": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "service_provider_node_config.json"
+        "orchestrator",
+        "unittest_service_provider_node_config.json"
       ],
       "remappings": {
         "input": "meas/camera",

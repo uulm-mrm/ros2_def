@@ -1,0 +1,12 @@
+{
+    "name": "detector",
+    "callbacks": [
+        {
+            "name": "Input processing callback",
+            "trigger": "input",
+            "outputs": [
+                "output"
+            ]
+        }
+    ]
+}
