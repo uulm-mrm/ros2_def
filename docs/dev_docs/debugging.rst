@@ -7,8 +7,10 @@ State Sequences
 
 This is a debugging tool which first records all inputs which were sent to a specific node
 and then compares inputs for the node with the expected inputs during a second run.
-
-:py:meth:`orchestrator.lib.Orchestrator.dump_state_sequence`
+To enable recording, set the ``state_sequence_recording`` argument of the :py:meth:`~orchestrator.lib.Orchestrator()` constructor  to ``True``.
+The data provider may then dump the state sequence to files by calling :py:meth:`~orchestrator.lib.Orchestrator.dump_state_sequence`.
+The state sequences can then be inserted into the node description files.
+On the next run, the orchestrator will check if new inputs match the recorded inputs before forwarding them to nodes.
 
 Debug Service
 =============

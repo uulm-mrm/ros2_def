@@ -78,7 +78,8 @@ class Orchestrator:
     """
 
     def __init__(self, ros_node: RosNode, executor: Executor, node_config: List[NodeModel],
-                 logger: Optional[RcutilsLogger] = None, timing_analysis: bool = True) -> None:
+                 logger: Optional[RcutilsLogger] = None, timing_analysis: bool = False,
+                 state_sequence_recording: bool = False) -> None:
         """
         :param ros_node: A ROS node instance for the orchestrator.
             Should be separate to the hosting node to avoid name conflicts.
@@ -87,11 +88,13 @@ class Orchestrator:
         :param node_config: Node models loaded from launch+node configuration files.
         :param logger: Logger for orchestrator logs. If not provided, default logger of ros_node is used.
         :param timing_analysis: Log time from wait_until... API call to future resolution.
+        :param state_sequence_recording: See https://uulm-mrm.github.io/ros2_def/dev_docs/debugging.html#state-sequences
         """
         self.ros_node = ros_node
         self.executor = executor
         self.l = logger or ros_node.get_logger()
         self.timing_analysis: bool = timing_analysis
+        self.state_sequence_recording: bool = state_sequence_recording
 
         self.node_models: List[NodeModel] = node_config
         _verify_node_models(self.node_models)
@@ -145,6 +148,9 @@ class Orchestrator:
 
     def dump_state_sequence(self):
         """Dump recorded state sequence json files for all nodes"""
+        if not self.state_sequence_recording:
+            self.l.error("dump_state_sequence was called but state sequence recording is disabled."
+                         " Enable it in the Orchestrator constructor arguments.")
         for node in self.node_models:
             node.dump_state_sequence()
 
@@ -812,7 +818,8 @@ class Orchestrator:
                                 self.l.debug(f"Removing effect {child_data}")
                                 self.__remove_node_recursive(child)
                     data.state = ActionState.RUNNING
-                    self.__node_model_by_name(data.node).state_sequence_push(data.data)
+                    if self.state_sequence_recording:
+                        self.__node_model_by_name(data.node).state_sequence_push(data.data)
                     self.interception_pubs[data.node][data.topic].publish(
                         data.data)
                 elif isinstance(data, RxAction):
@@ -820,7 +827,8 @@ class Orchestrator:
                     self.l.info(
                         f"    Action is ready and has no constraints: RX of {data.topic} ({type(data.data).__name__}) at node {data.node} ({graph_node_id}). Publishing data...")
                     data.state = ActionState.RUNNING
-                    self.__node_model_by_name(data.node).state_sequence_push(data.data)
+                    if self.state_sequence_recording:
+                        self.__node_model_by_name(data.node).state_sequence_push(data.data)
                     self.interception_pubs[data.node][data.topic].publish(
                         data.data)
                 elif isinstance(data, TimerCallbackAction):
@@ -830,7 +838,8 @@ class Orchestrator:
                     data.state = ActionState.RUNNING
                     time_msg = rosgraph_msgs.msg.Clock()
                     time_msg.clock = data.timestamp.to_msg()
-                    self.__node_model_by_name(data.node).state_sequence_push(time_msg)
+                    if self.state_sequence_recording:
+                        self.__node_model_by_name(data.node).state_sequence_push(time_msg)
                     self.interception_pubs[data.node][normalize_topic_name("clock")].publish(time_msg)
                 repeat = True
         self.l.info(
