@@ -1,0 +1,15 @@
+{
+  "name": "t2t",
+  "callbacks": [
+    {
+      "trigger": "tracks_1",
+      "outputs": [
+        "fused_tracks"
+      ]
+    },
+    {
+      "trigger": "dynamic_tracks",
+      "outputs": []
+    }
+  ]
+}

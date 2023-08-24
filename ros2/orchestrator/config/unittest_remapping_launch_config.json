@@ -1,0 +1,15 @@
+{
+  "nodes": {
+    "t2t": {
+      "config_file": [
+        "orchestrator",
+        "unittest_remapping_node_config.json"
+      ],
+      "remappings": {
+        "tracks_1": "/tracks",
+        "fused_tracks": "/fused_tracks",
+        "dynamic_tracks": "/dynamic_tracks"
+      }
+    }
+  }
+}
