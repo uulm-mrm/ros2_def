@@ -67,7 +67,7 @@
     "planning": {
       "config_file": [
         "orchestrator",
-        "planning_node_config.json.json"
+        "unittest_planning_node_config.json"
       ],
       "remappings": {
         "output": "trajectory"
