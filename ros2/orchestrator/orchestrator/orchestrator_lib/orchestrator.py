@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from collections import defaultdict
 from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set
 from typing_extensions import TypeAlias
 
@@ -109,6 +110,10 @@ class Orchestrator:
         self.dataprovider_state_update_future: Optional[Future] = None
         self.dataprovider_state_update_future_timestamp: Optional[datetime.datetime] = None
 
+        # Handle to notify data provider that all pending actions have completed
+        self.dataprovider_pending_actions_future: Optional[Future] = None
+        self.dataprovider_pending_actions_future_timestamp: Optional[datetime.datetime] = None
+
         # The current time of the data source. This should be set once all actions for this time have been added,
         #  altough they might not be done yet.
         #  When setting this, the data source is allowed to publish the time on /clock, and the corresponding next_input
@@ -138,6 +143,8 @@ class Orchestrator:
         )
 
         self.pending_reconfiguration = False
+
+        self.ignore_next_input_from_topic = defaultdict(bool)
 
     def __reconfiguration_announcement_callback(self, _request: ReconfigurationAnnouncement.Request,
                                                 response: ReconfigurationAnnouncement.Response):
@@ -195,7 +202,7 @@ class Orchestrator:
                     TopicType, canonical_name,
                     lambda msg, topic_name=canonical_name: self.__interception_subscription_callback(
                         topic_name, msg),
-                    10)
+                    10, raw=(TopicType != rosgraph_msgs.msg.Clock))
                 self.interception_subs[canonical_name] = subscription
             else:
                 self.l.info(f"  Subscription for {canonical_name} already exists")
@@ -221,13 +228,14 @@ class Orchestrator:
                         if effect.output_topic not in self.interception_subs:
                             self.l.info(
                                 f"  Subscribing to output topic: {effect.output_topic}")
+                            TopicType = wait_for_topic(effect.output_topic, self.l, self.ros_node, self.executor)
                             sub = self.ros_node.create_subscription(
-                                wait_for_topic(effect.output_topic, self.l, self.ros_node, self.executor),
+                                TopicType,
                                 effect.output_topic,
                                 lambda msg,
                                        topic_name=effect.output_topic: self.__interception_subscription_callback(
                                     topic_name, msg),
-                                10)
+                                10, raw=(TopicType != rosgraph_msgs.msg.Clock))
                             self.interception_subs[effect.output_topic] = sub
                             wait_for_node_pub(
                                 effect.output_topic, node_model.get_name(), self.l, self.ros_node, self.executor)
@@ -262,6 +270,23 @@ class Orchestrator:
             self.l.info("  Waiting until actions modifying provider state are done.")
         return future
 
+    def dataprovider_publish(self, topic, message):
+        """
+        Gives a message to the orchestrator before it will actually be published.
+        If it is a Status message, it must not be published after it was given to dataprovider_publish!
+        Other types of messages must be published normally after this function is called.
+        """
+        if topic.removeprefix("/") == self.status_subscription.topic_name.removeprefix("/"):
+            assert isinstance(message, Status)
+            self.__status_callback(message)
+            return
+        if topic not in self.interception_subs.keys():
+            self.l.info(f"Got a message on topic {topic} but we are not subscribed to this input. Ignoring.")
+            return
+        self.__interception_subscription_callback(topic, message)
+        # Ignore next input from this topic, since it will be published now
+        self.ignore_next_input_from_topic[topic] = True
+
     def __has_nodes_that_change_provider_state(self) -> bool:
         """Returns true if the graph contains actions which will modify the data providers state"""
         for _node_id, data in self.__callback_nodes_with_data():
@@ -293,7 +318,7 @@ class Orchestrator:
         future = Future()
 
         if topic not in self.interception_subs.keys():
-            self.l.warning(f"  We are not subscribed to input \"{topic}\", allow publish without further action")
+            self.l.info(f"  We are not subscribed to input \"{topic}\", allow publish without further action")
             future.set_result(None)
             return future
 
@@ -416,22 +441,30 @@ class Orchestrator:
 
         return f
 
-    def wait_until_pending_actions_complete(self):
+    def wait_until_pending_actions_complete(self) -> Future:
         """
         Blocks until no actions are expected anymore (until the callback graph is empty).
-        Spins the orchestrators' executor.
         """
-        f = Future()
-        while not self.__graph_is_empty():
-            self.executor.spin_until_future_complete(f, timeout_sec=0.01)
+        lc(self.l, "Data provider wants pending actions to complete")
+        future = Future()
+        assert self.dataprovider_pending_actions_future is None
+        self.dataprovider_pending_actions_future = future
+        self.dataprovider_pending_actions_future_timestamp = datetime.datetime.now()
+        if self.__graph_is_empty():
+            self.l.info("  Graph is empty. Immediately allowing.")
+            self.dataprovider_pending_actions_future.set_result(None)
+            self.dataprovider_pending_actions_future = None
+        else:
+            self.l.info("  Waiting until graph is empty.")
+        return future
 
-    def wait_until_reconfiguration_allowed(self):
+    def wait_until_reconfiguration_allowed(self) -> Future:
         """
-        Reconfiguration must only occur after this has returned and before aditional inputs are provided,
+        Reconfiguration must only occur after the returned future has been completed and before aditional inputs are provided,
         to guarantee that it won't interfere with regular processing.
         """
         lc(self.l, "Waiting until reconfiguration is allowed...")
-        self.wait_until_pending_actions_complete()
+        return self.wait_until_pending_actions_complete()
 
     def reconfigure(self, new_node_config: List[NodeModel]):
         """
@@ -775,10 +808,18 @@ class Orchestrator:
 
         return l
 
-    def __remove_node_recursive(self, graph_node: GraphNodeId):
-        for child in list(self.__causality_childs_of(graph_node)):
-            self.__remove_node_recursive(child)
+    def __remove_node(self, graph_node: GraphNodeId, recursive=False):
+        if recursive:
+            for child in list(self.__causality_childs_of(graph_node)):
+                self.__remove_node(child, recursive=True)
         self.graph.remove_node(graph_node)
+        if self.__graph_is_empty() and self.dataprovider_pending_actions_future is not None:
+            self.l.info("  Graph is now empty, allowing data provider to continue.")
+            if self.timing_analysis:
+                delta = datetime.datetime.now() - self.dataprovider_pending_actions_future_timestamp
+                self.l.info(f"  Data provider state update was delayed by {delta}")
+            self.dataprovider_pending_actions_future.set_result(())
+            self.dataprovider_pending_actions_future = None
 
     def __process(self):
         lc(self.l, f"Processing Graph with {self.graph.number_of_nodes()} nodes")
@@ -816,7 +857,7 @@ class Orchestrator:
                             child_data: Action = self.graph.nodes[child]["data"]
                             if not isinstance(child_data, OrchestratorStatusAction):
                                 self.l.debug(f"Removing effect {child_data}")
-                                self.__remove_node_recursive(child)
+                                self.__remove_node(child, recursive=True)
                     data.state = ActionState.RUNNING
                     if self.state_sequence_recording:
                         self.__node_model_by_name(data.node).state_sequence_push(data.data)
@@ -1056,6 +1097,11 @@ class Orchestrator:
     def __interception_subscription_callback(self, topic_name: TopicName, msg: Any):
         lc(self.l, f"Received message on intercepted topic {topic_name}")
 
+        if self.ignore_next_input_from_topic[topic_name]:
+            self.ignore_next_input_from_topic[topic_name] = False
+            self.l.debug(f"Ignoring input from topic {topic_name} since it was already given to us by dataprovider_publish()")
+            return
+
         if topic_name == normalize_topic_name("clock"):
 
             clock_msg = cast(rosgraph_msgs.msg.Clock, msg)
@@ -1116,7 +1162,7 @@ class Orchestrator:
                                 f"Action {action} ({child_id}) is a child of a buffer action but not an RxAction!")
                     self.l.info(
                         f" Buffered data at all {i} subsequent actions, deleting buffer node")
-                    self.graph.remove_node(buffer_id)
+                    self.__remove_node(buffer_id)
                     break  # Only handle first buffer node
 
             if self.__in_degree_by_type(cause_action_id, EdgeType.CAUSALITY) == 0:
@@ -1125,7 +1171,7 @@ class Orchestrator:
                 assert causing_action is not None
                 self.l.info(
                     f"  This completes the {type(causing_action).__name__} action! Removing...")
-                self.graph.remove_node(cause_action_id)
+                self.__remove_node(cause_action_id)
 
         self.__process()
 
@@ -1178,7 +1224,7 @@ class Orchestrator:
             cause_action_id = self.__parent_node(status_node_id)
             assert self.graph.nodes[cause_action_id]["data"].state == ActionState.RUNNING
             causing_action = self.graph.nodes[cause_action_id]["data"]
-            self.graph.remove_node(status_node_id)
+            self.__remove_node(status_node_id)
 
         for omitted_output_topic_name in msg.omitted_outputs:
             self.l.info(f" callback omits topic output at {omitted_output_topic_name}")
@@ -1193,7 +1239,7 @@ class Orchestrator:
             for buffer_id, buffer_data in list(self.__buffer_childs_of_parent(cause_action_id)):
                 if buffer_data.cause.input_topic == omitted_output_topic_name:
                     self.l.debug(f"  deleting buffer node {buffer_id} recursively")
-                    self.__remove_node_recursive(buffer_id)
+                    self.__remove_node(buffer_id, recursive=True)
 
         if cause_action_id is None:
             self.diagnose_invalid_status(msg)
@@ -1207,7 +1253,7 @@ class Orchestrator:
         # Complete the action which sent this message
         if in_degree == 0:
             self.l.info(f"  This completes the {type(causing_action).__name__} callback! Removing...")
-            self.graph.remove_node(cause_action_id)
+            self.__remove_node(cause_action_id)
 
         self.__process()
 

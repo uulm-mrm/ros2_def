@@ -17,7 +17,7 @@
                     "title": "Node instance specification",
                     "properties": {
                         "config_file": {
-                            "type": "array",
+                            "type": ["array", "string"],
                             "prefixItems": [
                                 {
                                     "title": "Package name",
