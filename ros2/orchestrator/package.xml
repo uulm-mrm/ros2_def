@@ -14,6 +14,8 @@
     <depend>orchestrator_interfaces</depend>
     <depend>python3-typing-extensions</depend>
     <depend>python3-deepdiff</depend>
+    <depend>python3-networkx</depend>
+    <depend>python-jsonschema-pip</depend>
 
     <test_depend>python3-pytest</test_depend>
 
