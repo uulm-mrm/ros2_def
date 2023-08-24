@@ -2,8 +2,8 @@
   "nodes": {
     "detector_radar": {
       "config_file": [
-        "orchestrator",
-        "unittest_tracking_node_config.json"
+        "orchestrator_dummy_nodes",
+        "detector_node_config.json"
       ],
       "remappings": {
         "input": "meas/radar",
@@ -32,8 +32,8 @@
     },
     "tracking": {
       "config_file": [
-        "orchestrator_dummy_nodes",
-        "tracking_node_config.json"
+        "orchestrator",
+        "unittest_tracking_node_config.json"
       ],
       "remappings": {
         "input_radar": "detections/radar",
