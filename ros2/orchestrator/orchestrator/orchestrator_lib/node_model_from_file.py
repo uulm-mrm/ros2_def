@@ -22,8 +22,9 @@ class Callback:
 class ConfigFileNodeModel(NodeModel):
 
     def state_sequence_push(self, message):
-        message_bytes = serialize_message(message)
-        h = base64.b64encode(message_bytes).decode()
+        if not isinstance(message, bytes):
+            message = serialize_message(message)
+        h = base64.b64encode(message).decode()
 
         if self.state_sequence is not None:
             expected = self.state_sequence.pop()

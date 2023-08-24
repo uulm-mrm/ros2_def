@@ -48,22 +48,29 @@ def _get_config_path(package: str, name: str) -> Path:
 
 
 def load_node_config(package: str, name: str, schema):
-    try:
-        path = _get_config_path(package, name)
-    except PackageNotFoundError:
-        raise RuntimeError(f"Could not load node config {name}, because package {package} was not found!")
+    if package == "absolute_path":
+        path = name
+    else:
+        try:
+            path = _get_config_path(package, name)
+        except PackageNotFoundError:
+            raise RuntimeError(f"Could not load node config {name}, because package {package} was not found!")
     with open(path) as f:
         node_config = json.load(f)
     validate(instance=node_config, schema=schema)
     return node_config
 
 
-def load_launch_config(package, name, schema):
-    launch_config_path = _get_config_path(package, name)
+def load_launch_config_file(launch_config_path, schema):
     with open(launch_config_path) as f:
         launch_config = json.load(f)
     validate(instance=launch_config, schema=schema)
     return launch_config
+
+
+def load_launch_config(package, name, schema):
+    launch_config_path = name if package == "absolute_path" else _get_config_path(package, name)
+    return load_launch_config_file(launch_config_path, schema)
 
 
 def load_models(launch_config, node_config_schema) -> List[NodeModel]:
