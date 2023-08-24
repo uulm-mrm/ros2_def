@@ -74,7 +74,7 @@ def load_launch_config(package, name, schema):
         path = _get_config_path(package, name)
     except PackageNotFoundError:
         raise RuntimeError(f"Could not load launch config {name}, because package {package} was not found!")
-    return load_launch_config_file(launch_config_path, schema)
+    return load_launch_config_file(path, schema)
 
 
 def load_models(launch_config, node_config_schema) -> List[NodeModel]:
