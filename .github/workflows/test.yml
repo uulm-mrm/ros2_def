@@ -20,7 +20,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           apt update
           rosdep update
-          rosdep install --from-paths ros2 --ignore-packages-from-source -y --skip-keys="aduulm_cmake_tools aduulm_messages"
+          rosdep install --from-paths ros2 --ignore-packages-from-source --verbose --default-yes --skip-keys="aduulm_cmake_tools aduulm_messages"
       - name: Build orchestrator
         run: |
           . /opt/ros/$ROS_DISTRO/setup.sh
