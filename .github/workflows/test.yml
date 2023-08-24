@@ -31,4 +31,4 @@ jobs:
           . /opt/ros/$ROS_DISTRO/setup.sh
           cd $GITHUB_WORKSPACE
           . ./install/setup.sh
-          pytest ros2/orchestrator
+          pytest-3 ros2/orchestrator
