@@ -20,7 +20,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           apt update
           rosdep update
-          rosdep install -y
+          rosdep install --from-paths ros2 --ignore-packages-from-source -y
       - name: Build orchestrator
         run: |
           . /opt/ros/$ROS_DISTRO/setup.sh
