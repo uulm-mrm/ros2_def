@@ -457,9 +457,9 @@ class Orchestrator:
             self.l.info("  Waiting until graph is empty.")
         return future
 
-    def wait_until_reconfiguration_allowed(self):
+    def wait_until_reconfiguration_allowed(self) -> Future:
         """
-        Reconfiguration must only occur after this has returned and before aditional inputs are provided,
+        Reconfiguration must only occur after the returned future has been completed and before aditional inputs are provided,
         to guarantee that it won't interfere with regular processing.
         """
         lc(self.l, "Waiting until reconfiguration is allowed...")

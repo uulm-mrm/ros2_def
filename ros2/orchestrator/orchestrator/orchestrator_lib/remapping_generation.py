@@ -44,6 +44,8 @@ def generate_remappings_from_config(launch_config: any) -> List[SetRemap]:
 
     Generates interception remapping for each input topic.
     Additionally intercepts /clock if time-triggered callbacks exist.
+
+    :param launch_config: Deserialized launch config as dict
     """
     node_models = load_models(launch_config, load_node_config_schema())
 
