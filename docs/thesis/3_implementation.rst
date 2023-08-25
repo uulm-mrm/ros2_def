@@ -601,7 +601,7 @@ The following shows an example launch file that starts the software stack under 
 
    def generate_launch_description():
        return LaunchDescription([
-           *generate_remappings_from_config(
+           *generate_remappings_from_config_file(
                "orchestrator",
                "sil_reconfig_launch_config.json"
            ),

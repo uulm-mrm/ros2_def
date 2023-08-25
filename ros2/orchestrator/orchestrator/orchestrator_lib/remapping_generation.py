@@ -88,7 +88,7 @@ def main():
     package_name = sys.argv[1]
     config_name = sys.argv[2]
 
-    remappings = generate_remappings_from_config(package_name, config_name)
+    remappings = generate_remappings_from_config_file(package_name, config_name)
     for r in remappings:
         if len(r.src) == 0 or not isinstance(r.src[0], TextSubstitution):
             raise RuntimeError(

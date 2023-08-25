@@ -18,7 +18,7 @@ before including the original launch file, like that:
 
     def generate_launch_description():
         return LaunchDescription([
-            *generate_remappings_from_config(
+            *generate_remappings_from_config_file(
                 "orchestrator",
                 "sil_reconfig_launch_config.json"
             ),

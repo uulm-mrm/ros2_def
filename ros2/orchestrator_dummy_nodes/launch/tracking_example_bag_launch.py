@@ -4,7 +4,7 @@ from launch.substitutions import LaunchConfiguration, TextSubstitution
 
 from launch_ros.actions import Node, SetParameter
 
-from orchestrator.orchestrator_lib.remapping_generation import generate_remappings_from_config
+from orchestrator.orchestrator_lib.remapping_generation import generate_remappings_from_config_file
 
 
 def generate_launch_description():
@@ -26,7 +26,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "bag_uri",
-            default_value=TextSubstitution(text="/home/gja38/aduulm_sandbox_sil/rosbags/rosbag2_2023_05_12-13_11_59_converted"),
+            default_value=TextSubstitution(
+                text="/home/gja38/aduulm_sandbox_sil/rosbags/rosbag2_2023_05_12-13_11_59_converted"),
             description="Bag file path"
         ),
 
@@ -44,7 +45,7 @@ def generate_launch_description():
         ),
 
         SetParameter(name="use_sim_time", value=True),
-        *generate_remappings_from_config(config_package, config_file),
+        *generate_remappings_from_config_file(config_package, config_file),
 
         # RADAR
         Node(

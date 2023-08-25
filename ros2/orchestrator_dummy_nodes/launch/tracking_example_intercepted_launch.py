@@ -6,7 +6,7 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 
-from orchestrator.orchestrator_lib.remapping_generation import generate_remappings_from_config
+from orchestrator.orchestrator_lib.remapping_generation import generate_remappings_from_config_file
 
 
 def generate_launch_description():
@@ -20,7 +20,7 @@ def generate_launch_description():
             ],
             on_exit=Shutdown(),
         ),
-        *generate_remappings_from_config("orchestrator_dummy_nodes", "tracking_example_launch_config.json"),
+        *generate_remappings_from_config_file("orchestrator_dummy_nodes", "tracking_example_launch_config.json"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
