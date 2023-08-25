@@ -47,7 +47,7 @@ def _get_config_path(package: str, name: str) -> Path:
         raise RuntimeError(f"Config file {name} from package {package} not found at expected location {config_path}.")
 
 
-def load_node_config_file(path: str, schema):
+def load_node_config_file(path: Path, schema: dict):
     with open(path) as f:
         node_config = json.load(f)
     validate(instance=node_config, schema=schema)
@@ -77,21 +77,20 @@ def load_launch_config(package, name, schema):
     return load_launch_config_file(path, schema)
 
 
-def load_models(launch_config, node_config_schema) -> List[NodeModel]:
+def load_models(launch_config: dict, node_config_schema) -> List[NodeModel]:
     models = []
     for name, node in launch_config["nodes"].items():
-        assert "/" not in name
         remappings: Dict[str, str] = node.get("remappings", {})
+        if isinstance(node["config_file"], str):
+            path = node["config_file"]
+        else:
+            package, filename = node["config_file"]
+            path = _get_config_path(package, filename)
         try:
-            if isinstance(node["config_file"], str):
-                path = node["config_file"]
-            else:
-                package, filename = node["config_file"]
-                path = _get_config_path(package, filename)
             config = load_node_config_file(path, node_config_schema)
         except Exception as e:
             raise RuntimeError(
-                f"Error while trying to load the node config for \"{name}\" from {filename} in package {package}: {e}")
+                f"Error while trying to load the node config for \"{name}\" from {path}: {e}")
         state_sequence = node.get("state_sequence", None)
 
         model = ConfigFileNodeModel(config, name, remappings, state_sequence)

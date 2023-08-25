@@ -1,0 +1,10 @@
+{
+  "nodes": {
+    "/namespace/t2t": {
+      "config_file": [
+        "orchestrator",
+        "unittest_remapping_node_config.json"
+      ]
+    }
+  }
+}

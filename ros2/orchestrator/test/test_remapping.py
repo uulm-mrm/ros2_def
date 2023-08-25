@@ -12,6 +12,7 @@ def test_trivial():
 
 
 def test_slash_in_node():
+    # This is not supported by remapping, but the topic-interception should work...
     assert initial_name_from_intercepted("/intercepted/node/a/sub/topic_a") == ("node/a", "topic_a")
 
 
@@ -35,7 +36,7 @@ def test_preexisting_remapping():
     # TODO: Write test that the interception remapping is actually applied before the existing remapping
     remap_args = [
         "--ros-args", "--remap", f"{node_name}:{topic_inside_node}:={intercepted}",
-        "--ros-args", "--remap", f"{node_name}:{topic_inside_node}:={topic_outside}", ]
+        "--ros-args", "--remap", f"{node_name}:{topic_inside_node}:={topic_outside}"]
     print(remap_args)
     rclpy.init()
     node = rclpy.node.Node(node_name, use_global_arguments=False, cli_args=remap_args)
@@ -80,12 +81,6 @@ def test_remap_ambiguity():
     ("lsfd/ds_jnf/öhgflk", "dsfmodsf/dskj_fn/ab"),
     ("abc", "def"),
     ("abc", "def/"),
-    ("abc/", "def"),
-    ("abc/", "def/"),
-    ("/abc", "def"),
-    ("/abc", "def/"),
-    ("/abc/", "def"),
-    ("/abc/", "def/"),
 ])
 def test_round_trip(node_name, topic_name):
     assert initial_name_from_intercepted(intercepted_name(node_name, topic_name)) == (node_name, topic_name)
@@ -93,15 +88,9 @@ def test_round_trip(node_name, topic_name):
 
 @pytest.mark.parametrize("node_name,topic_name", [
     ("asdfghj", "/ghjkl"),
-    ("lsfd/ds_jnf/öhgflk", "/dsfmodsf/dskj_fn/ab"),
+    ("lsfdds_jnföhgflk", "/dsfmodsf/dskj_fn/ab"),
     ("abc", "/def"),
     ("abc", "/def/"),
-    ("abc/", "/def"),
-    ("abc/", "/def/"),
-    ("/abc", "/def"),
-    ("/abc", "/def/"),
-    ("/abc/", "/def"),
-    ("/abc/", "/def/"),
 ])
 def test_leading_slash_topic(node_name, topic_name):
     assert (initial_name_from_intercepted(intercepted_name(node_name, topic_name)) ==
@@ -131,3 +120,8 @@ def test_generated_remappings_1():
     assert remap_contains(SetRemap(src="t2t:tracks_1", dst="/intercepted/t2t/sub/tracks"), remappings)
     assert remap_contains(SetRemap(src="t2t:dynamic_tracks", dst="/intercepted/t2t/sub/dynamic_tracks"), remappings)
     assert not remap_contains(SetRemap(src="t2t:fused_tracks", dst="/intercepted/t2t/sub/fused_tracks"), remappings)
+
+
+def test_launchfile_fqn_nodename():
+    with pytest.raises(RuntimeError, match=r"Node namespaces are not supported.*"):
+        generate_remappings_from_config_file("orchestrator", "unittest_fqn_launch_config.json")
