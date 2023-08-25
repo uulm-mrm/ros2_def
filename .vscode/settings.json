@@ -1,7 +1,4 @@
 {
-    "python.formatting.autopep8Args": [
-        "--max-line-length=150"
-    ],
     "python.autoComplete.extraPaths": [
         "/home/gja38/sandbox_otto/install/orchestrator_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/spatz_interfaces/local/lib/python3.10/dist-packages",
@@ -18,7 +15,6 @@
         "/home/gja38/sandbox_otto/src/orchestrator",
         "/workspaces/ros2_def/install/orchestrator_interfaces/lib/python3.10/site-packages"
     ],
-    "python.analysis.typeCheckingMode": "basic",
     "python.analysis.inlayHints.functionReturnTypes": true,
     "python.analysis.inlayHints.variableTypes": true,
     "files.exclude": {
@@ -47,5 +43,8 @@
     "editor.stickyScroll.enabled": true,
     "terminal.integrated.scrollback": 10000,
     "python.analysis.stubPath": "ros2/orchestrator/typings",
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8"
+    }
 }

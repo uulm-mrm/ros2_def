@@ -1,4 +1,6 @@
-from typing import Type, Optional
+# pyright: strict
+
+from typing import Any, Type, Optional
 
 from rclpy.task import Future
 from rclpy.executors import Executor
@@ -8,7 +10,7 @@ from rclpy.impl.rcutils_logger import RcutilsLogger
 from orchestrator.orchestrator_lib.name_utils import TopicName, type_from_string
 
 
-def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node, executor: Executor) -> Type:
+def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node, executor: Executor) -> Type[Any]:
     name = node.resolve_topic_name(name)
 
     def find_type():
@@ -29,10 +31,10 @@ def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node, executor:
     return msgtype
 
 
-def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor) -> Type:
+def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor) -> Type[Any]:
     topic_name = node.resolve_topic_name(topic_name)
 
-    def try_get_type() -> Optional[Type]:
+    def try_get_type() -> Optional[Type[Any]]:
         for info in node.get_subscriptions_info_by_topic(topic_name):
             if info.node_name == node_name:
                 return type_from_string(info.topic_type)
@@ -59,7 +61,7 @@ def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, no
 
     def node_has_pub():
         by_node = node.get_publisher_names_and_types_by_node(node_name, node.get_namespace())
-        for topic, types in by_node:
+        for topic, _types in by_node:
             if topic == topic_name:
                 return True
         return False

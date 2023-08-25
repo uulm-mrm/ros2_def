@@ -57,7 +57,7 @@ class NodeModel(ABC):
         super().__init__()
 
     @abstractmethod
-    def state_sequence_push(self, x: Any):
+    def state_sequence_push(self, message: Any):
         ...
 
     @abstractmethod

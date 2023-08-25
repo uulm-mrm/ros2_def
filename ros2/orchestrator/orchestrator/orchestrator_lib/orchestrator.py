@@ -1,4 +1,4 @@
-# at some point, enable: pyright: strict, reportMissingTypeStubs=true
+# pyright: basic
 
 import datetime
 from dataclasses import dataclass
@@ -235,7 +235,7 @@ class Orchestrator:
                                 TopicType,
                                 effect.output_topic,
                                 lambda msg,
-                                       topic_name=effect.output_topic: self.__interception_subscription_callback(
+                                topic_name=effect.output_topic: self.__interception_subscription_callback(
                                     topic_name, msg),
                                 10, raw=(TopicType != rosgraph_msgs.msg.Clock))
                             self.interception_subs[effect.output_topic] = sub
@@ -648,7 +648,7 @@ class Orchestrator:
                 yield (id, action)
 
     def __buffer_childs_of_parent(self, parent: GraphNodeId) -> Generator[
-        Tuple[GraphNodeId, OrchestratorBufferAction], None, None]:
+            Tuple[GraphNodeId, OrchestratorBufferAction], None, None]:
         for id, data in self.__buffer_nodes_with_data():
             if self.graph.has_edge(id, parent):
                 yield id, data

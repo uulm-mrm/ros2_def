@@ -1,3 +1,5 @@
+# pyright: strict
+
 import datetime
 from rclpy.executors import Executor
 

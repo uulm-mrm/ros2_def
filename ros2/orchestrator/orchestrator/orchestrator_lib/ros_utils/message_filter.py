@@ -1,3 +1,5 @@
+# pyright: strict
+
 from typing import Any, List, Mapping
 from threading import Lock
 from message_filters import SimpleFilter, ApproximateTimeSynchronizer
@@ -19,7 +21,7 @@ class ApproximateTimeSynchronizerTracker:
         self._lock = Lock()
         self._time_synchronizer.registerCallback(self.__callback)
 
-    def __callback(self, *_msgs):
+    def __callback(self, *_msgs: Any):
         self._was_called = True
 
     def test_input(self, topic_name: str, msg: Any) -> bool:

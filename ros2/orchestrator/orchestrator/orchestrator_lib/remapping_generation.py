@@ -1,3 +1,5 @@
+# pyright: strict
+
 import sys
 
 from typing import List, Dict
@@ -6,8 +8,8 @@ from orchestrator.orchestrator_lib.node_model import TopicInput, TimerInput
 from orchestrator.orchestrator_lib.name_utils import intercepted_name, normalize_topic_name
 from .model_loader import *
 
-from launch_ros.actions import SetRemap
-from launch.substitutions import TextSubstitution
+from launch_ros.actions import SetRemap  # pyright: ignore [reportMissingTypeStubs]
+from launch.substitutions import TextSubstitution  # pyright: ignore [reportMissingTypeStubs]
 
 
 def _find_node_model(name: str, models: List[NodeModel]) -> NodeModel:
@@ -38,7 +40,7 @@ def generate_remappings_from_config_file(package_name: str, launch_config_file: 
     return generate_remappings_from_config(launch_config)
 
 
-def generate_remappings_from_config(launch_config: dict) -> List[SetRemap]:
+def generate_remappings_from_config(launch_config: dict[str, Any]) -> List[SetRemap]:
     """
     Generate remappings for topic interception by orchestrator.
 
@@ -49,7 +51,7 @@ def generate_remappings_from_config(launch_config: dict) -> List[SetRemap]:
     """
     node_models = load_models(launch_config, load_node_config_schema())
 
-    remap_actions = []
+    remap_actions: list[SetRemap] = []
 
     for node_name, node in launch_config["nodes"].items():
         if "/" in node_name:

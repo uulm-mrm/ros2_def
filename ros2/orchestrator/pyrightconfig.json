@@ -1,5 +1,7 @@
 {
   "include": [
     "orchestrator"
-  ]
+  ],
+  "typeCheckingMode": "strict",
+  "reportUnnecessaryTypeIgnoreComment": "error"
 }

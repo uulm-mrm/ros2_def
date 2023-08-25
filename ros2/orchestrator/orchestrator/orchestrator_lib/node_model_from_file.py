@@ -1,9 +1,11 @@
+# pyright: strict
+
 from __future__ import annotations
 
 import base64
 import json
 from dataclasses import dataclass
-from typing import cast, final, Dict, Optional, Any
+from typing import Iterable, cast, final, Optional, Any
 
 from orchestrator.orchestrator_lib.name_utils import normalize_topic_name
 from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, \
@@ -41,23 +43,23 @@ class ConfigFileNodeModel(NodeModel):
         with open('state_sequence_' + self.get_name() + '.json', 'w') as f:
             json.dump(self.state_recording, f)
 
-    def __init__(self, node_config: dict, name, remappings: Dict[str, str],
-                 state_sequence: Optional[list] = None) -> None:
+    def __init__(self, node_config: dict[str, Any], name: str, remappings: dict[str, str],
+                 state_sequence: Optional[list[str]] = None) -> None:
 
-        self.state_sequence = state_sequence
+        self.state_sequence: Optional[list[str]] = state_sequence
         if self.state_sequence is not None:
             self.state_sequence.reverse()
-        self.state_recording = []
+        self.state_recording: list[str] = []
 
         # Mappings from internal to external name
         mappings: dict[str, str] = {}
 
-        inputs = set()
+        inputs: set[str] = set()
 
         # Initialize mappings by identity for all known inputs and outputs from
         # node config.
-        for callback in node_config["callbacks"]:
-            trigger = callback["trigger"]
+        for callback in cast(Iterable[dict[str, Any]], node_config["callbacks"]):
+            trigger: str | dict[str, Any] = cast(str | dict[str, Any], callback["trigger"])
 
             if isinstance(trigger, str):
                 trigger = normalize_topic_name(trigger)
@@ -114,7 +116,7 @@ class ConfigFileNodeModel(NodeModel):
         # Mapping from external topic input to external topic outputs
         self.effects: dict[Cause, Callback] = {}
 
-        def add_effect(trigger: Cause, outputs, service_calls, changes_dp_state: bool, may_reconfigure: bool):
+        def add_effect(trigger: Cause, outputs: Iterable[str], service_calls: Iterable[str], changes_dp_state: bool, may_reconfigure: bool):
             output_effects: list[Effect] = []
             for output in outputs:
                 output = normalize_topic_name(output)
@@ -136,19 +138,19 @@ class ConfigFileNodeModel(NodeModel):
 
         for callback in node_config["callbacks"]:
             trigger = callback["trigger"]
-
+            cause: Cause
             if isinstance(trigger, str):
                 trigger = normalize_topic_name(trigger)
-                trigger = self.internal_topic_input(trigger)
-                add_effect(trigger,
+                cause = self.internal_topic_input(trigger)
+                add_effect(cause,
                            callback.get("outputs", []),
                            callback.get("service_calls", []),
                            callback.get("changes_dataprovider_state", False),
                            callback.get("may_cause_reconfiguration", False))
             elif trigger.get("type", None) == "topic" and "name" in trigger:
                 topic_name = normalize_topic_name(trigger["name"])
-                trigger = self.internal_topic_input(topic_name)
-                add_effect(trigger,
+                cause = self.internal_topic_input(topic_name)
+                add_effect(cause,
                            callback.get("outputs", []),
                            callback.get("service_calls", []),
                            callback.get("changes_dataprovider_state", False),
@@ -164,8 +166,7 @@ class ConfigFileNodeModel(NodeModel):
                            callback.get("service_calls", []),
                            callback.get("changes_dataprovider_state", False),
                            callback.get("may_cause_reconfiguration", False))
-            elif trigger.get("type",
-                             None) == "approximate_time_sync" and "input_topics" in trigger and "slop" in trigger and "queue_size" in trigger:
+            elif trigger.get("type", None) == "approximate_time_sync" and "input_topics" in trigger and "slop" in trigger and "queue_size" in trigger:
                 input_topics = trigger["input_topics"]
                 slop = trigger["slop"]
                 queue = trigger["queue_size"]
