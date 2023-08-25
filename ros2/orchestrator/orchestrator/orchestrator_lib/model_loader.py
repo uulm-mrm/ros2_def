@@ -80,6 +80,7 @@ def load_launch_config(package, name, schema):
 def load_models(launch_config, node_config_schema) -> List[NodeModel]:
     models = []
     for name, node in launch_config["nodes"].items():
+        assert "/" not in name
         remappings: Dict[str, str] = node.get("remappings", {})
         try:
             if isinstance(node["config_file"], str):

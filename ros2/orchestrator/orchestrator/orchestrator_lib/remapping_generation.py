@@ -52,6 +52,12 @@ def generate_remappings_from_config(launch_config: any) -> List[SetRemap]:
     remap_actions = []
 
     for node_name, node in launch_config["nodes"].items():
+        if "/" in node_name:
+            raise RuntimeError("Node namespaces are not supported."
+                               " Apply prefixes manually using a separator that is not a forward slash."
+                               " This is because node-specific remappings don't accept fully qualified names currently."
+                               " See https://github.com/ros2/rcl/issues/296, https://github.com/ros2/design/pull/299"
+                               " and https://uulm-mrm.github.io/ros2_def/dev_docs/interception.html.")
         remappings: Dict[str, str] = node.get("remappings", {})
         model = _find_node_model(node_name, node_models)
         for input in model.get_possible_inputs():
