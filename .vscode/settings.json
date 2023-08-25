@@ -6,16 +6,17 @@
         "/home/gja38/sandbox_otto/install/orchestrator_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/spatz_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/colcon-discover-submodule/lib/python3.10/site-packages",
-        "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/iron/lib/python3.10/site-packages",
+        "/opt/ros/iron/local/lib/python3.10/dist-packages"
     ],
     "python.analysis.extraPaths": [
         "/home/gja38/sandbox_otto/install/orchestrator_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/spatz_interfaces/local/lib/python3.10/dist-packages",
         "/opt/carolo/install/colcon-discover-submodule/lib/python3.10/site-packages",
-        "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages",
-        "/home/gja38/sandbox_otto/src/orchestrator"
+        "/opt/ros/iron/lib/python3.10/site-packages",
+        "/opt/ros/iron/local/lib/python3.10/dist-packages",
+        "/home/gja38/sandbox_otto/src/orchestrator",
+        "/workspaces/ros2_def/install/orchestrator_interfaces/lib/python3.10/site-packages"
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.inlayHints.functionReturnTypes": true,
@@ -45,6 +46,6 @@
     },
     "editor.stickyScroll.enabled": true,
     "terminal.integrated.scrollback": 10000,
-    "python.analysis.stubPath": ".vscode/stubs",
+    "python.analysis.stubPath": "ros2/orchestrator/typings",
     "cmake.configureOnOpen": false
 }
