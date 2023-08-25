@@ -1,4 +1,5 @@
 import pytest
+import rclpy.node
 from launch import LaunchContext
 from launch_ros.actions import SetRemap
 
@@ -20,6 +21,58 @@ def test_slash_in_topic():
 
 def test_slash_in_both():
     assert initial_name_from_intercepted("/intercepted/node/a/sub/topic/a") == ("node/a", "topic/a")
+
+
+def test_preexisting_remapping():
+    """
+    This test verifies interception remappings when the topic would usually already be remapped.
+    In this case, the interception remapping replaces/overrides this, since remappings are not applied transitively.
+    """
+    node_name = "node_1"
+    topic_inside_node = "some_relative/topic_name"
+    topic_outside = "/the_namespace/the_real_topic"
+    intercepted = intercepted_name(node_name, topic_outside)
+    # TODO: Write test that the interception remapping is actually applied before the existing remapping
+    remap_args = [
+        "--ros-args", "--remap", f"{node_name}:{topic_inside_node}:={intercepted}",
+        "--ros-args", "--remap", f"{node_name}:{topic_inside_node}:={topic_outside}", ]
+    print(remap_args)
+    rclpy.init()
+    node = rclpy.node.Node(node_name, use_global_arguments=False, cli_args=remap_args)
+    topic_resolved = node.resolve_topic_name(topic_inside_node)
+    assert topic_resolved == "/intercepted/node_1/sub/the_namespace/the_real_topic"
+
+
+def test_remapping_transitivity():
+    # This verifies that remappings are not applied transitively, i.e. that a:=b and b:=c do not imply a:=c
+    node_name = "node_1"
+    remap_args = ["--ros-args", "--remap", f"a:=b",
+                  "--ros-args", "--remap", f"b:=c"]
+    if not rclpy.ok():
+        rclpy.init()
+    node = rclpy.node.Node(node_name, use_global_arguments=False, cli_args=remap_args)
+    assert node.resolve_topic_name("a") == "/b"
+
+    remap_args_reversed = ["--ros-args", "--remap", "b:=c",
+                           "--ros-args", "--remap", "a:=b"]
+    node_2 = rclpy.node.Node(node_name, use_global_arguments=False, cli_args=remap_args_reversed)
+    assert node_2.resolve_topic_name("a") == "/b"
+
+
+def test_remap_ambiguity():
+    # This verifies that if multiple remap rules match, the first is applied
+    node_name = "node_1"
+    remap_args = ["--ros-args", "--remap", f"a:=b",
+                  "--ros-args", "--remap", f"a:=c"]
+    if not rclpy.ok():
+        rclpy.init()
+    node = rclpy.node.Node(node_name, use_global_arguments=False, cli_args=remap_args)
+    assert node.resolve_topic_name("a") == "/b"
+
+    remap_args_reversed = ["--ros-args", "--remap", "a:=c",
+                           "--ros-args", "--remap", "a:=b"]
+    node_2 = rclpy.node.Node(node_name, use_global_arguments=False, cli_args=remap_args_reversed)
+    assert node_2.resolve_topic_name("a") == "/c"
 
 
 @pytest.mark.parametrize("node_name,topic_name", [
