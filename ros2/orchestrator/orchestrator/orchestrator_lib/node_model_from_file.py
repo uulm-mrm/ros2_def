@@ -3,7 +3,8 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import dataclass
-from typing import cast, final, Dict, Optional, Tuple
+from typing import cast, final, Dict, Optional, Any
+
 from orchestrator.orchestrator_lib.name_utils import normalize_topic_name
 from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, \
     StatusPublish, TimeSyncInfo, TimerInput
@@ -21,7 +22,7 @@ class Callback:
 @final
 class ConfigFileNodeModel(NodeModel):
 
-    def state_sequence_push(self, message):
+    def state_sequence_push(self, message: Any):
         if not isinstance(message, bytes):
             message = serialize_message(message)
         h = base64.b64encode(message).decode()

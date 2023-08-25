@@ -1,22 +1,24 @@
+# pyright: strict
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Union, Tuple, List, Optional
+from typing import Union, Tuple, List, Optional, Any
 
 from typing_extensions import TypeAlias
 
 
 @dataclass(frozen=True)
-class TopicInput():
+class TopicInput:
     input_topic: str
 
 
 @dataclass(frozen=True)
-class TimerInput():
+class TimerInput:
     period: int  # Timer period in ns
 
 
 @dataclass(frozen=True)
-class TimeSyncInfo():
+class TimeSyncInfo:
     input_topics: Tuple[str, ...]
     slop: float
     queue_size: int
@@ -26,17 +28,17 @@ Cause: TypeAlias = Union[TopicInput, TimerInput]
 
 
 @dataclass(frozen=True)
-class TopicPublish():
+class TopicPublish:
     output_topic: str
 
 
 @dataclass(frozen=True)
-class StatusPublish():
+class StatusPublish:
     pass
 
 
 @dataclass
-class ServiceCall():
+class ServiceCall:
     service_name: str
 
 
@@ -55,7 +57,7 @@ class NodeModel(ABC):
         super().__init__()
 
     @abstractmethod
-    def state_sequence_push(self, x):
+    def state_sequence_push(self, x: Any):
         ...
 
     @abstractmethod
@@ -69,9 +71,7 @@ class NodeModel(ABC):
         """Map remapped topic name to internal name"""
         for input_name, input_topic in self.remappings:
             if input_topic == topic:
-                if not isinstance(input_name, str):
-                    raise NotImplementedError(
-                        "Remapping with substitutions is not implemented")
+
                 return input_name
         raise ValueError(f"Topic {topic} is not known to node")
 
@@ -79,9 +79,6 @@ class NodeModel(ABC):
         """Map internal topic name to remapped name"""
         for input_name, input_topic in self.remappings:
             if input_name == internal_name:
-                if not isinstance(input_topic, str):
-                    raise NotImplementedError(
-                        "Remapping with substitutions is not implemented")
                 return input_topic
         raise ValueError(
             f"Internal name \"{internal_name}\" of node \"{self.get_name()}\" has no (external) topic name!")

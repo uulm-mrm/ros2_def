@@ -1,3 +1,5 @@
+# at some point, enable: pyright: strict, reportMissingTypeStubs=true
+
 import datetime
 from dataclasses import dataclass
 from collections import defaultdict
@@ -93,7 +95,7 @@ class Orchestrator:
         """
         self.ros_node = ros_node
         self.executor = executor
-        self.l = logger or ros_node.get_logger()
+        self.l: RcutilsLogger = logger or ros_node.get_logger()
         self.timing_analysis: bool = timing_analysis
         self.state_sequence_recording: bool = state_sequence_recording
 
