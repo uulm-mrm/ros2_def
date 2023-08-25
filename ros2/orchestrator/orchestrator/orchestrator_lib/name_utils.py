@@ -1,7 +1,7 @@
+# pyright: strict
+
 from __future__ import annotations
 
-import importlib
-from typing import Generator, Type
 from typing_extensions import TypeAlias
 import rosidl_runtime_py.utilities
 
@@ -15,7 +15,7 @@ def normalize_topic_name(name: str) -> str:
     return name
 
 
-def remove_prefix(text, prefix):
+def remove_prefix(text: str, prefix: str):
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
@@ -46,13 +46,3 @@ def initial_name_from_intercepted(intercepted_name: str) -> tuple[str, str]:
 
 def type_from_string(typestring: str):
     return rosidl_runtime_py.utilities.get_message(typestring)
-
-
-def collect_intercepted_topics(topic_names_and_types) -> Generator[tuple[str, str, str, Type], None, None]:
-    for intercepted_name, types in topic_names_and_types:
-        if intercepted_name.startswith("/intercepted"):
-            for type in types:
-                type = type_from_string(type)
-                node, canonical_name = initial_name_from_intercepted(
-                    intercepted_name)
-                yield node, canonical_name, intercepted_name, type
