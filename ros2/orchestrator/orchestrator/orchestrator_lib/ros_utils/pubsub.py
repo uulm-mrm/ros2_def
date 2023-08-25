@@ -1,6 +1,6 @@
 from typing import Type, Optional
 
-from rclpy import Future
+from rclpy.task import Future
 from rclpy.executors import Executor
 from rclpy.node import Node
 from rclpy.impl.rcutils_logger import RcutilsLogger

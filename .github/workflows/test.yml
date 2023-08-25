@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Tests
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - develop
 
 jobs:
-  test:
+  unit-test:
     runs-on: ubuntu-22.04
     container: ros:iron
     steps:
@@ -32,3 +32,30 @@ jobs:
           cd $GITHUB_WORKSPACE
           . ./install/setup.sh
           pytest-3 --color=yes ros2/orchestrator
+
+  pyright:
+    runs-on: ubuntu-22.04
+    container: ros:iron
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          apt update
+          rosdep update
+          rosdep install --from-paths ros2 --ignore-packages-from-source --verbose --default-yes --skip-keys="aduulm_cmake_tools aduulm_messages"
+          pip install --upgrade pyright
+      - name: Build orchestrator dependencies
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          colcon build --packages-up-to orchestrator --packages-skip orchestrator
+      - name: Run pyright
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          . ./install/setup.sh
+          cd ros2/orchestrator
+          pyright

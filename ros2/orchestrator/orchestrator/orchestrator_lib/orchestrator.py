@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set
+from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set, Iterable
 from typing_extensions import TypeAlias
 
 from std_srvs.srv import Trigger
@@ -21,7 +21,7 @@ from orchestrator_interfaces.msg import Status
 from orchestrator_interfaces.srv import ReconfigurationAnnouncement, ReconfigurationRequest
 
 import rclpy
-from rclpy import Future
+from rclpy.task import Future
 from rclpy.node import Node as RosNode
 from rclpy.subscription import Subscription
 from rclpy.publisher import Publisher
@@ -608,7 +608,7 @@ class Orchestrator:
             next = self.next_input
             self.next_input = None
             self.l.info(f"Requesting data on topic {next.topic} for current time {self.simulator_time}")
-            if self.timing_analysis:
+            if self.next_input_timestamp is not None:
                 delta = datetime.datetime.now() - self.next_input_timestamp
                 self.l.info(f"Topic input was delayed by {delta}")
             assert self.simulator_time is not None
@@ -622,7 +622,7 @@ class Orchestrator:
             next = self.next_input
             self.next_input = None
             self.l.info(f"Requesting clock input for time {next.time}")
-            if self.timing_analysis:
+            if self.next_input_timestamp is not None:
                 delta = datetime.datetime.now() - self.next_input_timestamp
                 self.l.info(f"Clock input was delayed by {delta}")
             self.__add_pending_timers_until(next.time)
@@ -652,9 +652,9 @@ class Orchestrator:
                 yield id, data
 
     def __edges_between(self, u: GraphNodeId, v: GraphNodeId) -> Generator[Tuple[Any, Dict], None, None]:
-        for e_u, e_v, e_k, e_d in self.graph.edges(nbunch=[u, v], data=True, keys=True):
+        for e_u, e_v, e_k, e_d in self.graph.edges(nbunch=[u, v], data=True, keys=True):  # type: ignore
             if e_u == u and e_v == v:
-                yield e_k, e_d
+                yield e_k, cast(Dict, e_d)
 
     def __causality_childs_of(self, buffer_id: GraphNodeId) -> Generator[GraphNodeId, None, None]:
         for node in self.graph.predecessors(buffer_id):
@@ -815,7 +815,7 @@ class Orchestrator:
         self.graph.remove_node(graph_node)
         if self.__graph_is_empty() and self.dataprovider_pending_actions_future is not None:
             self.l.info("  Graph is now empty, allowing data provider to continue.")
-            if self.timing_analysis:
+            if self.dataprovider_pending_actions_future_timestamp is not None:
                 delta = datetime.datetime.now() - self.dataprovider_pending_actions_future_timestamp
                 self.l.info(f"  Data provider state update was delayed by {delta}")
             self.dataprovider_pending_actions_future.set_result(())
@@ -897,7 +897,7 @@ class Orchestrator:
         if self.dataprovider_state_update_future is not None:
             if not self.__has_nodes_that_change_provider_state():
                 self.l.info("  No actions which change provider state anymore, allowing data provider state update.")
-                if self.timing_analysis:
+                if self.dataprovider_state_update_future_timestamp is not None:
                     delta = datetime.datetime.now() - self.dataprovider_state_update_future_timestamp
                     self.l.info(f"  Data provider state update was delayed by {delta}")
                 self.dataprovider_state_update_future.set_result(())
@@ -916,7 +916,7 @@ class Orchestrator:
 
     def __reconfiguration_done_callback(self, future: Future):
         assert future.done()
-        response: ReconfigurationRequest.Response = future.result()
+        response = cast(ReconfigurationRequest.Response, future.result())
         package_name = response.new_launch_config_package
         file_name = response.new_launch_config_filename
         lc(self.l, f"Received reconfiguration done callback! New config: {package_name} {file_name}")
@@ -975,6 +975,7 @@ class Orchestrator:
                 if isinstance(data.cause, TopicInput) and data.cause.input_topic == self.next_input.topic:
                     return False
             return True
+        assert False
 
     def __graph_is_empty(self) -> bool:
         return self.graph.number_of_nodes() == 0
@@ -998,8 +999,8 @@ class Orchestrator:
             else:
                 raise RuntimeError(f"Unknown action type: {d}")
 
-        node_list = '\n'.join(
-            ["(" + str(nid) + ", " + str(nd["data"]) + ")" for nid, nd in self.graph.nodes(data=True)])
+        node_list = '\n'.join(["(" + str(nid) + ", " + str(nd["data"]) + ")" for nid, nd in
+                               cast(Iterable[tuple[Any, dict]], self.graph.nodes(data=True))])
         raise ActionNotFoundError(
             f"There is no currently running action which should have published a message on topic \"{published_topic_name}\"! "
             f"Current graph nodes: \n{node_list}")
@@ -1028,7 +1029,7 @@ class Orchestrator:
         """
 
         try:
-            import netgraph
+            import netgraph  # pyright: ignore [reportMissingImports]
         except ImportError:
             netgraph = None
 
@@ -1099,7 +1100,8 @@ class Orchestrator:
 
         if self.ignore_next_input_from_topic[topic_name]:
             self.ignore_next_input_from_topic[topic_name] = False
-            self.l.debug(f"Ignoring input from topic {topic_name} since it was already given to us by dataprovider_publish()")
+            self.l.debug(
+                f"Ignoring input from topic {topic_name} since it was already given to us by dataprovider_publish()")
             return
 
         if topic_name == normalize_topic_name("clock"):
@@ -1178,17 +1180,18 @@ class Orchestrator:
     def __in_degree_by_type(self, node: GraphNodeId, edge_type: EdgeType) -> int:
         """ Returns the in-degree of an edge filtered by edge type """
         degree = 0
-        # type: ignore
-        for u, v, edge_data in self.graph.in_edges(node, data=True):
-            type: EdgeType = edge_data["edge_type"]  # type: ignore
+        edge_data: dict
+        for u, v, edge_data in self.graph.in_edges(node, data=True):  # type: ignore
+            type: EdgeType = edge_data["edge_type"]
             if type == edge_type:
                 degree += 1
         return degree
 
     def __parent_node(self, node: GraphNodeId) -> Optional[GraphNodeId]:
         parent = None
-        # type: ignore
-        for u, v, edge_data in self.graph.out_edges(node, data=True):
+
+        edge_data: dict
+        for u, v, edge_data in self.graph.out_edges(node, data=True):  # type: ignore
             type: EdgeType = edge_data["edge_type"]  # type: ignore
             if type == EdgeType.CAUSALITY:
                 if parent is not None:
@@ -1233,8 +1236,8 @@ class Orchestrator:
             except ActionNotFoundError:
                 self.l.warn("  Topic output was not expected, ignoring...")
                 continue
-            causing_action = cast(Union[CallbackAction, DataProviderInputAction],
-                                  self.graph.nodes[cause_action_id]["data"])
+            causing_action = cast(CallbackAction, self.graph.nodes[cause_action_id]["data"])
+            assert isinstance(causing_action, CallbackAction)
             assert causing_action.node == msg.node_name
             for buffer_id, buffer_data in list(self.__buffer_childs_of_parent(cause_action_id)):
                 if buffer_data.cause.input_topic == omitted_output_topic_name:
