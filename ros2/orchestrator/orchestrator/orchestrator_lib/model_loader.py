@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from .node_model_from_file import ConfigFileNodeModel
 
@@ -10,15 +10,17 @@ from ament_index_python.packages import get_package_share_path, PackageNotFoundE
 import json
 from jsonschema import validate
 
+JsonSchema = dict[str, Any]
 
-def load_launch_config_schema():
+
+def load_launch_config_schema() -> JsonSchema:
     orchestrator_package_path = get_package_share_path("orchestrator")
     with open(orchestrator_package_path / "schemas" / "launch_config_schema.json") as f:
         launch_config_schema = json.load(f)
     return launch_config_schema
 
 
-def load_node_config_schema():
+def load_node_config_schema() -> JsonSchema:
     orchestrator_package_path = get_package_share_path("orchestrator")
     with open(orchestrator_package_path / "schemas" / "node_config_schema.json") as f:
         node_config_schema = json.load(f)
@@ -47,14 +49,14 @@ def _get_config_path(package: str, name: str) -> Path:
         raise RuntimeError(f"Config file {name} from package {package} not found at expected location {config_path}.")
 
 
-def load_node_config_file(path: Path, schema: dict):
+def load_node_config_file(path: Path, schema: JsonSchema) -> dict[str, Any]:
     with open(path) as f:
         node_config = json.load(f)
     validate(instance=node_config, schema=schema)
     return node_config
 
 
-def load_node_config(package: str, name: str, schema):
+def load_node_config(package: str, name: str, schema: JsonSchema):
     try:
         path = _get_config_path(package, name)
     except PackageNotFoundError:
@@ -62,14 +64,14 @@ def load_node_config(package: str, name: str, schema):
     return load_node_config_file(path, schema)
 
 
-def load_launch_config_file(launch_config_path, schema):
+def load_launch_config_file(launch_config_path, schema: JsonSchema):
     with open(launch_config_path) as f:
         launch_config = json.load(f)
     validate(instance=launch_config, schema=schema)
     return launch_config
 
 
-def load_launch_config(package, name, schema):
+def load_launch_config(package: str, name: str, schema: JsonSchema):
     try:
         path = _get_config_path(package, name)
     except PackageNotFoundError:
@@ -77,8 +79,8 @@ def load_launch_config(package, name, schema):
     return load_launch_config_file(path, schema)
 
 
-def load_models(launch_config: dict, node_config_schema) -> List[NodeModel]:
-    models = []
+def load_models(launch_config: dict, node_config_schema: JsonSchema) -> List[NodeModel]:
+    models: list[NodeModel] = []
     for name, node in launch_config["nodes"].items():
         remappings: Dict[str, str] = node.get("remappings", {})
         if isinstance(node["config_file"], str):
