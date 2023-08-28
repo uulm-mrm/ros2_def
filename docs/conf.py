@@ -30,8 +30,9 @@ jsonschema_options = {
 }
 
 intersphinx_mapping = {
-    "rclcpp": ("http://docs.ros.org/en/rolling/p/rclcpp", None),
-    "rclpy": ("http://docs.ros.org/en/rolling/p/rclpy/", None)
+    "rclcpp": ("https://docs.ros.org/en/rolling/p/rclcpp", None),
+    "rclpy": ("https://docs.ros.org/en/rolling/p/rclpy/", None),
+    "tf2_ros_py": ("https://docs.ros.org/en/rolling/p/tf2_ros_py/", None),
 }
 intersphinx_disabled_reftypes = ["*"]
 

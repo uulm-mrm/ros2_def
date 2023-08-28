@@ -45,6 +45,45 @@ The actual topic name is available from ROS publishers in ``rclcpp`` (:external+
 
   status_msg.omitted_outputs = [self.publisher.topic_name]
 
+Hidden Subscriptions
+--------------------
+
+Components such as the :external+tf2_ros_py:py:class:`tf2_ros.transform_listener.TransformListener` create subscriptions with callbacks that do not publish status messages.
+To enable using the orchestrator with those components, it is possible to wrap the ``rclpy.node.Node`` class:
+
+.. code-block:: python
+   :linenos:
+   :caption: rclpy Node wrapper with status publisher
+
+   class OrchestratorWrapperNode:
+       def __init__(self, node):
+           self.node = node
+           self.callbacks = {}
+           self.orchestrator_status_pub = self.node.create_publisher(Status, "/status", 10)
+
+       def publish_status(self):
+           status_msg = Status()
+           status_msg.node_name = self.node.get_name()
+           self.orchestrator_status_pub.publish(status_msg)
+
+       def create_subscription(self, topic_type, topic, callback, *args, **kwargs):
+           self.callbacks[topic] = callback
+           return self.node.create_subscription(topic_type, topic, lambda msg, topic=topic: self.handle(msg, topic), *args, **kwargs)
+
+       def destroy_subscription(self, subscription):
+           self.node.destroy_subscription(subscription)
+
+       def handle(self, msg, topic):
+           self.callbacks[topic](msg)
+           self.publish_status()
+
+   class MyModule:
+       def __init__(self, node):
+           self.tf2_buffer = tf2_ros.Buffer()
+           self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer, OrchestratorWrapperNode(node))
+           # ...
+
+
 JSON Node Behavior Description
 ==============================
 
