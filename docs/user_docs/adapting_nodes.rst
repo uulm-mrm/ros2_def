@@ -23,8 +23,11 @@ Ensure the node meets the required execution behavior:
 Status Outputs
 ==============
 
-.. warning::
-  TODO: Status outputs
+If a callback does not produce an output, it must inform the orchestrator of callback completion by publishing a Status message.
+
+.. literalinclude:: ../../ros2/orchestrator_interfaces/msg/Status.msg
+   :linenos:
+   :caption: orchestrator_interfaces/msg/Status ROS message definition
 
 .. _user_docs-omitted-outputs:
 
@@ -89,5 +92,23 @@ JSON Node Behavior Description
 
 Node behavior needs to be described statically in a JSON configuration file.
 The file must adhere to the following schema (which is available at `node_config_schema.json <https://github.com/uulm-mrm/ros2_def/blob/develop/ros2/orchestrator/schemas/node_config_schema.json>`_ for IDE integration):
+Examples of node configs are given :ref:`below<node_config_examples>`.
 
 .. jsonschema:: ../../ros2/orchestrator/schemas/node_config_schema.json
+
+.. _node_config_examples:
+
+Node Config Example
+-------------------
+
+A node config might then look like this:
+
+.. literalinclude:: ../../ros2/orchestrator/config/unittest_detector_node_config.json
+   :linenos:
+   :language: json
+   :caption: "Detector Node" config example
+
+.. literalinclude:: ../../ros2/orchestrator/config/unittest_planning_node_config.json
+   :linenos:
+   :language: json
+   :caption: "Planning Node" config example
