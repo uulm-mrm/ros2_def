@@ -57,21 +57,20 @@ class NodeModel(ABC):
         super().__init__()
 
     @abstractmethod
-    def state_sequence_push(self, message: Any):
+    def state_sequence_push(self, message: Any) -> None:
         ...
 
     @abstractmethod
-    def dump_state_sequence(self):
+    def dump_state_sequence(self) -> None:
         ...
 
     def get_name(self) -> str:
         return self.name
 
-    def internal_name_from_topic(self, topic: str):
+    def internal_name_from_topic(self, topic: str) -> str:
         """Map remapped topic name to internal name"""
         for input_name, input_topic in self.remappings:
             if input_topic == topic:
-
                 return input_name
         raise ValueError(f"Topic {topic} is not known to node")
 

@@ -15,7 +15,7 @@ def normalize_topic_name(name: str) -> str:
     return name
 
 
-def remove_prefix(text: str, prefix: str):
+def remove_prefix(text: str, prefix: str) -> str:
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
@@ -44,5 +44,5 @@ def initial_name_from_intercepted(intercepted_name: str) -> tuple[str, str]:
     return node_name, topic_name
 
 
-def type_from_string(typestring: str):
+def type_from_string(typestring: str) -> type:
     return rosidl_runtime_py.utilities.get_message(typestring)

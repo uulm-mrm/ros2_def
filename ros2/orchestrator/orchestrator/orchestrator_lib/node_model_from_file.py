@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import dataclass
-from typing import Iterable, cast, final, Optional, Any
+from typing import Iterable, cast, final, Optional, Any, Union
 
 from orchestrator.orchestrator_lib.name_utils import normalize_topic_name
 from orchestrator.orchestrator_lib.node_model import Cause, Effect, NodeModel, ServiceCall, ServiceName, \
@@ -24,7 +24,7 @@ class Callback:
 @final
 class ConfigFileNodeModel(NodeModel):
 
-    def state_sequence_push(self, message: Any):
+    def state_sequence_push(self, message: Any) -> None:
         if not isinstance(message, bytes):
             message = serialize_message(message)
         h = base64.b64encode(message).decode()
@@ -39,7 +39,7 @@ class ConfigFileNodeModel(NodeModel):
                                    f"Expected: {expected_deserialized}. Diff: {diff}")
         self.state_recording.append(h)
 
-    def dump_state_sequence(self):
+    def dump_state_sequence(self) -> None:
         with open('state_sequence_' + self.get_name() + '.json', 'w') as f:
             json.dump(self.state_recording, f)
 
@@ -59,7 +59,7 @@ class ConfigFileNodeModel(NodeModel):
         # Initialize mappings by identity for all known inputs and outputs from
         # node config.
         for callback in cast(Iterable[dict[str, Any]], node_config["callbacks"]):
-            trigger: str | dict[str, Any] = cast(str | dict[str, Any], callback["trigger"])
+            trigger: str | dict[str, Any] = cast(Union[str, dict[str, Any]], callback["trigger"])
 
             if isinstance(trigger, str):
                 trigger = normalize_topic_name(trigger)
@@ -116,7 +116,8 @@ class ConfigFileNodeModel(NodeModel):
         # Mapping from external topic input to external topic outputs
         self.effects: dict[Cause, Callback] = {}
 
-        def add_effect(trigger: Cause, outputs: Iterable[str], service_calls: Iterable[str], changes_dp_state: bool, may_reconfigure: bool):
+        def add_effect(trigger: Cause, outputs: Iterable[str], service_calls: Iterable[str], changes_dp_state: bool,
+                       may_reconfigure: bool):
             output_effects: list[Effect] = []
             for output in outputs:
                 output = normalize_topic_name(output)
@@ -166,7 +167,8 @@ class ConfigFileNodeModel(NodeModel):
                            callback.get("service_calls", []),
                            callback.get("changes_dataprovider_state", False),
                            callback.get("may_cause_reconfiguration", False))
-            elif trigger.get("type", None) == "approximate_time_sync" and "input_topics" in trigger and "slop" in trigger and "queue_size" in trigger:
+            elif trigger.get("type",
+                             None) == "approximate_time_sync" and "input_topics" in trigger and "slop" in trigger and "queue_size" in trigger:
                 input_topics = trigger["input_topics"]
                 slop = trigger["slop"]
                 queue = trigger["queue_size"]

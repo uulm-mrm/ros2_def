@@ -3,7 +3,10 @@
 import datetime
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set, Iterable
+from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set, Iterable, Text
+
+from rclpy.client import Client
+from rclpy.service import Service
 from typing_extensions import TypeAlias
 
 from std_srvs.srv import Trigger
@@ -124,29 +127,29 @@ class Orchestrator:
 
         self.graph: nx.MultiDiGraph = nx.MultiDiGraph()
 
-        def debug_service_cb(request, response):
+        def debug_service_cb(_request: Trigger.Request, response: Trigger.Response) -> Trigger.Response:
             response.success = True
             response.message = f"Nodes: {self.graph.nodes(data=True)}"
             return response
 
-        self.debug_service = self.ros_node.create_service(Trigger, "~/get_debug", debug_service_cb)
+        self.debug_service: Service = self.ros_node.create_service(Trigger, "~/get_debug", debug_service_cb)
 
-        self.status_subscription = self.ros_node.create_subscription(
+        self.status_subscription: Subscription = self.ros_node.create_subscription(
             Status, "status", self.__status_callback, 10)
         # Server to announce reconfig at
-        self.reconfig_announce_service = self.ros_node.create_service(
+        self.reconfig_announce_service: Service = self.ros_node.create_service(
             ReconfigurationAnnouncement,
             "announce_reconfig",
             self.__reconfiguration_announcement_callback)
         # Client to request reconfiguration once ready
-        self.reconfig_client = self.ros_node.create_client(
+        self.reconfig_client: Client = self.ros_node.create_client(
             ReconfigurationRequest,
             "request_reconfig"
         )
 
         self.pending_reconfiguration = False
 
-        self.ignore_next_input_from_topic = defaultdict(bool)
+        self.ignore_next_input_from_topic: defaultdict[TopicName, bool] = defaultdict(bool)
 
     def __reconfiguration_announcement_callback(self, _request: ReconfigurationAnnouncement.Request,
                                                 response: ReconfigurationAnnouncement.Response):
@@ -155,7 +158,7 @@ class Orchestrator:
         self.pending_reconfiguration = True
         return response
 
-    def dump_state_sequence(self):
+    def dump_state_sequence(self) -> None:
         """Dump recorded state sequence json files for all nodes"""
         if not self.state_sequence_recording:
             self.l.error("dump_state_sequence was called but state sequence recording is disabled."
@@ -178,7 +181,7 @@ class Orchestrator:
         self.interception_pubs: Dict[NodeName, Dict[TopicName, Publisher]] = {}
         self.time_sync_models: Dict[NodeName, Dict[TimeSyncInfo, ApproximateTimeSynchronizerTracker]] = {}
 
-    def initialize_ros_communication(self):
+    def initialize_ros_communication(self) -> None:
         """
         Subscribe to all required ros topics as per launch-config.
 
@@ -235,7 +238,7 @@ class Orchestrator:
                                 TopicType,
                                 effect.output_topic,
                                 lambda msg,
-                                topic_name=effect.output_topic: self.__interception_subscription_callback(
+                                       topic_name=effect.output_topic: self.__interception_subscription_callback(
                                     topic_name, msg),
                                 10, raw=(TopicType != rosgraph_msgs.msg.Clock))
                             self.interception_subs[effect.output_topic] = sub
@@ -272,7 +275,7 @@ class Orchestrator:
             self.l.info("  Waiting until actions modifying provider state are done.")
         return future
 
-    def dataprovider_publish(self, topic, message):
+    def dataprovider_publish(self, topic: TopicName, message: Any) -> None:
         """
         Gives a message to the orchestrator before it will actually be published.
         If it is a Status message, it must not be published after it was given to dataprovider_publish!
@@ -468,7 +471,7 @@ class Orchestrator:
         lc(self.l, "Waiting until reconfiguration is allowed...")
         return self.wait_until_pending_actions_complete()
 
-    def reconfigure(self, new_node_config: List[NodeModel]):
+    def reconfigure(self, new_node_config: List[NodeModel]) -> None:
         """
         | Reconfiguration workflow:
         | 1. Stop providing data (messages/time)
@@ -648,7 +651,7 @@ class Orchestrator:
                 yield (id, action)
 
     def __buffer_childs_of_parent(self, parent: GraphNodeId) -> Generator[
-            Tuple[GraphNodeId, OrchestratorBufferAction], None, None]:
+        Tuple[GraphNodeId, OrchestratorBufferAction], None, None]:
         for id, data in self.__buffer_nodes_with_data():
             if self.graph.has_edge(id, parent):
                 yield id, data
@@ -922,7 +925,7 @@ class Orchestrator:
         package_name = response.new_launch_config_package
         file_name = response.new_launch_config_filename
         lc(self.l, f"Received reconfiguration done callback! New config: {package_name} {file_name}")
-        self.pending_reconfiguration = False
+        self.pending_reconfiguration: bool = False
         self.reconfigure(load_models(
             load_launch_config(package_name, file_name, load_launch_config_schema()), load_node_config_schema()
         ))
@@ -1024,7 +1027,7 @@ class Orchestrator:
             f"There is no currently running action for node {node_name} which should have published a status message.\n"
             f"Graph: {self.graph.nodes(data=True)}")
 
-    def plot_graph(self):
+    def plot_graph(self) -> None:
         """
         Display interactive visualization of current callback graph.
         Requires `netgraph <https://github.com/paulbrodersen/netgraph>`_, which is optional otherwise.
@@ -1097,7 +1100,7 @@ class Orchestrator:
 
         plt.show()
 
-    def __interception_subscription_callback(self, topic_name: TopicName, msg: Any):
+    def __interception_subscription_callback(self, topic_name: TopicName, msg: Union[rosgraph_msgs.msg.Clock, bytes]):
         lc(self.l, f"Received message on intercepted topic {topic_name}")
 
         if self.ignore_next_input_from_topic[topic_name]:
@@ -1247,8 +1250,8 @@ class Orchestrator:
                     self.__remove_node(buffer_id, recursive=True)
 
         if cause_action_id is None:
-            self.diagnose_invalid_status(msg)
-            raise RuntimeError(self.diagnose_invalid_status(msg))
+            self.__diagnose_invalid_status(msg)
+            raise RuntimeError(self.__diagnose_invalid_status(msg))
 
         assert causing_action is not None
 
@@ -1262,7 +1265,7 @@ class Orchestrator:
 
         self.__process()
 
-    def diagnose_invalid_status(self, msg: Status) -> str:
+    def __diagnose_invalid_status(self, msg: Status) -> str:
         """
         Produce error message in case a status message is received without causing action
         """

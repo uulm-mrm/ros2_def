@@ -31,7 +31,8 @@ def wait_for_topic(name: TopicName, logger: RcutilsLogger, node: Node, executor:
     return msgtype
 
 
-def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor) -> Type[Any]:
+def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor) -> Type[
+    Any]:
     topic_name = node.resolve_topic_name(topic_name)
 
     def try_get_type() -> Optional[Type[Any]]:
@@ -56,7 +57,7 @@ def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, no
     return topic_type
 
 
-def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor):
+def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor) -> None:
     topic_name = node.resolve_topic_name(topic_name, only_expand=True)
 
     def node_has_pub():

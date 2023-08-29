@@ -13,6 +13,8 @@ import json
 from jsonschema import validate
 
 JsonSchema = dict[str, Any]
+NodeConfigFile = dict[str, Any]
+LaunchConfigFile = dict[str, Any]
 
 
 def load_launch_config_schema() -> JsonSchema:
@@ -51,14 +53,14 @@ def _get_config_path(package: str, name: str) -> Path:
         raise RuntimeError(f"Config file {name} from package {package} not found at expected location {config_path}.")
 
 
-def load_node_config_file(path: Path, schema: JsonSchema) -> dict[str, Any]:
+def load_node_config_file(path: Path, schema: JsonSchema) -> NodeConfigFile:
     with open(path) as f:
         node_config = json.load(f)
     validate(instance=node_config, schema=schema)
     return node_config
 
 
-def load_node_config(package: str, name: str, schema: JsonSchema):
+def load_node_config(package: str, name: str, schema: JsonSchema) -> NodeConfigFile:
     try:
         path = _get_config_path(package, name)
     except PackageNotFoundError:
@@ -66,14 +68,14 @@ def load_node_config(package: str, name: str, schema: JsonSchema):
     return load_node_config_file(path, schema)
 
 
-def load_launch_config_file(launch_config_path: Path, schema: JsonSchema):
+def load_launch_config_file(launch_config_path: Path, schema: JsonSchema) -> LaunchConfigFile:
     with open(launch_config_path) as f:
         launch_config = json.load(f)
     validate(instance=launch_config, schema=schema)
     return launch_config
 
 
-def load_launch_config(package: str, name: str, schema: JsonSchema):
+def load_launch_config(package: str, name: str, schema: JsonSchema) -> LaunchConfigFile:
     try:
         path = _get_config_path(package, name)
     except PackageNotFoundError:

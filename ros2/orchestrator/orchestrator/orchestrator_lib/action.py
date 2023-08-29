@@ -49,11 +49,11 @@ class RxAction(_BaseAction):
     """
 
     @property
-    def topic(self):
+    def topic(self) -> str:
         """Alias for cause.input_topic, provided for compatibility."""
         return self.cause.input_topic
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"RxAction(state={self.state}, node={self.node}, timestamp={self.timestamp}, cause={self.cause}, " \
                f"data={'present' if self.data is not None else None}, " \
                f"approx_time_sync={self.is_approximate_time_synced})"
@@ -67,7 +67,7 @@ class TimerCallbackAction(_BaseAction):
     """Description of the causing input"""
 
     @property
-    def period(self):
+    def period(self) -> int:
         """Alias for cause.period, provided for compatibility."""
         return self.cause.period
 
@@ -98,7 +98,7 @@ Action: TypeAlias = Union[
 
 CallbackAction: TypeAlias = Union[TimerCallbackAction, RxAction]
 OrchestratorAction: TypeAlias = Union[OrchestratorBufferAction,
-                                      OrchestratorStatusAction, DataProviderInputAction]
+OrchestratorStatusAction, DataProviderInputAction]
 
 
 class EdgeType(Enum):
