@@ -1,14 +1,19 @@
 from rclpy.lifecycle import Publisher
 from rclpy.node import Node, MsgType
 from rclpy.subscription import Subscription
-from typing import Callable, Any
+from typing import Callable, Any, Union, List
 
 from orchestrator_interfaces.msg import Status
 
 
 class OrchestratorWrapperNode:
-    def __init__(self, node: Node):
+    def __init__(self, node: Node, topics : Union[List[str], None] = None):
+    """
+    :param topics: List of topics for which status messages should be published.
+                   If None, status message is published for every topic input.
+    """
         self.node = node
+        self.topics = topics
         self.callbacks: dict[str, Callable[[MsgType], None]] = {}
         self.orchestrator_status_pub: Publisher = self.node.create_publisher(Status, "/status", 10)
 
@@ -20,7 +25,8 @@ class OrchestratorWrapperNode:
     def create_subscription(self, topic_type: type, topic: str, callback: Callable[[MsgType], None], *args: Any,
                             **kwargs: Any) -> Subscription:
         self.callbacks[topic] = callback
-        return self.node.create_subscription(topic_type, topic, lambda msg, topic=topic: self.handle(msg, topic), *args,
+        callback = (lambda msg, topic=topic: self.handle(msg, topic)) if self.topics is None or topic in self.topics else callback
+        return self.node.create_subscription(topic_type, topic, callback, *args,
                                              **kwargs)
 
     def destroy_subscription(self, subscription: Subscription) -> bool:
