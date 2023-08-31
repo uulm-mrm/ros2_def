@@ -866,8 +866,9 @@ class Orchestrator:
                     data.state = ActionState.RUNNING
                     if self.state_sequence_recording:
                         self.__node_model_by_name(data.node).state_sequence_push(data.data)
-                    self.interception_pubs[data.node][data.topic].publish(
-                        data.data)
+                    pub = self.interception_pubs[data.node][data.topic]
+                    self.l.info(f"Publishing data on intercepted topic {pub.topic_name}")
+                    pub.publish(data.data)
                 elif isinstance(data, RxAction):
                     assert data.data is not None
                     self.l.info(
@@ -875,8 +876,9 @@ class Orchestrator:
                     data.state = ActionState.RUNNING
                     if self.state_sequence_recording:
                         self.__node_model_by_name(data.node).state_sequence_push(data.data)
-                    self.interception_pubs[data.node][data.topic].publish(
-                        data.data)
+                    pub = self.interception_pubs[data.node][data.topic]
+                    self.l.info(f"Publishing data on intercepted topic {pub.topic_name}")
+                    pub.publish(data.data)
                 elif isinstance(data, TimerCallbackAction):
                     self.l.info(
                         f"    Action is ready and has no constraints: Timer callback with period "
@@ -886,7 +888,9 @@ class Orchestrator:
                     time_msg.clock = data.timestamp.to_msg()
                     if self.state_sequence_recording:
                         self.__node_model_by_name(data.node).state_sequence_push(time_msg)
-                    self.interception_pubs[data.node][normalize_topic_name("clock")].publish(time_msg)
+                    pub = self.interception_pubs[data.node][normalize_topic_name("clock")]
+                    self.l.info(f"Publishing data on intercepted topic {pub.topic_name}")
+                    pub.publish(time_msg)
                 repeat = True
         self.l.info(
             "  Done processing! Checking if next input can be requested...")
@@ -1105,7 +1109,7 @@ class Orchestrator:
 
         if self.ignore_next_input_from_topic[topic_name]:
             self.ignore_next_input_from_topic[topic_name] = False
-            self.l.debug(
+            self.l.info(
                 f"Ignoring input from topic {topic_name} since it was already given to us by dataprovider_publish()")
             return
 
@@ -1239,7 +1243,7 @@ class Orchestrator:
             try:
                 cause_action_id = self.__find_running_action(omitted_output_topic_name)
             except ActionNotFoundError:
-                self.l.warn("  Topic output was not expected, ignoring...")
+                self.l.warn(f"  Status message specifies omitted topic output {omitted_output_topic_name}, but it was not expected, ignoring...")
                 continue
             causing_action = cast(CallbackAction, self.graph.nodes[cause_action_id]["data"])
             assert isinstance(causing_action, CallbackAction)
@@ -1248,6 +1252,9 @@ class Orchestrator:
                 if buffer_data.cause.input_topic == omitted_output_topic_name:
                     self.l.debug(f"  deleting buffer node {buffer_id} recursively")
                     self.__remove_node(buffer_id, recursive=True)
+                    # Remove at most one buffer node of this topic.
+                    # During timer-init, two identical buffer nodes exist.
+                    break
 
         if cause_action_id is None:
             self.__diagnose_invalid_status(msg)

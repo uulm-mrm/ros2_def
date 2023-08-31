@@ -47,7 +47,7 @@ def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, no
         logger.info(
             f"  Node \"{node_name}\" is already subscribed to \"{topic_name}\"")
     else:
-        logger.info(
+        logger.warn(
             f"  Waiting for node \"{node_name}\" to subscribe to \"{topic_name}\"")
 
     while not topic_type:
@@ -71,7 +71,7 @@ def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, no
         logger.info(
             f"  Node \"{node_name}\" already has a publisher for \"{topic_name}\"")
     else:
-        logger.info(
+        logger.warn(
             f"  Waiting for node \"{node_name}\" to create a publisher for \"{topic_name}\"")
 
     while not node_has_pub():
