@@ -206,7 +206,7 @@ class Orchestrator:
                 subscription = self.ros_node.create_subscription(
                     TopicType, canonical_name,
                     lambda msg, topic_name=canonical_name: self.__interception_subscription_callback(
-                        topic_name, msg),
+                        topic_name, cast(Union[rosgraph_msgs.msg.Clock, bytes], msg)),
                     10, raw=(TopicType != rosgraph_msgs.msg.Clock))
                 self.interception_subs[canonical_name] = subscription
             else:
@@ -239,7 +239,7 @@ class Orchestrator:
                                 effect.output_topic,
                                 lambda msg,
                                        topic_name=effect.output_topic: self.__interception_subscription_callback(
-                                    topic_name, msg),
+                                    topic_name, cast(Union[rosgraph_msgs.msg.Clock, bytes], msg)),
                                 10, raw=(TopicType != rosgraph_msgs.msg.Clock))
                             self.interception_subs[effect.output_topic] = sub
                             wait_for_node_pub(
@@ -1243,7 +1243,8 @@ class Orchestrator:
             try:
                 cause_action_id = self.__find_running_action(omitted_output_topic_name)
             except ActionNotFoundError:
-                self.l.warn(f"  Status message specifies omitted topic output {omitted_output_topic_name}, but it was not expected, ignoring...")
+                self.l.warn(
+                    f"  Status message specifies omitted topic output {omitted_output_topic_name}, but it was not expected, ignoring...")
                 continue
             causing_action = cast(CallbackAction, self.graph.nodes[cause_action_id]["data"])
             assert isinstance(causing_action, CallbackAction)

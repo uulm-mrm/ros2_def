@@ -58,4 +58,4 @@ jobs:
           cd $GITHUB_WORKSPACE
           . ./install/setup.sh
           cd ros2/orchestrator
-          pyright
+          FORCE_COLOR=3 pyright

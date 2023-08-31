@@ -40,7 +40,7 @@ def generate_remappings_from_config_file(package_name: str, launch_config_file: 
     return generate_remappings_from_config(launch_config)
 
 
-def generate_remappings_from_config(launch_config: dict[str, Any]) -> List[SetRemap]:  # pyright: ignore
+def generate_remappings_from_config(launch_config: dict[str, Any]) -> List[SetRemap]:
     """
     Generate remappings for topic interception by orchestrator.
 
