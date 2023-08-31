@@ -59,3 +59,38 @@ jobs:
           . ./install/setup.sh
           cd ros2/orchestrator
           FORCE_COLOR=3 pyright
+
+  lib-type-completeness:
+    runs-on: ubuntu-22.04
+    container: ros:iron
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          path: ros2_def
+      # TODO: Remove this once the ROS release contains 760e2193288af5c4e5948725bf0def1e18fe8b80
+      - name: Check out launch_ros
+        uses: actions/checkout@v3
+        with:
+          repository: ros2/launch_ros
+          ref: rolling
+          path: launch_ros
+      - name: Install dependencies
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          apt update
+          rosdep update
+          rosdep install --from-paths ros2_def/ros2 --ignore-packages-from-source --verbose --default-yes --skip-keys="aduulm_cmake_tools aduulm_messages"
+          pip install --upgrade pyright
+      - name: Build orchestrator
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          colcon build --packages-up-to orchestrator
+      - name: Run pyright
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          . ./install/setup.sh
+          FORCE_COLOR=3 pyright --ignoreexternal --verifytypes orchestrator

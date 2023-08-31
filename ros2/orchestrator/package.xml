@@ -16,6 +16,7 @@
     <depend>python3-deepdiff</depend>
     <depend>python3-networkx</depend>
     <depend>python-jsonschema-pip</depend>
+    <depend>launch_ros</depend>
 
     <test_depend>python3-pytest</test_depend>
 
