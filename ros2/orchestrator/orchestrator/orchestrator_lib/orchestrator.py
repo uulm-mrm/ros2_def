@@ -3,7 +3,7 @@
 import datetime
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set, Iterable, Text
+from typing import Any, Generator, Tuple, cast, Union, Optional, List, Dict, Set, Iterable, Text, Callable
 
 from rclpy.client import Client
 from rclpy.service import Service
@@ -85,7 +85,7 @@ class Orchestrator:
 
     def __init__(self, ros_node: RosNode, executor: Executor, node_config: List[NodeModel],
                  logger: Optional[RcutilsLogger] = None, timing_analysis: bool = False,
-                 state_sequence_recording: bool = False) -> None:
+                 state_sequence_recording: bool = False, intercepted_topic_callback: Optional[Callable[[str, type, Any], None]] = None) -> None:
         """
         :param ros_node: A ROS node instance for the orchestrator.
             Should be separate to the hosting node to avoid name conflicts.
@@ -95,12 +95,17 @@ class Orchestrator:
         :param logger: Logger for orchestrator logs. If not provided, default logger of ros_node is used.
         :param timing_analysis: Log time from wait_until... API call to future resolution.
         :param state_sequence_recording: See https://uulm-mrm.github.io/ros2_def/dev_docs/debugging.html#state-sequences
+        :param intercepted_topic_callback: A callback that is executed when a message on an intercepted topic was
+            received, e.g. for logging purposes. Parameters are the topic, topic type and the message.
+            Message may be serialized.
         """
         self.ros_node = ros_node
         self.executor = executor
         self.l: RcutilsLogger = logger or ros_node.get_logger()
         self.timing_analysis: bool = timing_analysis
         self.state_sequence_recording: bool = state_sequence_recording
+        self.intercepted_topic_callback = intercepted_topic_callback
+        self.topic_types: Dict[TopicName, type] = {}
 
         self.node_models: List[NodeModel] = node_config
         _verify_node_models(self.node_models)
@@ -203,6 +208,7 @@ class Orchestrator:
             if canonical_name not in self.interception_subs:
                 self.l.info(f"  Subscribing to \"{canonical_name}\"")
 
+                self.topic_types[canonical_name] = TopicType
                 subscription = self.ros_node.create_subscription(
                     TopicType, canonical_name,
                     lambda msg, topic_name=canonical_name: self.__interception_subscription_callback(
@@ -234,6 +240,7 @@ class Orchestrator:
                             self.l.info(
                                 f"  Subscribing to output topic: {effect.output_topic}")
                             TopicType = wait_for_topic(effect.output_topic, self.l, self.ros_node, self.executor)
+                            self.topic_types[effect.output_topic] = TopicType
                             sub = self.ros_node.create_subscription(
                                 TopicType,
                                 effect.output_topic,
@@ -1106,6 +1113,9 @@ class Orchestrator:
 
     def __interception_subscription_callback(self, topic_name: TopicName, msg: Union[rosgraph_msgs.msg.Clock, bytes]):
         lc(self.l, f"Received message on intercepted topic {topic_name}")
+
+        if self.intercepted_topic_callback is not None:
+            self.intercepted_topic_callback(topic_name, self.topic_types[topic_name], msg)
 
         if self.ignore_next_input_from_topic[topic_name]:
             self.ignore_next_input_from_topic[topic_name] = False
