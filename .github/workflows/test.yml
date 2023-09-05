@@ -6,6 +6,7 @@ on:
       - $default-branch
       # TODO: set develop as default
       - develop
+  pull_request:
 
 jobs:
   unit-test:
