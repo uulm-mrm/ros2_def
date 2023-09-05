@@ -85,7 +85,7 @@ class Orchestrator:
 
     def __init__(self, ros_node: RosNode, executor: Executor, node_config: List[NodeModel],
                  logger: Optional[RcutilsLogger] = None, timing_analysis: bool = False,
-                 state_sequence_recording: bool = False, intercepted_topic_callback: Callable[[str, type, any], None] = None) -> None:
+                 state_sequence_recording: bool = False, intercepted_topic_callback: Optional[Callable[[str, type, Any], None]] = None) -> None:
         """
         :param ros_node: A ROS node instance for the orchestrator.
             Should be separate to the hosting node to avoid name conflicts.
