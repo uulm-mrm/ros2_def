@@ -105,7 +105,7 @@ class Orchestrator:
         self.timing_analysis: bool = timing_analysis
         self.state_sequence_recording: bool = state_sequence_recording
         self.intercepted_topic_callback = intercepted_topic_callback
-        self.topic_types = {}
+        self.topic_types: Dict[TopicName, type] = {}
 
         self.node_models: List[NodeModel] = node_config
         _verify_node_models(self.node_models)
