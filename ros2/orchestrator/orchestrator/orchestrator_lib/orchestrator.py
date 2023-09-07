@@ -294,6 +294,8 @@ class Orchestrator:
             return
         if topic not in self.interception_subs.keys():
             self.l.info(f"Got a message on topic {topic} but we are not subscribed to this input. Ignoring.")
+            if self.intercepted_topic_callback is not None:
+                self.intercepted_topic_callback(topic, type(message), message)
             return
         self.__interception_subscription_callback(topic, message)
         # Ignore next input from this topic, since it will be published now
@@ -1114,14 +1116,14 @@ class Orchestrator:
     def __interception_subscription_callback(self, topic_name: TopicName, msg: Union[rosgraph_msgs.msg.Clock, bytes]):
         lc(self.l, f"Received message on intercepted topic {topic_name}")
 
-        if self.intercepted_topic_callback is not None:
-            self.intercepted_topic_callback(topic_name, self.topic_types[topic_name], msg)
-
         if self.ignore_next_input_from_topic[topic_name]:
             self.ignore_next_input_from_topic[topic_name] = False
             self.l.info(
                 f"Ignoring input from topic {topic_name} since it was already given to us by dataprovider_publish()")
             return
+
+        if self.intercepted_topic_callback is not None:
+            self.intercepted_topic_callback(topic_name, self.topic_types[topic_name], msg)
 
         if topic_name == normalize_topic_name("clock"):
 
