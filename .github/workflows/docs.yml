@@ -19,7 +19,7 @@ jobs:
     container: ros:iron
     steps:
       - name: Install latex and pip
-        run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript imagemagick python3-typing-extensions python3-networkx python3-matplotlib
+        run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript imagemagick python3-typing-extensions python3-networkx python3-matplotlib doxygen
       - name: Install sphinx
         run: pip install --upgrade sphinx~=7.0 deepdiff jsonschema sphinx-jsonschema
       - name: Adjust imagemagick security policy to allow PDF -> PNG conversion
