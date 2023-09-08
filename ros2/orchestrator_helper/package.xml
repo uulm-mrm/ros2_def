@@ -1,23 +1,17 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>orchestrator</name>
+    <name>orchestrator_helper</name>
     <version>0.0.0</version>
     <description>Library for sequence-deterministic ROS node execution</description>
-    <author email="jonas@jonasotto.com">Jonas Otto</author>
+    <author email="jan.strohbeck@uni-ulm.de">Jan Strohbeck</author>
     <maintainer email="jonas@jonasotto.com">Jonas Otto</maintainer>
     <license>Apache-2.0</license>
 
     <buildtool_depend>ament_cmake</buildtool_depend>
 
     <depend>orchestrator_interfaces</depend>
-    <depend>python3-typing-extensions</depend>
-    <depend>python3-deepdiff</depend>
-    <depend>python3-networkx</depend>
-    <depend>python-jsonschema-pip</depend>
     <depend>launch_ros</depend>
-
-    <test_depend>python3-pytest</test_depend>
 
     <export>
         <build_type>ament_cmake</build_type>
