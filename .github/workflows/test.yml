@@ -95,3 +95,22 @@ jobs:
           cd $GITHUB_WORKSPACE
           . ./install/setup.sh
           FORCE_COLOR=3 pyright --ignoreexternal --verifytypes orchestrator
+
+  cpp-helper-build:
+    runs-on: ubuntu-22.04
+    container: ros:iron
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          apt update
+          rosdep update
+          rosdep install --from-paths ros2 --ignore-packages-from-source --verbose --default-yes --skip-keys="aduulm_cmake_tools aduulm_messages"
+      - name: Build orchestrator_helper
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          cd $GITHUB_WORKSPACE
+          colcon build --packages-up-to orchestrator_helper
