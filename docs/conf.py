@@ -19,6 +19,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx-jsonschema',
     'sphinx.ext.intersphinx',
+    'breathe'
 ]
 autoclass_content = 'both'
 sys.path.insert(0, '../ros2/orchestrator')
@@ -35,6 +36,11 @@ intersphinx_mapping = {
     "tf2_ros_py": ("https://docs.ros.org/en/rolling/p/tf2_ros_py/", None),
 }
 intersphinx_disabled_reftypes = ["*"]
+
+breathe_projects = {
+    "orchestrator_helper": "../ros2/orchestrator_helper/docs/xml"
+}
+breathe_default_project = "orchestrator_helper"
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

@@ -9,4 +9,5 @@ User Docs
 
    adapting_data_sources
    adapting_nodes
+   cpp_helpers
    launch_config
