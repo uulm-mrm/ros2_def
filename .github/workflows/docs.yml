@@ -19,9 +19,9 @@ jobs:
     container: ros:iron
     steps:
       - name: Install latex and pip
-        run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript imagemagick python3-typing-extensions python3-networkx python3-matplotlib
+        run: sudo apt update && sudo apt install -y texlive texlive-latex-extra texlive-plain-generic python3-pip make ghostscript imagemagick python3-typing-extensions python3-networkx python3-matplotlib doxygen
       - name: Install sphinx
-        run: pip install --upgrade sphinx~=7.0 deepdiff jsonschema sphinx-jsonschema
+        run: pip install --upgrade sphinx~=7.0 deepdiff jsonschema sphinx-jsonschema breathe
       - name: Adjust imagemagick security policy to allow PDF -> PNG conversion
         run: sudo sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml
       - name: Check out repository code
@@ -31,6 +31,12 @@ jobs:
           . /opt/ros/$ROS_DISTRO/setup.sh
           cd $GITHUB_WORKSPACE
           colcon build --packages-up-to orchestrator --packages-skip orchestrator
+      - name: Build doxygen docs for c++ components
+        run: |
+          . /opt/ros/$ROS_DISTRO/setup.sh
+          . $GITHUB_WORKSPACE/install/setup.sh
+          cd $GITHUB_WORKSPACE/ros2/orchestrator_helper
+          doxygen
       - name: Build docs
         run: |
           . /opt/ros/$ROS_DISTRO/setup.sh
