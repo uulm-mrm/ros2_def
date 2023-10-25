@@ -63,6 +63,7 @@ class FutureInput:
 class FutureTimestep:
     time: Time
     future: Future
+    allow_jump: bool
 
 
 def _verify_node_models(node_models):
@@ -420,7 +421,7 @@ class Orchestrator:
 
         self.l.info(" Created all callback actions, proceeding as usual.")
 
-    def wait_until_time_publish_allowed(self, t: Time) -> Future:
+    def wait_until_time_publish_allowed(self, t: Time, allow_jump: bool = False) -> Future:
         """
         Get a future that will be complete once the specified timestamp can be published.
         The caller should spin the executor of the RosNode while waiting, otherwise the future
@@ -443,7 +444,7 @@ class Orchestrator:
             return f
 
         f = Future()
-        self.next_input = FutureTimestep(t, f)
+        self.next_input = FutureTimestep(t, f, allow_jump)
         if self.timing_analysis:
             self.next_input_timestamp = datetime.datetime.now()
 
@@ -516,7 +517,7 @@ class Orchestrator:
         self.initialize_ros_communication()
         self.__process()
 
-    def __add_pending_timers_until(self, t: Time):
+    def __add_pending_timers_until(self, t: Time, allow_jump: bool = False):
         """
         Add all remaining timer events.
 
@@ -551,6 +552,7 @@ class Orchestrator:
 
         expected_timer_actions: List[TimerCallbackAction] = []
 
+        reinit_timers = False
         for timer in timers:
             self.l.debug(f" Considering timer {timer}")
             nr_fires = last_time // timer.cause.period
@@ -560,13 +562,19 @@ class Orchestrator:
                 f"  Timer has fired {nr_fires} times, the last invocation was at {last_fire}, next will be at {next_fire}")
             dt: int = t.nanoseconds - last_time
             if dt > timer.cause.period:
-                raise RuntimeError(f"Requested timestep too large! Stepping time from {last_time} to {t} ({dt}) "
-                                   "would require firing the timer multiple times within the same timestep. "
-                                   "This is probably unintended!")
+                if not allow_jump:
+                    raise RuntimeError(f"Requested timestep too large! Stepping time from {last_time} to {t} ({dt}) "
+                                       "would require firing the timer multiple times within the same timestep. "
+                                       "This is probably unintended!")
+                reinit_timers = True
+                continue
             if next_fire <= t:
                 self.l.info(f" Timer of node \"{timer.node}\" with period {timer.cause.period} will fire!")
                 action = TimerCallbackAction(ActionState.WAITING, timer.node, t, timer.cause)
                 expected_timer_actions.append(action)
+        if reinit_timers:
+            self.__initialize_sim_time(t)
+            self.simulator_time = t
 
         self.l.info(
             f" Adding actions for {len(expected_timer_actions)} timer callbacks.")
@@ -639,7 +647,7 @@ class Orchestrator:
             if self.next_input_timestamp is not None:
                 delta = datetime.datetime.now() - self.next_input_timestamp
                 self.l.info(f"Clock input was delayed by {delta}")
-            self.__add_pending_timers_until(next.time)
+            self.__add_pending_timers_until(next.time, next.allow_jump)
             self.simulator_time = next.time
             next.future.set_result(None)
         elif self.next_input is None:
