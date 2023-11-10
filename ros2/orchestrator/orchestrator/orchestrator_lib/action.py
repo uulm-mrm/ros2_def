@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Union
 from typing_extensions import TypeAlias
-from orchestrator.orchestrator_lib.node_model import Cause, TopicInput, TimerInput
+from orchestrator.orchestrator_lib.node_model import TopicInput, TimerInput
 from rclpy.time import Time
 
 
@@ -30,7 +30,6 @@ class _BaseAction:
     state: ActionState
     node: str
     timestamp: Time
-    cause: Cause
 
 
 @dataclass
