@@ -85,7 +85,9 @@ def load_launch_config(package: str, name: str, schema: JsonSchema) -> LaunchCon
 
 def load_models(launch_config: dict[str, Any], node_config_schema: JsonSchema) -> List[NodeModel]:
     models: list[NodeModel] = []
-    for name, node in launch_config["nodes"].items():
+    nodes_with_priorities = [(node.get('priority', 0), k, node) for k, node in launch_config["nodes"].items()]
+    nodes_with_priorities = sorted(nodes_with_priorities, key=lambda x: x[:2], reverse=True)
+    for _, name, node in nodes_with_priorities:
         remappings: Dict[str, str] = node.get("remappings", {})
         if isinstance(node["config_file"], str):
             path = node["config_file"]

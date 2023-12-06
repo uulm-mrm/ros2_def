@@ -19,7 +19,7 @@ class OrchestratorWrapperNode:
 
     def publish_status(self) -> None:
         status_msg = Status()
-        status_msg.node_name = self.node.get_name()
+        status_msg.node_name = self.node.get_fully_qualified_name()
         self.orchestrator_status_pub.publish(status_msg)
 
     def create_subscription(self, topic_type: type, topic: str, callback: Callable[[Any], None], *args: Any,

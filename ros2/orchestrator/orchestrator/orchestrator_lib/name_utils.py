@@ -22,6 +22,8 @@ def remove_prefix(text: str, prefix: str) -> str:
 
 
 def intercepted_name(node_name: str, topic_name: str) -> str:
+    if node_name.startswith("/"):
+        node_name = node_name[1:]
     if topic_name.startswith("/"):
         topic_name = topic_name[1:]
     return f"/intercepted/{node_name}/sub/{topic_name}"
