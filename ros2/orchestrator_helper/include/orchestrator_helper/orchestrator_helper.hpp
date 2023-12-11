@@ -116,7 +116,7 @@ public:
   {
     static int debug_id_ = 0;
     StatusMsg status_msg;
-    status_msg.node_name = node_->get_name();
+    status_msg.node_name = std::string(node_->get_namespace()) + "/" + node_->get_name();
     status_msg.debug_id = debug_id >= 0 ? debug_id : debug_id_++;
     status_msg.omitted_outputs = omitted_outputs;
     status_pub_->publish(std::move(status_msg));

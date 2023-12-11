@@ -8,6 +8,9 @@
         "name": {
             "type": "string"
         },
+        "priority": {
+            "type": "number"
+        },
         "callbacks": {
             "title": "List of callback specifications",
             "type": "array",

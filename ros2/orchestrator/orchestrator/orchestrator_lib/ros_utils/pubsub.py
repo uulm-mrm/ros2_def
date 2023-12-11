@@ -37,7 +37,7 @@ def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, no
 
     def try_get_type() -> Optional[Type[Any]]:
         for info in node.get_subscriptions_info_by_topic(topic_name):
-            if info.node_name == node_name:
+            if f"{info.node_namespace}/{info.node_name}" == node_name:
                 return type_from_string(info.topic_type)
         return None
 
@@ -59,9 +59,11 @@ def wait_for_node_sub(topic_name: str, node_name: str, logger: RcutilsLogger, no
 
 def wait_for_node_pub(topic_name: str, node_name: str, logger: RcutilsLogger, node: Node, executor: Executor) -> None:
     topic_name = node.resolve_topic_name(topic_name, only_expand=True)
+    splt = node_name.split('/')
+    node_name, node_namespace = splt[-1], '/'.join(splt[:-1])
 
     def node_has_pub():
-        by_node = node.get_publisher_names_and_types_by_node(node_name, node.get_namespace())
+        by_node = node.get_publisher_names_and_types_by_node(node_name, node_namespace)
         for topic, _types in by_node:
             if topic == topic_name:
                 return True
