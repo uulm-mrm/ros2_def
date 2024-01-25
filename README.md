@@ -10,8 +10,13 @@ License
 
 License: Apache 2.0
 
-Authors: Jonas Otto, Jan Strohbeck
+Affiliation: Institute of Measurement, Control and Microtechnology, Ulm University.
 
-Maintainers: Jan Strohbeck (MRM)
+### Aduulm Repository Metadata
 
-Affiliation: Institute of Measurement, Control and Microtechnology (MRM), Ulm University
+- last updated: 01/2024
+- name: orchestrator
+- category: tooling
+- maintainers: Jan Strohbeck
+- license: Apache 2.0
+- HW dependencies: none
