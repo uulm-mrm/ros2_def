@@ -17,6 +17,6 @@ Affiliation: Institute of Measurement, Control and Microtechnology, Ulm Universi
 - last updated: 01/2024
 - name: orchestrator
 - category: tooling
-- maintainers: Jan Strohbeck
+- maintainers: Jan Strohbeck, Charlotte Hermann
 - license: Apache 2.0
 - HW dependencies: none
